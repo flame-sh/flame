@@ -3,11 +3,15 @@ module xflops.cn/flame
 go 1.18
 
 require (
+	github.com/google/uuid v1.1.1
 	github.com/spf13/pflag v1.0.5
 	go.uber.org/automaxprocs v1.4.0
+	google.golang.org/grpc v1.38.0
+	google.golang.org/protobuf v1.26.0
 	k8s.io/apimachinery v0.19.15
 	k8s.io/component-base v0.19.15
 	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.2.0
 	volcano.sh/volcano v1.5.1
 )
 
@@ -20,6 +24,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/emicklei/go-restful v2.9.5+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-logr/logr v0.2.0 // indirect
@@ -29,14 +34,16 @@ require (
 	github.com/google/cadvisor v0.37.5 // indirect
 	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/google/uuid v1.1.1 // indirect
 	github.com/googleapis/gnostic v0.4.1 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
+	github.com/hashicorp/go-multierror v1.0.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.1 // indirect
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/prometheus/client_golang v1.7.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.10.0 // indirect
@@ -53,8 +60,6 @@ require (
 	golang.org/x/time v0.0.0-20191024005414-555d28b269f0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
-	google.golang.org/grpc v1.38.0 // indirect
-	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/api v0.19.15 // indirect
@@ -62,7 +67,6 @@ require (
 	k8s.io/client-go v0.19.15 // indirect
 	k8s.io/cloud-provider v0.19.15 // indirect
 	k8s.io/csi-translation-lib v0.19.15 // indirect
-	k8s.io/klog/v2 v2.2.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6 // indirect
 	k8s.io/kube-scheduler v0.0.0 // indirect
 	k8s.io/kubernetes v1.19.15 // indirect
