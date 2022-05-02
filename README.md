@@ -4,4 +4,4 @@
 [![RepoSize](https://img.shields.io/github/repo-size/xflops/flame)](http://github.com/xflops/flame)
 [![Release](https://img.shields.io/github/release/xflops/flame)](https://github.com/xflops/flame/releases)
 
-An open source engine for compute insentive workload
+A cloud native engine for intelligent workload.
