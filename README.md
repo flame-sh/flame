@@ -21,7 +21,7 @@ several features, e.g. fair-sharing, but there's still some gaps for elastic wor
 
 ## Overall Architecture
 
-![flame-architecture](docs/images/flame-architecture.png)
+![flame-architecture](docs/images/flame-architecture.jpg)
 
 ### Terminologies
 
