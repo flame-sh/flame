@@ -36,7 +36,7 @@ grpc-gen: grpc-pkg
 		-I${GOPATH}/src/ \
 		--go_out=${GOPATH}/src/xflops.cn/flame \
 		--go-grpc_out=${GOPATH}/src/xflops.cn/flame/ \
-  		xflops.cn/flame/protos/session.proto
+		xflops.cn/flame/protos/flame.proto
 
 flame-api-gateway: init grpc-gen
 	go build -ldflags ${LD_FLAGS} -o=${BIN_DIR}/flame-api-gateway ./cmd/api-gateway

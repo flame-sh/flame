@@ -13,6 +13,6 @@
 
 package scheduler
 
-// TODO(k82cn): integrate with Volcano
+// TODO(k82cn): integrate with Kubernetes
 type ResourceManager struct {
 }
