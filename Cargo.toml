@@ -1,0 +1,15 @@
+[workspace]
+
+members = [
+    "flmctl",
+    "session_manager",
+    "executor_manager",
+	"rpc",
+]
+
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+tonic = "0.8"
+prost = "0.11"
+
