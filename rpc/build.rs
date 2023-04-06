@@ -11,17 +11,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tonic_build::configure()
+        .compile(&["protos/flame.proto"], &["protos"])?;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+    Ok(())
 }

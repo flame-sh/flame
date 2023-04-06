@@ -1,0 +1,182 @@
+syntax = "proto3";
+
+package flame;
+
+message Metadata {
+  string id = 1;
+  string owner = 2;
+}
+
+enum SessionState {
+  Open = 0;
+  Closed = 1;
+}
+
+message SessionStatus {
+  SessionState state = 1;
+
+  int64 creation_time = 2;
+  int64 completion_time = 3;
+
+  int32 pending = 4;
+  int32 running = 5;
+  int32 succeed = 6;
+  int32 failed = 7;
+}
+
+message SessionSpec {
+  string service_type = 1;
+  bool  recoverable = 2;
+  int32 slots = 3;
+}
+
+message Session {
+  Metadata metadata = 1 ;
+  SessionSpec spec = 2;
+  SessionStatus status = 3;
+}
+
+enum TaskState {
+  Pending = 0;
+  Running = 1;
+  Succeed = 2;
+  Failed = 3;
+}
+
+message TaskStatus {
+  TaskState state = 1;
+
+  int64 creation_time = 2;
+  int64 completion_time = 3;
+}
+
+message TaskSpec {
+  string session_id = 2;
+
+  optional string input = 3;
+  optional string output = 4;
+}
+
+message Task {
+  Metadata metadata = 1;
+  TaskSpec spec = 2;
+  TaskStatus status = 3;
+}
+
+message ExecutorSpec {
+  string type = 1;
+  int32 slots = 2;
+}
+
+enum ExecutorState {
+  idle = 0;
+  bound = 1;
+}
+
+message ExecutorStatus {
+  ExecutorState state = 1;
+}
+
+message Executor {
+  Metadata metadata = 1;
+  ExecutorSpec spec = 2;
+  ExecutorStatus status = 3;
+}
+
+message Result {
+  int32 return_code = 1;
+  string message = 2;
+}
+
+message SessionList {
+  repeated Session sessions = 1;
+}
+
+/*
+  The frontend service of Lava, which is used to communicate with client sdk,
+  e.g. create connection/session/task and so on.
+ */
+service Connection {
+  rpc CreateSession (CreateSessionRequest) returns (Session) {}
+  rpc DeleteSession (DeleteSessionRequest) returns (Result) {}
+
+  rpc GetSession(GetSessionRequest) returns (Session) {}
+  rpc ListSession (ListSessionRequest) returns (SessionList) {}
+
+  rpc CreateTask (CreateTaskRequest) returns (Task) {}
+  rpc DeleteTask (DeleteTaskRequest) returns (Result) {}
+
+  rpc GetTask (GetTaskRequest) returns (Task) {}
+}
+
+message CreateSessionRequest {
+  SessionSpec session = 1;
+}
+
+message DeleteSessionRequest {
+  string session_id = 1;
+}
+
+message GetSessionRequest {
+  string session_id = 1;
+}
+
+message ListSessionRequest {
+
+}
+
+message CreateTaskRequest {
+  TaskSpec task = 1;
+}
+
+message DeleteTaskRequest {
+  string task_id = 1;
+  string session_id = 2;
+}
+
+message GetTaskRequest {
+  string task_id = 1;
+  string session_id = 2;
+}
+
+/*
+  The backend service of Lava, which is used to communicate with service sdk,
+  e.g. register executor, invoke tasks and so on.
+ */
+service Backend {
+  rpc RegisterExecutor (RegisterExecutorRequest) returns (Executor) {}
+  rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
+
+  rpc BindExecutor (BindExecutorRequest) returns (Session) {}
+  rpc UnbindExecutor (UnbindExecutorRequest) returns (Result) {}
+
+  rpc LaunchTask (LaunchTaskRequest) returns (Task) {}
+  rpc CompleteTask(CompleteTaskRequest) returns (Result) {}
+}
+
+message RegisterExecutorRequest {
+  ExecutorSpec executor = 1;
+}
+
+message UnregisterExecutorRequest {
+  string executor_id = 1;
+}
+
+message BindExecutorRequest {
+  string executor_id = 1;
+}
+
+message UnbindExecutorRequest {
+  string executor_id = 1;
+}
+
+message LaunchTaskRequest {
+  string executor_id = 1;
+}
+
+message CompleteTaskRequest {
+  string executor_id = 1;
+  string task_id = 2;
+
+  string task_output = 3;
+}
