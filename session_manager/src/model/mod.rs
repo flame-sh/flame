@@ -11,15 +11,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+mod errors;
+pub use crate::model::errors::FlameError;
+
 #[derive(Clone, Copy, Debug)]
 pub enum SessionState {
     Open = 0,
     Closed = 1,
 }
 
+pub type SessionID = i64;
+pub type TaskID = i64;
+
 #[derive(Clone, Debug)]
 pub struct Session {
-    pub id: i64,
+    pub id: SessionID,
+    pub service_type: String,
+    pub slots: i32,
     pub tasks: Vec<Box<Task>>,
     pub state: SessionState,
 }
@@ -36,8 +44,8 @@ pub enum TaskState {
 
 #[derive(Clone, Debug)]
 pub struct Task {
-    pub id: i64,
-    pub ssn_id: i64,
+    pub id: TaskID,
+    pub ssn_id: SessionID,
     pub input: String,
     pub output: String,
     pub state: TaskState,
