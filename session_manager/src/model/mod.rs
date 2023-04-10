@@ -22,6 +22,7 @@ pub enum SessionState {
 
 pub type SessionID = i64;
 pub type TaskID = i64;
+pub type ExecutorID = String;
 
 #[derive(Clone, Debug)]
 pub struct Session {
@@ -49,4 +50,23 @@ pub struct Task {
     pub input: String,
     pub output: String,
     pub state: TaskState,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum ExecutorState {
+    Idle = 0,
+    Binding = 1,
+    Bound = 2,
+    Unbinding = 3,
+    Unknown = 4,
+}
+
+#[derive(Clone, Debug)]
+pub struct Executor {
+    pub id: ExecutorID,
+    pub service_type: String,
+    pub task_id: Option<TaskID>,
+    pub ssn_id: Option<SessionID>,
+
+    pub state: ExecutorState,
 }
