@@ -12,8 +12,7 @@ limitations under the License.
 */
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tonic_build::configure()
-        .compile(&["protos/flame.proto"], &["protos"])?;
+    tonic_build::configure().compile(&["protos/flame.proto"], &["protos"])?;
 
     Ok(())
 }

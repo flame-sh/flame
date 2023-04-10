@@ -14,17 +14,47 @@ limitations under the License.
 use async_trait::async_trait;
 use tonic::{Request, Response, Status};
 
-use rpc::flame::{BindExecutorRequest, CompleteTaskRequest, Executor, LaunchTaskRequest, RegisterExecutorRequest, Session, Task, UnbindExecutorRequest, UnregisterExecutorRequest};
 use rpc::flame::backend_server::Backend;
+use rpc::flame::{
+    BindExecutorRequest, CompleteTaskRequest, Executor, LaunchTaskRequest, RegisterExecutorRequest,
+    Session, Task, UnbindExecutorRequest, UnregisterExecutorRequest,
+};
 
 use crate::apiserver::Flame;
 
 #[async_trait]
 impl Backend for Flame {
-    async fn register_executor(&self, _: Request<RegisterExecutorRequest>) -> Result<Response<Executor>, Status> { todo!() }
-    async fn unregister_executor(&self, _: Request<UnregisterExecutorRequest>) -> Result<Response<rpc::flame::Result>, Status> { todo!() }
-    async fn bind_executor(&self, _: Request<BindExecutorRequest>) -> Result<Response<Session>, Status> { todo!() }
-    async fn unbind_executor(&self, _: Request<UnbindExecutorRequest>) -> Result<Response<rpc::flame::Result>, Status> { todo!() }
-    async fn launch_task(&self, _: Request<LaunchTaskRequest>) -> Result<Response<Task>, Status> { todo!() }
-    async fn complete_task(&self, _: Request<CompleteTaskRequest>) -> Result<Response<rpc::flame::Result>, Status> { todo!() }
+    async fn register_executor(
+        &self,
+        _: Request<RegisterExecutorRequest>,
+    ) -> Result<Response<Executor>, Status> {
+        todo!()
+    }
+    async fn unregister_executor(
+        &self,
+        _: Request<UnregisterExecutorRequest>,
+    ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
+    async fn bind_executor(
+        &self,
+        _: Request<BindExecutorRequest>,
+    ) -> Result<Response<Session>, Status> {
+        todo!()
+    }
+    async fn unbind_executor(
+        &self,
+        _: Request<UnbindExecutorRequest>,
+    ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
+    async fn launch_task(&self, _: Request<LaunchTaskRequest>) -> Result<Response<Task>, Status> {
+        todo!()
+    }
+    async fn complete_task(
+        &self,
+        _: Request<CompleteTaskRequest>,
+    ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
 }

@@ -14,18 +14,50 @@ limitations under the License.
 use async_trait::async_trait;
 use tonic::{Request, Response, Status};
 
-use rpc::flame::{CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest, DeleteTaskRequest, GetSessionRequest, GetTaskRequest, ListSessionRequest, Session, SessionList, Task};
 use rpc::flame::frontend_server::Frontend;
+use rpc::flame::{
+    CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest, DeleteTaskRequest,
+    GetSessionRequest, GetTaskRequest, ListSessionRequest, Session, SessionList, Task,
+};
 
 use crate::apiserver::Flame;
 
 #[async_trait]
 impl Frontend for Flame {
-    async fn create_session(&self, _: Request<CreateSessionRequest>) -> Result<Response<Session>, Status> { todo!() }
-    async fn delete_session(&self, _: Request<DeleteSessionRequest>) -> Result<Response<rpc::flame::Result>, Status> { todo!() }
-    async fn get_session(&self, _: Request<GetSessionRequest>) -> Result<Response<Session>, Status> { todo!() }
-    async fn list_session(&self, _: Request<ListSessionRequest>) -> Result<Response<SessionList>, Status> { todo!() }
-    async fn create_task(&self, _: Request<CreateTaskRequest>) -> Result<Response<Task>, Status> { todo!() }
-    async fn delete_task(&self, _: Request<DeleteTaskRequest>) -> Result<Response<rpc::flame::Result>, Status> { todo!() }
-    async fn get_task(&self, _: Request<GetTaskRequest>) -> Result<Response<Task>, Status> { todo!() }
+    async fn create_session(
+        &self,
+        _: Request<CreateSessionRequest>,
+    ) -> Result<Response<Session>, Status> {
+        todo!()
+    }
+    async fn delete_session(
+        &self,
+        _: Request<DeleteSessionRequest>,
+    ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
+    async fn get_session(
+        &self,
+        _: Request<GetSessionRequest>,
+    ) -> Result<Response<Session>, Status> {
+        todo!()
+    }
+    async fn list_session(
+        &self,
+        _: Request<ListSessionRequest>,
+    ) -> Result<Response<SessionList>, Status> {
+        todo!()
+    }
+    async fn create_task(&self, _: Request<CreateTaskRequest>) -> Result<Response<Task>, Status> {
+        todo!()
+    }
+    async fn delete_task(
+        &self,
+        _: Request<DeleteTaskRequest>,
+    ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
+    async fn get_task(&self, _: Request<GetTaskRequest>) -> Result<Response<Task>, Status> {
+        todo!()
+    }
 }
