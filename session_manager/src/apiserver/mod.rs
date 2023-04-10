@@ -14,9 +14,5 @@ limitations under the License.
 mod frontend;
 mod backend;
 
-
-
-struct Flame {
-
-}
+pub struct Flame {}
 

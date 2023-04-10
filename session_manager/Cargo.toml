@@ -7,5 +7,6 @@ edition = "2021"
 
 [dependencies]
 tonic = { workspace = true }
+async-trait = "0.1"
 
 rpc = { path = "../rpc" }

@@ -11,13 +11,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-mod scheduler;
-mod storage;
-mod apiserver;
-mod model;
+#[derive(Clone, Copy, Debug)]
+pub enum SessionState {
+    Open = 0,
+    Closed = 1,
+}
 
-fn main() {
-    // storage::start()?;
-    // apiserver::start()?;
-    // scheduler::start()?;
+#[derive(Clone, Debug)]
+pub struct Session {
+    pub id: i64,
+    pub tasks: Vec<Box<Task>>,
+    pub state: SessionState,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum TaskState {
+    Pending = 0,
+    Running = 1,
+    Completed = 2,
+    Failed = 3,
+    Aborting = 4,
+    Aborted = 5,
+}
+
+#[derive(Clone, Debug)]
+pub struct Task {
+    pub id: i64,
+    pub ssn_id: i64,
+    pub input: String,
+    pub output: String,
+    pub state: TaskState,
 }

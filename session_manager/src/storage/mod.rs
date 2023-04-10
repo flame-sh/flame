@@ -12,3 +12,11 @@ limitations under the License.
 */
 
 mod memory;
+
+use crate::model;
+
+
+pub trait Storage {
+
+
+}
