@@ -93,10 +93,10 @@ message SessionList {
 }
 
 /*
-  The frontend service of Lava, which is used to communicate with client sdk,
+  The frontend service of Flame, which is used to communicate with client sdk,
   e.g. create connection/session/task and so on.
  */
-service Connection {
+service Frontend {
   rpc CreateSession (CreateSessionRequest) returns (Session) {}
   rpc DeleteSession (DeleteSessionRequest) returns (Result) {}
 

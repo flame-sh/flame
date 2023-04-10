@@ -16,7 +16,7 @@ mod storage;
 mod apiserver;
 
 fn main() {
-    storage::start()?;
-    apiserver::start()?;
-    scheduler::start()?;
+    // storage::start()?;
+    // apiserver::start()?;
+    // scheduler::start()?;
 }
