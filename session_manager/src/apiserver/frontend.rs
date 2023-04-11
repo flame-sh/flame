@@ -26,9 +26,15 @@ use crate::apiserver::Flame;
 impl Frontend for Flame {
     async fn create_session(
         &self,
-        _: Request<CreateSessionRequest>,
+        req: Request<CreateSessionRequest>,
     ) -> Result<Response<Session>, Status> {
-        todo!()
+        let ssn_spec = req.into().session;
+        let ssn = self
+            .storage
+            .create_session(ssn_spec.application, ssn_spec.slots)
+            .await?;
+
+        Ok(Response::new(Session::from(ssn)))
     }
     async fn delete_session(
         &self,

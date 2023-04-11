@@ -25,7 +25,7 @@ message SessionStatus {
 }
 
 message SessionSpec {
-  string service_type = 1;
+  string application = 1;
   int32 slots = 2;
 }
 

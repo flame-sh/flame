@@ -11,71 +11,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::FlameError;
+use async_trait::async_trait;
+
 use crate::model::{Executor, ExecutorID, Session, SessionID, Task, TaskID};
-use crate::storage::{SnapShot, Storage};
+use crate::storage::SnapShot;
+use crate::FlameError;
 
-pub struct NoneStorage {
+#[async_trait]
+pub trait Engine {
+    async fn snapshot(&self) -> Result<SnapShot, FlameError>;
 
-}
+    async fn persist_session(&self, ssn: &Session) -> Result<(), FlameError>;
+    async fn get_session(&self, id: SessionID) -> Result<Session, FlameError>;
+    async fn delete_session(&self, id: SessionID) -> Result<(), FlameError>;
+    async fn update_session(&self, ssn: &Session) -> Result<(), FlameError>;
+    async fn find_session(&self) -> Result<Vec<Session>, FlameError>;
 
-impl Storage for NoneStorage {
-    async fn snapshot(&self) -> Result<SnapShot, FlameError> {
-        Ok(SnapShot{
-            sessions: vec![],
-            executors: vec![]
-        })
-    }
+    async fn persist_task(&self, task: &Task) -> Result<(), FlameError>;
+    async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
+    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
+    async fn update_task(&self, t: &Task) -> Result<(), FlameError>;
 
-    async fn persist_session(&self, ssn: &Session) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn get_session(&self, id: SessionID) -> Result<Session, FlameError> {
-        todo!()
-    }
-
-    async fn delete_session(&self, id: SessionID) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn update_session(&self, ssn: &Session) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn find_session(&self) -> Result<Vec<Session>, FlameError> {
-        Ok(vec![])
-    }
-
-    async fn persist_task(&self, task: &Task) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
-        todo!()
-    }
-
-    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn update_task(&self, t: &Task) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn persist_executor(&self, e: &Executor) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError> {
-        todo!()
-    }
-
-    async fn delete_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
-        Ok(())
-    }
-
-    async fn update_executor(&self, e: &Executor) -> Result<(), FlameError> {
-        Ok(())
-    }
+    async fn persist_executor(&self, e: &Executor) -> Result<(), FlameError>;
+    async fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError>;
+    async fn delete_executor(&self, id: ExecutorID) -> Result<(), FlameError>;
+    async fn update_executor(&self, e: &Executor) -> Result<(), FlameError>;
 }

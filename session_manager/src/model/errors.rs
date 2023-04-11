@@ -17,4 +17,7 @@ use thiserror::Error;
 pub enum FlameError {
     #[error("'{0}' not found")]
     NotFound(String),
+
+    #[error("'{0}' lock failed")]
+    Mutex(String),
 }

@@ -5,6 +5,7 @@ members = [
     "session_manager",
     "executor_manager",
     "rpc",
+    "fping",
 ]
 
 

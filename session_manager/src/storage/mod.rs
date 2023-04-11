@@ -11,14 +11,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use async_trait::async_trait;
+mod engine;
+mod util;
 
-use crate::model::{Executor, ExecutorID, FlameError, Session, SessionID, Task, TaskID};
+use std::collections::HashMap;
+use std::ops::Deref;
+use std::sync::{Arc, Mutex};
 
-mod memory;
+use chrono::Utc;
 
-pub fn new() -> Result<Box<dyn Storage>, FlameError> {
-    Err(FlameError::NotFound("mem".to_string()))
+use crate::model::{
+    Executor, ExecutorID, FlameError, Session, SessionID, SessionState, Task, TaskID,
+};
+
+pub fn new() -> Arc<Storage> {
+    Arc::new(Storage {
+        max_ssn_id: Mutex::new(0),
+        engine: None,
+        sessions: Arc::new(Mutex::new(HashMap::new())),
+        executors: Arc::new(Mutex::new(HashMap::new())),
+    })
+}
+
+pub struct Storage {
+    max_ssn_id: Mutex<i64>,
+    engine: Option<Arc<dyn engine::Engine>>,
+    sessions: Arc<Mutex<HashMap<SessionID, Arc<Session>>>>,
+    executors: Arc<Mutex<HashMap<ExecutorID, Arc<Executor>>>>,
 }
 
 pub struct SnapShot {
@@ -26,23 +45,89 @@ pub struct SnapShot {
     pub executors: Vec<Executor>,
 }
 
-#[async_trait]
-pub trait Storage {
-    async fn snapshot(&self) -> Result<SnapShot, FlameError>;
+impl Storage {
+    pub async fn snapshot(&self) -> Result<SnapShot, FlameError> {
+        todo!()
+    }
 
-    async fn create_session(&self, app: String, slots: i32) -> Result<Session, FlameError>;
-    async fn get_session(&self, id: SessionID) -> Result<Session, FlameError>;
-    async fn delete_session(&self, id: SessionID) -> Result<(), FlameError>;
-    async fn update_session(&self, ssn: &Session) -> Result<Session, FlameError>;
-    async fn find_session(&self) -> Result<Vec<Session>, FlameError>;
+    pub async fn create_session(&self, app: String, slots: i32) -> Result<Session, FlameError> {
+        let mut ssn_map = self
+            .sessions
+            .lock()
+            .map_err(|_| FlameError::Mutex("mem session".to_string()))?;
 
-    async fn create_task(&self, id: SessionID, task_input: &String) -> Result<Task, FlameError>;
-    async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
-    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
-    async fn update_task(&self, t: &Task) -> Result<Task, FlameError>;
+        let ssn = Session {
+            id: util::next_id(&self.max_ssn_id)?,
+            application: app,
+            slots,
+            tasks: vec![],
+            creation_time: Utc::now(),
+            completion_time: None,
+            state: SessionState::Open,
+            desired: 0.0,
+            allocated: 0.0,
+        };
+        let res = ssn.clone();
 
-    async fn register_executor(&self, e: &Executor) -> Result<(), FlameError>;
-    async fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError>;
-    async fn unregister_executor(&self, id: ExecutorID) -> Result<(), FlameError>;
-    async fn update_executor(&self, e: &Executor) -> Result<Executor, FlameError>;
+        ssn_map.insert(ssn.id, Arc::new(ssn));
+
+        Ok(res)
+    }
+
+    async fn get_session(&self, id: SessionID) -> Result<Session, FlameError> {
+        let mut ssn_map = self
+            .sessions
+            .lock()
+            .map_err(|_| FlameError::Mutex("mem session".to_string()))?;
+
+        let ssn = ssn_map.get(&id);
+        match ssn {
+            None => Err(FlameError::NotFound(id.to_string())),
+            Some(s) => Ok(s.deref().clone()),
+        }
+    }
+
+    async fn delete_session(&self, id: SessionID) -> Result<(), FlameError> {
+        todo!()
+    }
+
+    async fn update_session(&self, ssn: &Session) -> Result<Session, FlameError> {
+        todo!()
+    }
+
+    async fn find_session(&self) -> Result<Vec<Session>, FlameError> {
+        todo!()
+    }
+
+    async fn create_task(&self, id: SessionID, task_input: &String) -> Result<Task, FlameError> {
+        todo!()
+    }
+
+    async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
+        todo!()
+    }
+
+    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError> {
+        todo!()
+    }
+
+    async fn update_task(&self, t: &Task) -> Result<Task, FlameError> {
+        todo!()
+    }
+
+    async fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
+        todo!()
+    }
+
+    async fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError> {
+        todo!()
+    }
+
+    async fn unregister_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
+        todo!()
+    }
+
+    async fn update_executor(&self, e: &Executor) -> Result<Executor, FlameError> {
+        todo!()
+    }
 }

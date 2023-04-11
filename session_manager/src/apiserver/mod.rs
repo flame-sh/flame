@@ -14,4 +14,10 @@ limitations under the License.
 mod backend;
 mod frontend;
 
-pub struct Flame {}
+use std::sync::Arc;
+
+use crate::storage::Storage;
+
+pub struct Flame {
+    storage: Arc<Storage>,
+}

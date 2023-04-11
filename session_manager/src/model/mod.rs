@@ -11,9 +11,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub use crate::model::errors::FlameError;
+use chrono::{DateTime, Utc};
+
+use std::sync::Arc;
 
 mod errors;
+pub use crate::model::errors::FlameError;
 
 pub type SessionID = i64;
 pub type TaskID = i64;
@@ -28,10 +31,17 @@ pub enum SessionState {
 #[derive(Clone, Debug)]
 pub struct Session {
     pub id: SessionID,
-    pub service_type: String,
+    pub application: String,
     pub slots: i32,
-    pub tasks: Vec<Box<Task>>,
+    pub tasks: Vec<Arc<Task>>,
+
+    pub creation_time: DateTime<Utc>,
+    pub completion_time: Option<DateTime<Utc>>,
+
     pub state: SessionState,
+
+    pub desired: f64,
+    pub allocated: f64,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -50,6 +60,10 @@ pub struct Task {
     pub ssn_id: SessionID,
     pub input: String,
     pub output: String,
+
+    pub creation_time: DateTime<Utc>,
+    pub completion_time: Option<DateTime<Utc>>,
+
     pub state: TaskState,
 }
 
@@ -78,5 +92,6 @@ pub struct Executor {
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
+    pub creation_time: DateTime<Utc>,
     pub state: ExecutorState,
 }
