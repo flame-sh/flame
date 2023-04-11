@@ -10,3 +10,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+use std::sync::Mutex;
+use std::ops::Deref;
+use crate::FlameError;
+
+pub(crate) fn next_id(id: &Mutex<i64>) -> Result<i64, FlameError> {
+    let mut id = id.lock().map_err(|_| {
+        FlameError::Mutex("max id".to_string())
+    })?;
+    *id = *id + 1;
+
+    Ok(*id.deref())
+}
