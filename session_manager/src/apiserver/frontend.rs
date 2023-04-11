@@ -21,6 +21,7 @@ use rpc::flame::{
 };
 
 use crate::apiserver::Flame;
+use crate::storage;
 
 #[async_trait]
 impl Frontend for Flame {
@@ -28,14 +29,19 @@ impl Frontend for Flame {
         &self,
         req: Request<CreateSessionRequest>,
     ) -> Result<Response<Session>, Status> {
-        let ssn_spec = req.into().session;
+        let ssn_spec = req
+            .into_inner()
+            .session
+            .ok_or(Status::invalid_argument("session spec"))?;
+
         let ssn = self
             .storage
             .create_session(ssn_spec.application, ssn_spec.slots)
-            .await?;
+            .map_err(Status::from)?;
 
-        Ok(Response::new(Session::from(ssn)))
+        Ok(Response::new(Session::from(&ssn)))
     }
+
     async fn delete_session(
         &self,
         _: Request<DeleteSessionRequest>,
@@ -54,6 +60,7 @@ impl Frontend for Flame {
     ) -> Result<Response<SessionList>, Status> {
         todo!()
     }
+
     async fn create_task(&self, _: Request<CreateTaskRequest>) -> Result<Response<Task>, Status> {
         todo!()
     }

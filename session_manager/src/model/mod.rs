@@ -12,6 +12,9 @@ limitations under the License.
 */
 
 use chrono::{DateTime, Utc};
+use std::collections::HashMap;
+
+use rpc::flame;
 
 use std::sync::Arc;
 
@@ -34,6 +37,7 @@ pub struct Session {
     pub application: String,
     pub slots: i32,
     pub tasks: Vec<Arc<Task>>,
+    pub tasks_index: HashMap<TaskState, Vec<Arc<Task>>>,
 
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
@@ -42,6 +46,45 @@ pub struct Session {
 
     pub desired: f64,
     pub allocated: f64,
+}
+
+impl From<&Session> for flame::Session {
+    fn from(ssn: &Session) -> Self {
+        let mut status = flame::SessionStatus {
+            state: 0,
+            creation_time: ssn.creation_time.timestamp(),
+            completion_time: match ssn.completion_time {
+                None => None,
+                Some(s) => Some(s.timestamp()),
+            },
+            failed: 0,
+            pending: 0,
+            running: 0,
+            succeed: 0,
+        };
+        for (s, v) in &ssn.tasks_index {
+            match s {
+                TaskState::Pending => status.pending = v.len() as i32,
+                TaskState::Running => status.running = v.len() as i32,
+                TaskState::Completed => status.succeed = v.len() as i32,
+                TaskState::Failed => status.failed = v.len() as i32,
+                TaskState::Aborting => {}
+                TaskState::Aborted => {}
+            }
+        }
+
+        flame::Session {
+            metadata: Some(flame::Metadata {
+                id: ssn.id.to_string(),
+                owner: None,
+            }),
+            spec: Some(flame::SessionSpec {
+                application: ssn.application.clone(),
+                slots: ssn.slots,
+            }),
+            status: Some(status),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug)]

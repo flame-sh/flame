@@ -11,13 +11,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::sync::Arc;
+use tonic::transport::Server;
+
+use rpc::flame::frontend_server::FrontendServer;
+
+use crate::storage::Storage;
+use crate::{storage, FlameError};
+
 mod backend;
 mod frontend;
 
-use std::sync::Arc;
-
-use crate::storage::Storage;
-
 pub struct Flame {
     storage: Arc<Storage>,
+}
+
+pub async fn run() -> Result<(), FlameError> {
+    let address = "[::1]:8080".parse().unwrap();
+    let flame_service = Flame {
+        storage: storage::instance(),
+    };
+
+    Server::builder()
+        .add_service(FrontendServer::new(flame_service))
+        .serve(address)
+        .await
+        .map_err(|e| FlameError::Internet(e.to_string()))?;
+
+    Ok(())
 }

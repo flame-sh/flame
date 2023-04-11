@@ -287,6 +287,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "env_logger",
+ "lazy_static",
  "rpc",
  "thiserror",
  "tokio",

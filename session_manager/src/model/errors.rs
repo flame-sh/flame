@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use thiserror::Error;
+use tonic::Status;
 
 #[derive(Error, Debug)]
 pub enum FlameError {
@@ -20,4 +21,16 @@ pub enum FlameError {
 
     #[error("'{0}' lock failed")]
     Mutex(String),
+
+    #[error("'{0}'")]
+    Internet(String),
+}
+
+impl From<FlameError> for Status {
+    fn from(value: FlameError) -> Self {
+        match value {
+            FlameError::NotFound(s) => Status::not_found(s),
+            _ => Status::internal("internal"),
+        }
+    }
 }

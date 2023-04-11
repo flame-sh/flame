@@ -14,9 +14,8 @@ limitations under the License.
 use crate::model::FlameError;
 use crate::storage;
 
-pub async fn run() -> Result<(), FlameError> {
-    let s = storage::new()?;
-    let snapshot = s.snapshot().await?;
+pub fn run() -> Result<(), FlameError> {
+    let snapshot = storage::instance().snapshot()?;
     for ssn in snapshot.sessions {
         print!("Session is: {}", ssn.id)
     }

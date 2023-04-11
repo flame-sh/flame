@@ -18,7 +18,7 @@ use crate::storage::SnapShot;
 use crate::FlameError;
 
 #[async_trait]
-pub trait Engine {
+pub trait Engine: Send + Sync + 'static {
     async fn snapshot(&self) -> Result<SnapShot, FlameError>;
 
     async fn persist_session(&self, ssn: &Session) -> Result<(), FlameError>;

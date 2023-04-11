@@ -4,7 +4,7 @@ package flame;
 
 message Metadata {
   string id = 1;
-  string owner = 2;
+  optional string owner = 2;
 }
 
 enum SessionState {
@@ -16,7 +16,7 @@ message SessionStatus {
   SessionState state = 1;
 
   int64 creation_time = 2;
-  int64 completion_time = 3;
+  optional int64 completion_time = 3;
 
   int32 pending = 4;
   int32 running = 5;

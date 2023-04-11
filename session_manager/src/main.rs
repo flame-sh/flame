@@ -21,8 +21,8 @@ mod storage;
 #[tokio::main]
 async fn main() -> Result<(), FlameError> {
     // storage::start()?;
-    // apiserver::start()?;
-    scheduler::run().await?;
+    scheduler::run()?;
+    apiserver::run().await?;
 
     Ok(())
 }
