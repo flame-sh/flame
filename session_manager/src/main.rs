@@ -11,13 +11,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use crate::model::FlameError;
+
 mod apiserver;
 mod model;
 mod scheduler;
 mod storage;
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), FlameError> {
     // storage::start()?;
     // apiserver::start()?;
-    // scheduler::start()?;
+    scheduler::run().await?;
+
+    Ok(())
 }

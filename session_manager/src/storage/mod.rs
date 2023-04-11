@@ -13,7 +13,7 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::model::{FlameError, Session, SessionID, Task, TaskID};
+use crate::model::{Executor, ExecutorID, FlameError, Session, SessionID, Task, TaskID};
 
 mod memory;
 
@@ -21,16 +21,28 @@ pub fn new() -> Result<Box<dyn Storage>, FlameError> {
     Err(FlameError::NotFound("mem".to_string()))
 }
 
+pub struct SnapShot {
+    pub sessions: Vec<Session>,
+    pub executors: Vec<Executor>,
+}
+
 #[async_trait]
 pub trait Storage {
-    async fn create_session(service_type: String, slots: i32) -> Result<Session, FlameError>;
-    async fn get_session(id: SessionID) -> Result<Session, FlameError>;
-    async fn delete_session(id: SessionID) -> Result<(), FlameError>;
-    async fn update_session(ssn: &Session) -> Result<Session, FlameError>;
-    async fn find_session() -> Result<Vec<Session>, FlameError>;
+    async fn snapshot(&self) -> Result<SnapShot, FlameError>;
 
-    async fn create_task(id: SessionID, task_input: &String) -> Result<Task, FlameError>;
-    async fn get_task(ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
-    async fn delete_task(ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
-    async fn update_task(t: &Task) -> Result<Task, FlameError>;
+    async fn create_session(&self, service_type: String, slots: i32) -> Result<Session, FlameError>;
+    async fn get_session(&self, id: SessionID) -> Result<Session, FlameError>;
+    async fn delete_session(&self, id: SessionID) -> Result<(), FlameError>;
+    async fn update_session(&self, ssn: &Session) -> Result<Session, FlameError>;
+    async fn find_session(&self) -> Result<Vec<Session>, FlameError>;
+
+    async fn create_task(&self, id: SessionID, task_input: &String) -> Result<Task, FlameError>;
+    async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
+    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
+    async fn update_task(&self, t: &Task) -> Result<Task, FlameError>;
+
+    async fn register_executor(&self, e: &Executor) -> Result<(), FlameError>;
+    async fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError>;
+    async fn unregister_executor(&self, id: ExecutorID) -> Result<(), FlameError>;
+    async fn update_executor(&self, e: &Executor) -> Result<Executor, FlameError>;
 }

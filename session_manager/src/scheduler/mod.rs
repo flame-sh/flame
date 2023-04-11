@@ -11,10 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::storage::Storage;
+use crate::model::FlameError;
+use crate::storage;
 
-pub fn run() {
-    let s = Storage::new();
-    let sessions = s.list_session();
-    for ssn in sessions {}
+pub async fn run() -> Result<(), FlameError> {
+    let s = storage::new()?;
+    let snapshot = s.snapshot().await?;
+    for ssn in snapshot.sessions {
+        print!("Session is: {}", ssn.id)
+    }
+
+    Ok(())
 }

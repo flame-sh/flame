@@ -1,0 +1,10 @@
+flame:
+  - name: flame-1
+  - slot: cpu=1,mem=1g
+  - policy: faire-share
+  - storage: mem
+  - applications:
+      - name: ffmpeg
+        command_line: /bin/ffmpeg
+        image: xflops/ffmpeg:v0.1
+      - name: monte-carlo

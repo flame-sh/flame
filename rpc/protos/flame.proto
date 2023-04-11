@@ -26,8 +26,7 @@ message SessionStatus {
 
 message SessionSpec {
   string service_type = 1;
-  bool  recoverable = 2;
-  int32 slots = 3;
+  int32 slots = 2;
 }
 
 message Session {
@@ -63,9 +62,17 @@ message Task {
   TaskStatus status = 3;
 }
 
+message Application {
+  string name = 1;
+  string command = 2;
+  repeated string arguments = 3;
+  repeated string environments = 4;
+  string working_directory = 5;
+}
+
 message ExecutorSpec {
-  string type = 1;
-  int32 slots = 2;
+  int32 slots = 1;
+  repeated Application applications = 2;
 }
 
 enum ExecutorState {

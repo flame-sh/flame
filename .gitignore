@@ -16,3 +16,4 @@
 
 .idea/
 target/
+Cargo.lock

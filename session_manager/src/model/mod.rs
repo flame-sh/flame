@@ -11,18 +11,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-mod errors;
 pub use crate::model::errors::FlameError;
+
+mod errors;
+
+pub type SessionID = i64;
+pub type TaskID = i64;
+pub type ExecutorID = String;
+
 
 #[derive(Clone, Copy, Debug)]
 pub enum SessionState {
     Open = 0,
     Closed = 1,
 }
-
-pub type SessionID = i64;
-pub type TaskID = i64;
-pub type ExecutorID = String;
 
 #[derive(Clone, Debug)]
 pub struct Session {
