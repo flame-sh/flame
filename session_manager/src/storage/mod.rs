@@ -30,7 +30,7 @@ pub struct SnapShot {
 pub trait Storage {
     async fn snapshot(&self) -> Result<SnapShot, FlameError>;
 
-    async fn create_session(&self, service_type: String, slots: i32) -> Result<Session, FlameError>;
+    async fn create_session(&self, app: String, slots: i32) -> Result<Session, FlameError>;
     async fn get_session(&self, id: SessionID) -> Result<Session, FlameError>;
     async fn delete_session(&self, id: SessionID) -> Result<(), FlameError>;
     async fn update_session(&self, ssn: &Session) -> Result<Session, FlameError>;

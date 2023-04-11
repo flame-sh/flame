@@ -19,7 +19,6 @@ pub type SessionID = i64;
 pub type TaskID = i64;
 pub type ExecutorID = String;
 
-
 #[derive(Clone, Copy, Debug)]
 pub enum SessionState {
     Open = 0,
@@ -64,9 +63,18 @@ pub enum ExecutorState {
 }
 
 #[derive(Clone, Debug)]
+pub struct Application {
+    pub name: String,
+    pub command: String,
+    pub arguments: Vec<String>,
+    pub environments: Vec<String>,
+    pub working_directory: String,
+}
+
+#[derive(Clone, Debug)]
 pub struct Executor {
     pub id: ExecutorID,
-    pub service_type: String,
+    pub application: Application,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
