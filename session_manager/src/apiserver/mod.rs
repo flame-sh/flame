@@ -36,7 +36,7 @@ pub async fn run() -> Result<(), FlameError> {
         .add_service(FrontendServer::new(flame_service))
         .serve(address)
         .await
-        .map_err(|e| FlameError::Internet(e.to_string()))?;
+        .map_err(|e| FlameError::Network(e.to_string()))?;
 
     Ok(())
 }

@@ -19,18 +19,19 @@ pub enum FlameError {
     #[error("'{0}' not found")]
     NotFound(String),
 
-    #[error("'{0}' lock failed")]
-    Mutex(String),
+    #[error("'{0}'")]
+    Internal(String),
 
     #[error("'{0}'")]
-    Internet(String),
+    Network(String),
 }
 
 impl From<FlameError> for Status {
     fn from(value: FlameError) -> Self {
         match value {
             FlameError::NotFound(s) => Status::not_found(s),
-            _ => Status::internal("internal"),
+            FlameError::Internal(s) => Status::internal(s),
+            _ => Status::unknown("unknown"),
         }
     }
 }

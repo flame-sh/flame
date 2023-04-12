@@ -11,15 +11,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use crate::scheduler::actions::Action;
+use crate::storage::SnapShot;
 use crate::FlameError;
-use std::ops::Deref;
-use std::sync::Mutex;
 
-pub(crate) fn next_id(id: &Mutex<i64>) -> Result<i64, FlameError> {
-    let mut id = id
-        .lock()
-        .map_err(|_| FlameError::Internal("max id".to_string()))?;
-    *id = *id + 1;
+pub struct PreemptAction {}
 
-    Ok(*id.deref())
+impl Action for PreemptAction {
+    fn execute(&self, _: &mut SnapShot) -> Result<(), FlameError> {
+        Ok(())
+    }
 }

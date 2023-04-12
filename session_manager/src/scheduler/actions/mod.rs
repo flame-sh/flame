@@ -11,15 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+mod allocate;
+mod assign;
+mod preempt;
+
+pub use allocate::AllocateAction;
+pub use assign::AssignAction;
+pub use preempt::PreemptAction;
+
+use crate::storage::SnapShot;
 use crate::FlameError;
-use std::ops::Deref;
-use std::sync::Mutex;
 
-pub(crate) fn next_id(id: &Mutex<i64>) -> Result<i64, FlameError> {
-    let mut id = id
-        .lock()
-        .map_err(|_| FlameError::Internal("max id".to_string()))?;
-    *id = *id + 1;
-
-    Ok(*id.deref())
+pub trait Action {
+    fn execute(&self, snapshot: &mut SnapShot) -> Result<(), FlameError>;
 }

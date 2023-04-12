@@ -25,13 +25,23 @@ pub type SessionID = i64;
 pub type TaskID = i64;
 pub type ExecutorID = String;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub enum SessionState {
+    #[default]
     Open = 0,
     Closed = 1,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
+pub struct SessionStatus {
+    state: SessionState,
+
+    total: f64,
+    desired: f64,
+    allocated: f64,
+}
+
+#[derive(Debug)]
 pub struct Session {
     pub id: SessionID,
     pub application: String,
@@ -42,10 +52,38 @@ pub struct Session {
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
 
-    pub state: SessionState,
+    pub status: SessionStatus,
+}
 
-    pub desired: f64,
-    pub allocated: f64,
+impl Clone for Session {
+    fn clone(&self) -> Self {
+        let mut tasks = vec![];
+        let mut tasks_index = HashMap::new();
+
+        for t in &self.tasks {
+            let task = Arc::new((*(*t)).clone());
+            tasks.push(task.clone());
+            match tasks_index.get_mut(&task.state) {
+                None => {
+                    tasks_index.insert(task.state, vec![task.clone()]);
+                }
+                Some(ts) => {
+                    ts.push(task.clone());
+                }
+            };
+        }
+
+        Session {
+            id: self.id,
+            application: self.application.clone(),
+            slots: self.slots,
+            tasks,
+            tasks_index,
+            creation_time: self.creation_time.clone(),
+            completion_time: self.completion_time.clone(),
+            status: self.status.clone(),
+        }
+    }
 }
 
 impl From<&Session> for flame::Session {
@@ -68,8 +106,6 @@ impl From<&Session> for flame::Session {
                 TaskState::Running => status.running = v.len() as i32,
                 TaskState::Completed => status.succeed = v.len() as i32,
                 TaskState::Failed => status.failed = v.len() as i32,
-                TaskState::Aborting => {}
-                TaskState::Aborted => {}
             }
         }
 
@@ -87,14 +123,12 @@ impl From<&Session> for flame::Session {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum TaskState {
     Pending = 0,
     Running = 1,
     Completed = 2,
     Failed = 3,
-    Aborting = 4,
-    Aborted = 5,
 }
 
 #[derive(Clone, Debug)]

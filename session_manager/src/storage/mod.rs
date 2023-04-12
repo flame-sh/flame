@@ -19,7 +19,7 @@ use chrono::Utc;
 use lazy_static::lazy_static;
 
 use crate::model::{
-    Executor, ExecutorID, FlameError, Session, SessionID, SessionState, Task, TaskID,
+    Executor, ExecutorID, FlameError, Session, SessionID, SessionStatus, Task, TaskID,
 };
 
 mod engine;
@@ -52,17 +52,41 @@ pub struct SnapShot {
 
 impl Storage {
     pub fn snapshot(&self) -> Result<SnapShot, FlameError> {
-        Ok(SnapShot {
+        let mut res = SnapShot {
             sessions: vec![],
             executors: vec![],
-        })
+        };
+
+        {
+            let ssn_map = self
+                .sessions
+                .lock()
+                .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+
+            for (_, ssn) in ssn_map.deref() {
+                res.sessions.push((*(*ssn)).clone())
+            }
+        }
+
+        {
+            let exe_map = self
+                .executors
+                .lock()
+                .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+
+            for (_, exe) in exe_map.deref() {
+                res.executors.push((*(*exe)).clone())
+            }
+        }
+
+        Ok(res)
     }
 
     pub fn create_session(&self, app: String, slots: i32) -> Result<Session, FlameError> {
         let mut ssn_map = self
             .sessions
             .lock()
-            .map_err(|_| FlameError::Mutex("mem session".to_string()))?;
+            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
 
         let ssn = Session {
             id: util::next_id(&self.max_ssn_id)?,
@@ -72,15 +96,9 @@ impl Storage {
             tasks_index: HashMap::new(),
             creation_time: Utc::now(),
             completion_time: None,
-            state: SessionState::Open,
-            desired: 0.0,
-            allocated: 0.0,
+            status: SessionStatus::default(),
         };
         let res = ssn.clone();
-
-        if let Some(e) = &self.engine {
-            let res = async { e.persist_session(&ssn).await };
-        }
 
         ssn_map.insert(ssn.id, Arc::new(ssn));
 
@@ -91,7 +109,7 @@ impl Storage {
         let ssn_map = self
             .sessions
             .lock()
-            .map_err(|_| FlameError::Mutex("mem session".to_string()))?;
+            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
 
         let ssn = ssn_map.get(&id);
         match ssn {

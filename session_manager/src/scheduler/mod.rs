@@ -11,13 +11,38 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::{thread, time};
+
 use crate::model::FlameError;
+use crate::scheduler::actions::{Action, AllocateAction, AssignAction, PreemptAction};
 use crate::storage;
 
-pub fn run() -> Result<(), FlameError> {
-    let snapshot = storage::instance().snapshot()?;
-    for ssn in snapshot.sessions {
-        print!("Session is: {}", ssn.id)
+mod actions;
+
+pub fn start() -> Result<(), FlameError> {
+    // TODO(k82cn): support gracefully exit.
+    thread::spawn(move || {
+        let delay = time::Duration::from_millis(100);
+        loop {
+            match run() {
+                Err(e) => log::error!("Failed to run scheduling: {}", e),
+                Ok(..) => thread::sleep(delay),
+            }
+        }
+    });
+    Ok(())
+}
+
+fn run() -> Result<(), FlameError> {
+    let mut snapshot = storage::instance().snapshot()?;
+    let actions: Vec<Box<dyn Action>> = vec![
+        Box::new(AllocateAction {}),
+        Box::new(PreemptAction {}),
+        Box::new(AssignAction {}),
+    ];
+
+    for action in actions {
+        action.execute(&mut snapshot)?;
     }
 
     Ok(())

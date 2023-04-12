@@ -21,7 +21,7 @@ use rpc::flame::{
 };
 
 use crate::apiserver::Flame;
-use crate::storage;
+use crate::model::SessionID;
 
 #[async_trait]
 impl Frontend for Flame {
@@ -50,9 +50,17 @@ impl Frontend for Flame {
     }
     async fn get_session(
         &self,
-        _: Request<GetSessionRequest>,
+        req: Request<GetSessionRequest>,
     ) -> Result<Response<Session>, Status> {
-        todo!()
+        let ssn_id = req
+            .into_inner()
+            .session_id
+            .parse::<SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid session id"))?;
+
+        let ssn = self.storage.get_session(ssn_id).map_err(Status::from)?;
+
+        Ok(Response::new(Session::from(&ssn)))
     }
     async fn list_session(
         &self,
