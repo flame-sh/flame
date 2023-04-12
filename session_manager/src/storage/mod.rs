@@ -126,8 +126,18 @@ impl Storage {
         todo!()
     }
 
-    fn find_session(&self) -> Result<Vec<Session>, FlameError> {
-        todo!()
+    pub fn list_session(&self) -> Result<Vec<Session>, FlameError> {
+        let mut ssn_list = vec![];
+        let ssn_map = self
+            .sessions
+            .lock()
+            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+
+        for (_, ssn) in ssn_map.deref() {
+            ssn_list.push((*(*ssn)).clone())
+        }
+
+        Ok(ssn_list)
     }
 
     fn create_task(&self, id: SessionID, task_input: &String) -> Result<Task, FlameError> {

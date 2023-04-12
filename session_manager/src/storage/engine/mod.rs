@@ -19,8 +19,6 @@ use crate::FlameError;
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
-    async fn snapshot(&self) -> Result<SnapShot, FlameError>;
-
     async fn persist_session(&self, ssn: &Session) -> Result<(), FlameError>;
     async fn get_session(&self, id: SessionID) -> Result<Session, FlameError>;
     async fn delete_session(&self, id: SessionID) -> Result<(), FlameError>;
@@ -36,4 +34,5 @@ pub trait Engine: Send + Sync + 'static {
     async fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError>;
     async fn delete_executor(&self, id: ExecutorID) -> Result<(), FlameError>;
     async fn update_executor(&self, e: &Executor) -> Result<(), FlameError>;
+    async fn find_executor(&self) -> Result<Vec<Executor>, FlameError>;
 }

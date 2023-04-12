@@ -86,43 +86,6 @@ impl Clone for Session {
     }
 }
 
-impl From<&Session> for flame::Session {
-    fn from(ssn: &Session) -> Self {
-        let mut status = flame::SessionStatus {
-            state: 0,
-            creation_time: ssn.creation_time.timestamp(),
-            completion_time: match ssn.completion_time {
-                None => None,
-                Some(s) => Some(s.timestamp()),
-            },
-            failed: 0,
-            pending: 0,
-            running: 0,
-            succeed: 0,
-        };
-        for (s, v) in &ssn.tasks_index {
-            match s {
-                TaskState::Pending => status.pending = v.len() as i32,
-                TaskState::Running => status.running = v.len() as i32,
-                TaskState::Completed => status.succeed = v.len() as i32,
-                TaskState::Failed => status.failed = v.len() as i32,
-            }
-        }
-
-        flame::Session {
-            metadata: Some(flame::Metadata {
-                id: ssn.id.to_string(),
-                owner: None,
-            }),
-            spec: Some(flame::SessionSpec {
-                application: ssn.application.clone(),
-                slots: ssn.slots,
-            }),
-            status: Some(status),
-        }
-    }
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum TaskState {
     Pending = 0,
