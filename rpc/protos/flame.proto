@@ -46,7 +46,7 @@ message TaskStatus {
   TaskState state = 1;
 
   int64 creation_time = 2;
-  int64 completion_time = 3;
+  optional int64 completion_time = 3;
 }
 
 message TaskSpec {
@@ -107,6 +107,9 @@ service Frontend {
   rpc CreateSession (CreateSessionRequest) returns (Session) {}
   rpc DeleteSession (DeleteSessionRequest) returns (Result) {}
 
+  rpc OpenSession (OpenSessionRequest) returns (Result) {}
+  rpc CloseSession (CloseSessionRequest) returns (Result) {}
+
   rpc GetSession(GetSessionRequest) returns (Session) {}
   rpc ListSession (ListSessionRequest) returns (SessionList) {}
 
@@ -124,6 +127,13 @@ message DeleteSessionRequest {
   string session_id = 1;
 }
 
+message OpenSessionRequest {
+  string session_id = 1;
+}
+
+message CloseSessionRequest {
+  string session_id = 1;
+}
 message GetSessionRequest {
   string session_id = 1;
 }

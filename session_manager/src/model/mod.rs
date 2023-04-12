@@ -13,10 +13,11 @@ limitations under the License.
 
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
+use std::ops::Deref;
 
 use rpc::flame;
 
-use std::sync::Arc;
+use std::sync::{Arc, LockResult, Mutex};
 
 mod errors;
 pub use crate::model::errors::FlameError;
@@ -34,14 +35,14 @@ pub enum SessionState {
 
 #[derive(Clone, Debug, Default)]
 pub struct SessionStatus {
-    state: SessionState,
+    pub state: SessionState,
 
-    total: f64,
-    desired: f64,
-    allocated: f64,
+    pub total: f64,
+    pub desired: f64,
+    pub allocated: f64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Session {
     pub id: SessionID,
     pub application: String,
@@ -90,7 +91,7 @@ impl Clone for Session {
 pub enum TaskState {
     Pending = 0,
     Running = 1,
-    Completed = 2,
+    Succeed = 2,
     Failed = 3,
 }
 
@@ -98,8 +99,8 @@ pub enum TaskState {
 pub struct Task {
     pub id: TaskID,
     pub ssn_id: SessionID,
-    pub input: String,
-    pub output: String,
+    pub input: Option<String>,
+    pub output: Option<String>,
 
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,

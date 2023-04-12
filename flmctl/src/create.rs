@@ -19,10 +19,10 @@ use rpc::flame::frontend_client::FrontendClient;
 
 use rpc::flame::{CreateSessionRequest, SessionSpec};
 
-use crate::APISERVER;
+use crate::FLAME_SERVER;
 
 pub async fn run(app: &String, slots: &i32) -> Result<(), Box<dyn Error>> {
-    let addr = env::var(APISERVER)?;
+    let addr = env::var(FLAME_SERVER)?;
     let mut client = FrontendClient::connect(addr).await?;
 
     let req = CreateSessionRequest {

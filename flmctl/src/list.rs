@@ -20,18 +20,19 @@ use rpc::flame::frontend_client::FrontendClient;
 
 use rpc::flame::{ListSessionRequest, SessionState};
 
-use crate::APISERVER;
+use crate::FLAME_SERVER;
 
 pub async fn run() -> Result<(), Box<dyn Error>> {
-    let addr = env::var(APISERVER)?;
+    let addr = env::var(FLAME_SERVER)?;
 
+    log::debug!("Flame server is: {}", addr);
     let mut client = FrontendClient::connect(addr).await?;
 
     let ssn_list = client.list_session(ListSessionRequest {}).await?;
 
     println!(
-        "{:<10}{:<10}{:<15}{:<10}{:<10}",
-        "ID", "State", "App", "Slots", "Created"
+        "{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}",
+        "ID", "State", "App", "Slots", "Pending", "Running", "Succeed", "Failed", "Created"
     );
 
     for ssn in &(ssn_list.into_inner().sessions) {
@@ -45,11 +46,15 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
         let created = DateTime::<Utc>::from_utc(naivedatetime_utc, Utc);
 
         println!(
-            "{:<10}{:<10}{:<15}{:<10}{:<10}",
+            "{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}",
             meta.id,
             state.as_str_name(),
             spec.application,
             spec.slots,
+            status.pending,
+            status.running,
+            status.succeed,
+            status.failed,
             created.format("%T")
         );
     }

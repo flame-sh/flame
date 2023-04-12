@@ -17,11 +17,14 @@ use tonic::{Request, Response, Status};
 
 use rpc::flame::frontend_server::Frontend;
 use rpc::flame::{
-    CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest, DeleteTaskRequest,
-    GetSessionRequest, GetTaskRequest, ListSessionRequest,
+    CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest,
+    DeleteTaskRequest, GetSessionRequest, GetTaskRequest, ListSessionRequest, OpenSessionRequest,
 };
 
-use rpc::flame::{Metadata, Session, SessionList, SessionSpec, SessionStatus, Task};
+use rpc::flame::{
+    Metadata, Session, SessionList, SessionSpec, SessionState, SessionStatus, Task, TaskSpec,
+    TaskState, TaskStatus,
+};
 
 use crate::apiserver::Flame;
 use crate::model;
@@ -48,6 +51,20 @@ impl Frontend for Flame {
     async fn delete_session(
         &self,
         _: Request<DeleteSessionRequest>,
+    ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
+
+    async fn open_session(
+        &self,
+        _: Request<OpenSessionRequest>,
+    ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
+
+    async fn close_session(
+        &self,
+        _: Request<CloseSessionRequest>,
     ) -> Result<Response<rpc::flame::Result>, Status> {
         todo!()
     }
@@ -80,8 +97,22 @@ impl Frontend for Flame {
         Ok(Response::new(SessionList { sessions }))
     }
 
-    async fn create_task(&self, _: Request<CreateTaskRequest>) -> Result<Response<Task>, Status> {
-        todo!()
+    async fn create_task(&self, req: Request<CreateTaskRequest>) -> Result<Response<Task>, Status> {
+        let task_spec = req
+            .into_inner()
+            .task
+            .ok_or(Status::invalid_argument("session spec"))?;
+        let ssn_id = task_spec
+            .session_id
+            .parse::<model::SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid session id"))?;
+
+        let task = self
+            .storage
+            .create_task(ssn_id, task_spec.input)
+            .map_err(Status::from)?;
+
+        Ok(Response::new(Task::from(&task)))
     }
     async fn delete_task(
         &self,
@@ -94,10 +125,54 @@ impl Frontend for Flame {
     }
 }
 
+impl From<model::TaskState> for TaskState {
+    fn from(state: model::TaskState) -> Self {
+        match state {
+            model::TaskState::Pending => TaskState::Pending,
+            model::TaskState::Running => TaskState::Running,
+            model::TaskState::Succeed => TaskState::Succeed,
+            model::TaskState::Failed => TaskState::Failed,
+        }
+    }
+}
+
+impl From<&model::Task> for Task {
+    fn from(task: &model::Task) -> Self {
+        Task {
+            metadata: Some(Metadata {
+                id: task.id.to_string(),
+                owner: Some(task.ssn_id.to_string()),
+            }),
+            spec: Some(TaskSpec {
+                session_id: task.ssn_id.to_string(),
+                input: task.input.clone(),
+                output: task.output.clone(),
+            }),
+            status: Some(TaskStatus {
+                state: TaskState::from(task.state) as i32,
+                creation_time: task.creation_time.timestamp(),
+                completion_time: match task.completion_time {
+                    None => None,
+                    Some(s) => Some(s.timestamp()),
+                },
+            }),
+        }
+    }
+}
+
+impl From<model::SessionState> for SessionState {
+    fn from(state: model::SessionState) -> Self {
+        match state {
+            model::SessionState::Open => SessionState::Open,
+            model::SessionState::Closed => SessionState::Closed,
+        }
+    }
+}
+
 impl From<&model::Session> for Session {
     fn from(ssn: &model::Session) -> Self {
         let mut status = SessionStatus {
-            state: 0,
+            state: SessionState::from(ssn.status.state) as i32,
             creation_time: ssn.creation_time.timestamp(),
             completion_time: match ssn.completion_time {
                 None => None,
@@ -112,7 +187,7 @@ impl From<&model::Session> for Session {
             match s {
                 model::TaskState::Pending => status.pending = v.len() as i32,
                 model::TaskState::Running => status.running = v.len() as i32,
-                model::TaskState::Completed => status.succeed = v.len() as i32,
+                model::TaskState::Succeed => status.succeed = v.len() as i32,
                 model::TaskState::Failed => status.failed = v.len() as i32,
             }
         }

@@ -49,7 +49,7 @@ enum Commands {
     },
 }
 
-const APISERVER: &str = "FLAME_APISERVER";
+const FLAME_SERVER: &str = "FLAME_SERVER";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
