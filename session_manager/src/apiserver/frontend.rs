@@ -120,8 +120,25 @@ impl Frontend for Flame {
     ) -> Result<Response<rpc::flame::Result>, Status> {
         todo!()
     }
-    async fn get_task(&self, _: Request<GetTaskRequest>) -> Result<Response<Task>, Status> {
-        todo!()
+
+    async fn get_task(&self, req: Request<GetTaskRequest>) -> Result<Response<Task>, Status> {
+        let req = req.into_inner();
+        let ssn_id = req
+            .session_id
+            .parse::<model::SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid session id"))?;
+
+        let task_id = req
+            .task_id
+            .parse::<model::SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid task id"))?;
+
+        let task = self
+            .storage
+            .get_task(ssn_id, task_id)
+            .map_err(Status::from)?;
+
+        Ok(Response::new(Task::from(&task)))
     }
 }
 

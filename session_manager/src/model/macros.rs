@@ -11,15 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::FlameError;
-use std::ops::Deref;
-use std::sync::Mutex;
-
-pub(crate) fn next_id(id: &Mutex<i64>) -> Result<i64, FlameError> {
-    let mut id = id
-        .lock()
-        .map_err(|_| FlameError::Internal("max id".to_string()))?;
-    *id = *id + 1;
-
-    Ok(*id.deref())
+#[macro_export]
+macro_rules! lock_ptr {
+    ( $mutex_arc:expr ) => {
+        $mutex_arc
+            .lock()
+            .map_err(|_| FlameError::Internal("mutex".to_string()))?
+    };
 }

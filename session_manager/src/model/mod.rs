@@ -11,16 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::ops::Deref;
-
-use rpc::flame;
-
 use std::sync::{Arc, LockResult, Mutex};
 
-mod errors;
+use chrono::{DateTime, Utc};
+
 pub use crate::model::errors::FlameError;
+use rpc::flame;
+
+mod errors;
+mod macros;
 
 pub type SessionID = i64;
 pub type TaskID = i64;
@@ -42,13 +43,16 @@ pub struct SessionStatus {
     pub allocated: f64,
 }
 
+type TaskPtr = Arc<Mutex<Task>>;
+type SessionPtr = Arc<Mutex<Session>>;
+
 #[derive(Debug, Default)]
 pub struct Session {
     pub id: SessionID,
     pub application: String,
     pub slots: i32,
-    pub tasks: Vec<Arc<Task>>,
-    pub tasks_index: HashMap<TaskState, Vec<Arc<Task>>>,
+    pub tasks: HashMap<TaskID, TaskPtr>,
+    pub tasks_index: HashMap<TaskState, HashMap<TaskID, TaskPtr>>,
 
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
@@ -58,20 +62,27 @@ pub struct Session {
 
 impl Clone for Session {
     fn clone(&self) -> Self {
-        let mut tasks = vec![];
-        let mut tasks_index = HashMap::new();
+        let mut tasks: HashMap<TaskID, TaskPtr> = HashMap::new();
+        let mut tasks_index: HashMap<TaskState, HashMap<TaskID, TaskPtr>> = HashMap::new();
 
-        for t in &self.tasks {
-            let task = Arc::new((*(*t)).clone());
-            tasks.push(task.clone());
-            match tasks_index.get_mut(&task.state) {
-                None => {
-                    tasks_index.insert(task.state, vec![task.clone()]);
-                }
-                Some(ts) => {
-                    ts.push(task.clone());
-                }
-            };
+        for (id, t) in &self.tasks {
+            let t = t.lock();
+            if t.is_err() {
+                log::error!("Failed to lock task: <{}>, ignore it during clone.", id);
+                continue;
+            }
+            let t = t.unwrap();
+            let task = Arc::new(Mutex::new(t.clone()));
+
+            tasks.insert(*id, task.clone());
+
+            if !tasks_index.contains_key(&t.state) {
+                tasks_index.insert(t.state, HashMap::new());
+            }
+            tasks_index
+                .get_mut(&t.state)
+                .unwrap()
+                .insert(*id, task.clone());
         }
 
         Session {

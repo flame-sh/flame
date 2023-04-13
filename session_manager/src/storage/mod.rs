@@ -15,6 +15,8 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 
+use crate::lock_ptr;
+use crate::model;
 use chrono::Utc;
 use lazy_static::lazy_static;
 
@@ -23,11 +25,11 @@ use crate::model::{
 };
 
 mod engine;
-mod util;
 
 lazy_static! {
     static ref INSTANCE: Arc<Storage> = Arc::new(Storage {
         max_ssn_id: Mutex::new(0),
+        max_task_ids: Arc::new(Mutex::new(HashMap::new())),
         engine: None,
         sessions: Arc::new(Mutex::new(HashMap::new())),
         executors: Arc::new(Mutex::new(HashMap::new())),
@@ -40,6 +42,7 @@ pub fn instance() -> Arc<Storage> {
 
 pub struct Storage {
     max_ssn_id: Mutex<i64>,
+    max_task_ids: Arc<Mutex<HashMap<SessionID, Mutex<i64>>>>,
     engine: Option<Arc<dyn engine::Engine>>,
     sessions: Arc<Mutex<HashMap<SessionID, Arc<Mutex<Session>>>>>,
     executors: Arc<Mutex<HashMap<ExecutorID, Arc<Mutex<Executor>>>>>,
@@ -51,6 +54,26 @@ pub struct SnapShot {
 }
 
 impl Storage {
+    fn next_ssn_id(&self) -> Result<i64, FlameError> {
+        let mut id = lock_ptr!(self.max_ssn_id);
+        *id = *id + 1;
+
+        Ok(*id.deref())
+    }
+
+    fn next_task_id(&self, ssn_id: &SessionID) -> Result<i64, FlameError> {
+        let mut id_list = lock_ptr!(self.max_task_ids);
+        if !id_list.contains_key(ssn_id) {
+            id_list.insert(*ssn_id, Mutex::new(0));
+        }
+
+        let id = id_list.get(ssn_id).unwrap();
+        let mut id = lock_ptr!(id);
+        *id = *id + 1;
+
+        Ok(*id.deref())
+    }
+
     pub fn snapshot(&self) -> Result<SnapShot, FlameError> {
         let mut res = SnapShot {
             sessions: vec![],
@@ -58,29 +81,19 @@ impl Storage {
         };
 
         {
-            let ssn_map = self
-                .sessions
-                .lock()
-                .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+            let ssn_map = lock_ptr!(self.sessions);
 
             for (_, ssn) in ssn_map.deref() {
-                let ssn = ssn
-                    .lock()
-                    .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+                let ssn = lock_ptr!(ssn);
                 res.sessions.push((*ssn).clone());
             }
         }
 
         {
-            let exe_map = self
-                .executors
-                .lock()
-                .map_err(|_| FlameError::Internal("executor mutex".to_string()))?;
+            let exe_map = lock_ptr!(self.executors);
 
             for (_, exe) in exe_map.deref() {
-                let exe = exe
-                    .lock()
-                    .map_err(|_| FlameError::Internal("executor mutex".to_string()))?;
+                let exe = lock_ptr!(exe);
                 res.executors.push((*exe).clone());
             }
         }
@@ -89,13 +102,10 @@ impl Storage {
     }
 
     pub fn create_session(&self, app: String, slots: i32) -> Result<Session, FlameError> {
-        let mut ssn_map = self
-            .sessions
-            .lock()
-            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+        let mut ssn_map = lock_ptr!(self.sessions);
 
         let mut ssn = Session::default();
-        ssn.id = util::next_id(&self.max_ssn_id)?;
+        ssn.id = self.next_ssn_id()?;
         ssn.slots = slots;
         ssn.application = app;
         ssn.creation_time = Utc::now();
@@ -106,21 +116,12 @@ impl Storage {
     }
 
     pub fn get_session(&self, id: SessionID) -> Result<Session, FlameError> {
-        let ssn_map = self
-            .sessions
-            .lock()
-            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
-
-        let ssn = ssn_map.get(&id);
-        match ssn {
-            None => Err(FlameError::NotFound(id.to_string())),
-            Some(s) => {
-                let ssn = s
-                    .lock()
-                    .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
-                Ok(ssn.clone())
-            }
-        }
+        let ssn_map = lock_ptr!(self.sessions);
+        let ssn = ssn_map
+            .get(&id)
+            .ok_or(FlameError::NotFound(id.to_string()))?;
+        let ssn = lock_ptr!(ssn);
+        Ok(ssn.clone())
     }
 
     fn delete_session(&self, id: SessionID) -> Result<(), FlameError> {
@@ -133,15 +134,10 @@ impl Storage {
 
     pub fn list_session(&self) -> Result<Vec<Session>, FlameError> {
         let mut ssn_list = vec![];
-        let ssn_map = self
-            .sessions
-            .lock()
-            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+        let ssn_map = lock_ptr!(self.sessions);
 
         for (_, ssn) in ssn_map.deref() {
-            let ssn = ssn
-                .lock()
-                .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+            let ssn = lock_ptr!(ssn);
             ssn_list.push((*ssn).clone());
         }
 
@@ -153,50 +149,75 @@ impl Storage {
         ssn_id: SessionID,
         task_input: Option<String>,
     ) -> Result<Task, FlameError> {
-        let ssn_map = self
-            .sessions
-            .lock()
-            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
+        let ssn_map = lock_ptr!(self.sessions);
+        let ssn = ssn_map
+            .get(&ssn_id)
+            .ok_or(FlameError::NotFound(ssn_id.to_string()))?;
+
+        let mut ssn = lock_ptr!(ssn);
+
+        let state = TaskState::Pending;
+        let task_id = self.next_task_id(&ssn_id)?;
+
+        let task = Task {
+            id: task_id,
+            ssn_id,
+            input: task_input.clone(),
+            output: None,
+            creation_time: Utc::now(),
+            completion_time: None,
+            state,
+        };
+
+        let task_ptr = Arc::new(Mutex::new(task.clone()));
+        ssn.tasks.insert(task_id, task_ptr.clone());
+        if !ssn.tasks_index.contains_key(&state) {
+            ssn.tasks_index.insert(state, HashMap::new());
+        }
+        ssn.tasks_index
+            .get_mut(&state)
+            .unwrap()
+            .insert(0, task_ptr.clone());
+
+        Ok(task)
+    }
+
+    pub(crate) fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
+        let ssn_map = lock_ptr!(self.sessions);
 
         let ssn = ssn_map
             .get(&ssn_id)
             .ok_or(FlameError::NotFound(ssn_id.to_string()))?;
 
-        let mut ssn = ssn
-            .lock()
-            .map_err(|_| FlameError::Internal("session mutex".to_string()))?;
-        let task = Arc::new(Task {
-            id: 0,
-            ssn_id,
-            input: task_input.clone(),
-            output: None,
-            creation_time: Default::default(),
-            completion_time: None,
-            state: TaskState::Pending,
-        });
-
-        ssn.tasks.push(task.clone());
-        match ssn.tasks_index.get_mut(&task.state) {
-            None => {
-                ssn.tasks_index.insert(task.state, vec![task.clone()]);
-            }
-            Some(t) => {
-                t.push(task.clone());
-            }
-        };
-
-        Ok(task.deref().clone())
-    }
-
-    fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
-        todo!()
-    }
-
-    fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError> {
-        todo!()
+        let ssn = lock_ptr!(ssn);
+        let task = ssn
+            .tasks
+            .get(&id)
+            .ok_or(FlameError::NotFound(id.to_string()))?;
+        let task = lock_ptr!(task);
+        Ok(task.clone())
     }
 
     fn update_task(&self, t: &Task) -> Result<Task, FlameError> {
+        let ssn_map = lock_ptr!(self.sessions);
+
+        let ssn = ssn_map
+            .get(&t.ssn_id)
+            .ok_or(FlameError::NotFound(t.ssn_id.to_string()))?;
+
+        let mut ssn = lock_ptr!(ssn);
+        let task = ssn
+            .tasks
+            .get(&t.id)
+            .ok_or(FlameError::NotFound(t.id.to_string()))?;
+
+        let mut task = lock_ptr!(task);
+        task.state = t.state;
+
+        Ok((*task).clone())
+    }
+
+    fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError> {
         todo!()
     }
 
