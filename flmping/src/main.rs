@@ -14,6 +14,7 @@ limitations under the License.
 use std::error::Error;
 use std::{env, thread, time};
 
+use chrono::Local;
 use clap::Parser;
 use tonic::Status;
 
@@ -31,14 +32,18 @@ use rpc::flame::{
 #[command(about = "Flame Ping", long_about = None)]
 struct Cli {
     #[arg(short, long)]
-    app: String,
+    app: Option<String>,
     #[arg(short, long)]
-    slots: i32,
+    slots: Option<i32>,
     #[arg(short, long)]
-    task_num: i32,
+    task_num: Option<i32>,
 }
 
 const FLAME_SERVER: &str = "FLAME_SERVER";
+
+const DEFAULT_APP: &str = "flmexec";
+const DEFAULT_SLOTS: i32 = 1;
+const DEFAULT_TASK_NUM: i32 = 10;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -48,14 +53,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let addr = env::var(FLAME_SERVER)?;
     let mut client = FrontendClient::connect(addr).await?;
 
+    let app = cli.app.unwrap_or(DEFAULT_APP.to_string());
+    let slots = cli.slots.unwrap_or(DEFAULT_SLOTS);
+
     let create_ssn_req = CreateSessionRequest {
         session: Some(SessionSpec {
-            application: cli.app.clone(),
-            slots: cli.slots,
+            application: app.clone(),
+            slots,
         }),
     };
 
+    let ssn_creation_start_time = Local::now();
     let ssn = client.create_session(create_ssn_req).await?;
+    let ssn_creation_end_time = Local::now();
+
     let ssn_meta = ssn
         .into_inner()
         .metadata
@@ -63,7 +74,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .ok_or(Status::data_loss("no session meta"))?;
 
     let mut task_ids = vec![];
-    for _ in 0..cli.task_num {
+
+    let tasks_creations_start_time = Local::now();
+    for _ in 0..cli.task_num.unwrap_or(DEFAULT_TASK_NUM) {
         let create_task_req = CreateTaskRequest {
             task: Some(TaskSpec {
                 session_id: ssn_meta.id.clone(),
@@ -80,6 +93,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         task_ids.push(task_meta.id.clone());
     }
+    let tasks_creation_end_time = Local::now();
+
+    let ssn_creation_time =
+        ssn_creation_end_time.timestamp_millis() - ssn_creation_start_time.timestamp_millis();
+    let tasks_creation_time =
+        tasks_creation_end_time.timestamp_millis() - tasks_creations_start_time.timestamp_millis();
+
+    println!(
+        "Create session in <{} ms>, and create <{}> tasks in <{} ms>.\n",
+        ssn_creation_time,
+        task_ids.len(),
+        tasks_creation_time
+    );
+    println!("Waiting for <{}> tasks to complete:", task_ids.len());
 
     for _ in 0..1000 {
         let mut pending = 0;
@@ -110,8 +137,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        print!(
-            " Total: {:<10} Succeed: {:<10} Failed: {:<10} Pending: {:<10} Running: {:<10}\r",
+        println!(
+            " Total: {:<10} Succeed: {:<10} Failed: {:<10} Pending: {:<10} Running: {:<10}",
             task_ids.len(),
             succeed,
             failed,
