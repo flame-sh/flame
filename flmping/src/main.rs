@@ -16,6 +16,7 @@ use std::{env, thread, time};
 
 use chrono::Local;
 use clap::Parser;
+use common::FlameContext;
 use tonic::Status;
 
 use rpc::flame::frontend_client::FrontendClient;
@@ -31,6 +32,8 @@ use rpc::flame::{
 #[command(version = "0.1.0")]
 #[command(about = "Flame Ping", long_about = None)]
 struct Cli {
+    #[arg(long)]
+    flame_conf: Option<String>,
     #[arg(short, long)]
     app: Option<String>,
     #[arg(short, long)]
@@ -38,8 +41,6 @@ struct Cli {
     #[arg(short, long)]
     task_num: Option<i32>,
 }
-
-const FLAME_SERVER: &str = "FLAME_SERVER";
 
 const DEFAULT_APP: &str = "flmexec";
 const DEFAULT_SLOTS: i32 = 1;
@@ -50,8 +51,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
     let cli = Cli::parse();
 
-    let addr = env::var(FLAME_SERVER)?;
-    let mut client = FrontendClient::connect(addr).await?;
+    let ctx = FlameContext::from_file(cli.flame_conf)?;
+    let mut client = FrontendClient::connect(ctx.endpoint).await?;
 
     let app = cli.app.unwrap_or(DEFAULT_APP.to_string());
     let slots = cli.slots.unwrap_or(DEFAULT_SLOTS);

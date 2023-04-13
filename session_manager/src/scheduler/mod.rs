@@ -13,9 +13,9 @@ limitations under the License.
 
 use std::{thread, time};
 
-use crate::model::FlameError;
 use crate::scheduler::actions::{Action, AllocateAction, AssignAction, PreemptAction};
 use crate::storage;
+use common::FlameError;
 
 mod actions;
 

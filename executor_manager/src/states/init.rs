@@ -11,27 +11,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use thiserror::Error;
-use tonic::Status;
+use crate::states::State;
 
-#[derive(Error, Debug)]
-pub enum FlameError {
-    #[error("'{0}' not found")]
-    NotFound(String),
+pub struct InitState {
 
-    #[error("'{0}'")]
-    Internal(String),
-
-    #[error("'{0}'")]
-    Network(String),
 }
 
-impl From<FlameError> for Status {
-    fn from(value: FlameError) -> Self {
-        match value {
-            FlameError::NotFound(s) => Status::not_found(s),
-            FlameError::Internal(s) => Status::internal(s),
-            _ => Status::unknown("unknown"),
-        }
-    }
+impl State for InitState {
+
 }

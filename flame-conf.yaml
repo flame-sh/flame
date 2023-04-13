@@ -1,0 +1,9 @@
+name: flame
+endpoint: http://localhost:8080
+slot: "cpu=1,mem=1g"
+policy: priority
+storage: mem
+applications: 
+  - name: flmexec
+    command_line: /bin/flmexec
+    working_directory: /tmp

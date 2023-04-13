@@ -16,17 +16,12 @@ use std::error::Error;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use tonic::Status;
 
+use common::FlameContext;
 use rpc::flame::frontend_client::FrontendClient;
-
 use rpc::flame::{ListSessionRequest, SessionState};
 
-use crate::FLAME_SERVER;
-
-pub async fn run() -> Result<(), Box<dyn Error>> {
-    let addr = env::var(FLAME_SERVER)?;
-
-    log::debug!("Flame server is: {}", addr);
-    let mut client = FrontendClient::connect(addr).await?;
+pub async fn run(ctx: &FlameContext) -> Result<(), Box<dyn Error>> {
+    let mut client = FrontendClient::connect(ctx.endpoint.clone()).await?;
 
     let ssn_list = client.list_session(ListSessionRequest {}).await?;
 

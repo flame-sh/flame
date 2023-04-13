@@ -17,11 +17,9 @@ use std::sync::{Arc, LockResult, Mutex};
 
 use chrono::{DateTime, Utc};
 
-pub use crate::model::errors::FlameError;
+use common::FlameError;
 use rpc::flame;
 
-mod errors;
-mod macros;
 mod snapshot;
 
 pub use crate::model::snapshot::{ExecutorInfo, SessionInfo, SnapShot, TaskInfo};
@@ -144,6 +142,7 @@ pub struct Application {
 #[derive(Clone, Debug)]
 pub struct Executor {
     pub id: ExecutorID,
+    pub slots: i32,
     pub application: Application,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,

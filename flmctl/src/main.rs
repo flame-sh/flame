@@ -14,6 +14,7 @@ limitations under the License.
 use std::error::Error;
 
 use clap::{Parser, Subcommand};
+use common::FlameContext;
 
 mod create;
 mod helper;
@@ -26,6 +27,9 @@ mod view;
 #[command(version = "0.1.0")]
 #[command(about = "Flame command line", long_about = None)]
 struct Cli {
+    #[arg(long)]
+    flame_conf: Option<String>,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -49,20 +53,20 @@ enum Commands {
     },
 }
 
-const FLAME_SERVER: &str = "FLAME_SERVER";
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     let cli = Cli::parse();
+    let ctx = FlameContext::from_file(cli.flame_conf)?;
+
     match &cli.command {
-        Some(Commands::List) => list::run().await?,
+        Some(Commands::List) => list::run(&ctx).await?,
         Some(Commands::Close { .. }) => {
             todo!()
         }
-        Some(Commands::Create { app, slots }) => create::run(app, slots).await?,
-        Some(Commands::View { session }) => view::run(session).await?,
+        Some(Commands::Create { app, slots }) => create::run(&ctx, app, slots).await?,
+        Some(Commands::View { session }) => view::run(&ctx, session).await?,
         _ => helper::run().await?,
     };
 

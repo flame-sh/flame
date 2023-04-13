@@ -11,13 +11,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::lock_ptr;
+use std::collections::HashMap;
+
+use chrono::{DateTime, Utc};
+
 use crate::model::{
     Application, Executor, ExecutorID, ExecutorState, Session, SessionID, SessionState, Task,
     TaskID, TaskState,
 };
-use chrono::{DateTime, Utc};
-use std::collections::HashMap;
+
+use common::lock_ptr;
 
 pub struct SnapShot {
     pub sessions: Vec<SessionInfo>,

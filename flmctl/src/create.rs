@@ -13,17 +13,15 @@ limitations under the License.
 
 use std::env;
 use std::error::Error;
+
 use tonic::Status;
 
+use common::FlameContext;
 use rpc::flame::frontend_client::FrontendClient;
-
 use rpc::flame::{CreateSessionRequest, SessionSpec};
 
-use crate::FLAME_SERVER;
-
-pub async fn run(app: &String, slots: &i32) -> Result<(), Box<dyn Error>> {
-    let addr = env::var(FLAME_SERVER)?;
-    let mut client = FrontendClient::connect(addr).await?;
+pub async fn run(ctx: &FlameContext, app: &String, slots: &i32) -> Result<(), Box<dyn Error>> {
+    let mut client = FrontendClient::connect(ctx.endpoint.clone()).await?;
 
     let req = CreateSessionRequest {
         session: Some(SessionSpec {

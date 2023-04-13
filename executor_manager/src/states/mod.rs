@@ -11,11 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#[macro_export]
-macro_rules! lock_ptr {
-    ( $mutex_arc:expr ) => {
-        $mutex_arc
-            .lock()
-            .map_err(|_| FlameError::Internal("mutex".to_string()))?
-    };
+use crate::executor::{Executor, ExecutorState};
+use common::FlameError;
+
+pub fn get_state(e: &Executor) -> Result<Box<dyn State>, FlameError> {
+    todo!()
+}
+
+pub trait State {
+    fn execute(&self) -> Result<(), FlameError>;
 }
