@@ -19,7 +19,7 @@ pub use allocate::AllocateAction;
 pub use assign::AssignAction;
 pub use preempt::PreemptAction;
 
-use crate::storage::SnapShot;
+use crate::model::SnapShot;
 use crate::FlameError;
 
 pub trait Action {

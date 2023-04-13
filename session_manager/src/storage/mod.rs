@@ -21,7 +21,8 @@ use chrono::Utc;
 use lazy_static::lazy_static;
 
 use crate::model::{
-    Executor, ExecutorID, FlameError, Session, SessionID, SessionStatus, Task, TaskID, TaskState,
+    Executor, ExecutorID, ExecutorInfo, FlameError, Session, SessionID, SessionInfo, SessionStatus,
+    Task, TaskID, TaskState,
 };
 
 mod engine;
@@ -48,11 +49,6 @@ pub struct Storage {
     executors: Arc<Mutex<HashMap<ExecutorID, Arc<Mutex<Executor>>>>>,
 }
 
-pub struct SnapShot {
-    pub sessions: Vec<Session>,
-    pub executors: Vec<Executor>,
-}
-
 impl Storage {
     fn next_ssn_id(&self) -> Result<i64, FlameError> {
         let mut id = lock_ptr!(self.max_ssn_id);
@@ -74,8 +70,8 @@ impl Storage {
         Ok(*id.deref())
     }
 
-    pub fn snapshot(&self) -> Result<SnapShot, FlameError> {
-        let mut res = SnapShot {
+    pub fn snapshot(&self) -> Result<model::SnapShot, FlameError> {
+        let mut res = model::SnapShot {
             sessions: vec![],
             executors: vec![],
         };
@@ -85,7 +81,8 @@ impl Storage {
 
             for (_, ssn) in ssn_map.deref() {
                 let ssn = lock_ptr!(ssn);
-                res.sessions.push((*ssn).clone());
+                let info = SessionInfo::from(&(*ssn));
+                res.sessions.push(info);
             }
         }
 
@@ -94,7 +91,7 @@ impl Storage {
 
             for (_, exe) in exe_map.deref() {
                 let exe = lock_ptr!(exe);
-                res.executors.push((*exe).clone());
+                res.executors.push(ExecutorInfo::from(&(*exe).clone()));
             }
         }
 

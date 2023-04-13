@@ -14,7 +14,6 @@ limitations under the License.
 use async_trait::async_trait;
 
 use crate::model::{Executor, ExecutorID, Session, SessionID, Task, TaskID};
-use crate::storage::SnapShot;
 use crate::FlameError;
 
 #[async_trait]

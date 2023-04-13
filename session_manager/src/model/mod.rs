@@ -22,6 +22,9 @@ use rpc::flame;
 
 mod errors;
 mod macros;
+mod snapshot;
+
+pub use crate::model::snapshot::{ExecutorInfo, SessionInfo, SnapShot, TaskInfo};
 
 pub type SessionID = i64;
 pub type TaskID = i64;
@@ -98,8 +101,9 @@ impl Clone for Session {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
 pub enum TaskState {
+    #[default]
     Pending = 0,
     Running = 1,
     Succeed = 2,

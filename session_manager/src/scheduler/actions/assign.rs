@@ -11,8 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use crate::model::SnapShot;
 use crate::scheduler::actions::Action;
-use crate::storage::SnapShot;
 use crate::FlameError;
 
 pub struct AssignAction {}
