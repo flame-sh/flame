@@ -12,6 +12,11 @@ limitations under the License.
 */
 
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
+
+use crate::states;
+use common::{FlameContext, FlameError};
+use rpc::flame::frontend_client::FrontendClient;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ExecutorState {
@@ -31,6 +36,18 @@ pub struct Application {
     pub working_directory: String,
 }
 
+impl From<&common::Application> for Application {
+    fn from(app: &common::Application) -> Self {
+        Application {
+            name: app.name.to_string(),
+            command: app.command_line.to_string(),
+            arguments: vec![],
+            environments: vec![],
+            working_directory: app.working_directory.to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Task {
     id: String,
@@ -47,4 +64,61 @@ pub struct Executor {
 
     pub start_time: DateTime<Utc>,
     pub state: ExecutorState,
+}
+
+impl Executor {
+    pub fn from_context(
+        ctx: &FlameContext,
+        appname: Option<String>,
+        slot: Option<i32>,
+    ) -> Result<Self, FlameError> {
+        let application: Result<Application, FlameError> = match appname {
+            Some(n) => {
+                if let Some(app) = ctx.applications.iter().find(|&s| s.name == n) {
+                    Ok(Application::from(app))
+                } else {
+                    return Err(FlameError::InvalidConfig(n));
+                }
+            }
+            None => Err(FlameError::InvalidConfig("no application name".to_string())),
+        };
+
+        let mut exec = Executor {
+            id: Uuid::new_v4().to_string(),
+            slots: slot.unwrap_or(1),
+            application: application?,
+            task: None,
+            start_time: Utc::now(),
+            state: ExecutorState::Initialized,
+        };
+
+        Ok(exec)
+    }
+
+    pub async fn run<T>(
+        &self,
+        ctx: &FlameContext,
+        client: &mut FrontendClient<T>,
+    ) -> Result<(), FlameError> {
+        let state = states::get_state(self)?;
+        state.execute(ctx, client)
+    }
+}
+
+pub async fn run(
+    ctx: &FlameContext,
+    appname: Option<String>,
+    slot: Option<i32>,
+) -> Result<(), FlameError> {
+    let exec = Executor::from_context(ctx, appname, slot)?;
+    let mut client = FrontendClient::connect(ctx.endpoint.clone())
+        .await
+        .map_err(|e| FlameError::Network("tonic connection".to_string()))?;
+
+    loop {
+        let res = exec.run(ctx, &mut client).await;
+        if let Err(e) = res {
+            log::error!("Failed to execute: {}", e);
+        }
+    }
 }

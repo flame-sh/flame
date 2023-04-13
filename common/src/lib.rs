@@ -13,6 +13,7 @@ limitations under the License.
 
 use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
+use tonic::transport::{Error as TonicError, Error};
 use tonic::Status;
 
 #[derive(Error, Debug)]
@@ -25,6 +26,9 @@ pub enum FlameError {
 
     #[error("'{0}'")]
     Network(String),
+
+    #[error("'{0}'")]
+    InvalidConfig(String),
 }
 
 impl From<FlameError> for Status {
@@ -46,7 +50,7 @@ macro_rules! lock_ptr {
     };
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Application {
     pub name: String,
     pub command_line: String,
@@ -63,7 +67,7 @@ impl Default for Application {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FlameContext {
     pub name: String,
     pub endpoint: String,

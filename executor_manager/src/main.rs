@@ -17,8 +17,6 @@ use std::error::Error;
 use clap::{Parser, Subcommand};
 use common::FlameContext;
 
-use rpc::flame::frontend_client::FrontendClient;
-
 mod executor;
 mod states;
 
@@ -30,21 +28,20 @@ mod states;
 struct Cli {
     #[arg(long)]
     flame_conf: Option<String>,
+    #[arg(long)]
+    app_name: Option<String>,
+    #[arg(long)]
+    slot: Option<i32>,
 }
-
-const FLAME_SERVER: &str = "FLAME_SERVER";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    let addr = env::var(FLAME_SERVER)?;
-    let mut client = FrontendClient::connect(addr).await?;
-
     let cli = Cli::parse();
     let ctx = FlameContext::from_file(cli.flame_conf)?;
 
-    println!("{:#?}", ctx);
+    executor::run(&ctx, cli.app_name, cli.slot).await?;
 
     Ok(())
 }

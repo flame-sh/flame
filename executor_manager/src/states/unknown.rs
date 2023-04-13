@@ -10,21 +10,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-use crate::states::State;
-use common::{FlameContext, FlameError};
-use rpc::flame::frontend_client::FrontendClient;
-
-use rpc::flame::RegisterExecutorRequest;
-
-pub struct InitState {}
-
-impl State for InitState {
-    fn execute<T>(
-        &self,
-        ctx: &FlameContext,
-        client: &mut FrontendClient<T>,
-    ) -> Result<(), FlameError> {
-        Ok(())
-    }
-}
