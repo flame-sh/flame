@@ -12,7 +12,7 @@ limitations under the License.
 */
 
 use std::error::Error;
-use std::{env, thread, time};
+use std::{thread, time};
 
 use chrono::Local;
 use clap::Parser;

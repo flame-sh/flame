@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
+
 
 use chrono::{DateTime, Utc};
 
@@ -20,7 +20,7 @@ use crate::model::{
     TaskID, TaskState,
 };
 
-use common::lock_ptr;
+
 
 pub struct SnapShot {
     pub sessions: Vec<SessionInfo>,

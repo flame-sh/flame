@@ -20,7 +20,7 @@ use lazy_static::lazy_static;
 
 use crate::model;
 use crate::model::{
-    Executor, ExecutorID, ExecutorInfo, Session, SessionID, SessionInfo, SessionStatus, Task,
+    Executor, ExecutorID, ExecutorInfo, Session, SessionID, SessionInfo, Task,
     TaskID, TaskState,
 };
 use common::lock_ptr;
@@ -122,11 +122,11 @@ impl Storage {
         Ok(ssn.clone())
     }
 
-    fn delete_session(&self, id: SessionID) -> Result<(), FlameError> {
+    fn delete_session(&self, _id: SessionID) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn update_session(&self, ssn: &Session) -> Result<Session, FlameError> {
+    fn update_session(&self, _ssn: &Session) -> Result<Session, FlameError> {
         todo!()
     }
 
@@ -203,7 +203,7 @@ impl Storage {
             .get(&t.ssn_id)
             .ok_or(FlameError::NotFound(t.ssn_id.to_string()))?;
 
-        let mut ssn = lock_ptr!(ssn);
+        let ssn = lock_ptr!(ssn);
         let task = ssn
             .tasks
             .get(&t.id)
@@ -215,23 +215,23 @@ impl Storage {
         Ok((*task).clone())
     }
 
-    fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError> {
+    fn delete_task(&self, _ssn_id: SessionID, _id: TaskID) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
+    fn register_executor(&self, _e: &Executor) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError> {
+    fn get_executor(&self, _id: ExecutorID) -> Result<Executor, FlameError> {
         todo!()
     }
 
-    fn unregister_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
+    fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn update_executor(&self, e: &Executor) -> Result<Executor, FlameError> {
+    fn update_executor(&self, _e: &Executor) -> Result<Executor, FlameError> {
         todo!()
     }
 }

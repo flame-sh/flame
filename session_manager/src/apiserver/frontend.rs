@@ -12,7 +12,7 @@ limitations under the License.
 */
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+
 use tonic::{Request, Response, Status};
 
 use rpc::flame::frontend_server::Frontend;

@@ -148,7 +148,7 @@ impl Executor {
             applications,
             task: None,
             start_time: Utc::now(),
-            state: ExecutorState::Initialized,
+            state: ExecutorState::Init,
         };
 
         Ok(exec)
