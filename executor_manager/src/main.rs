@@ -11,11 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::env;
+
 use std::error::Error;
 
 use crate::executor::Executor;
-use clap::{Parser, Subcommand};
+use clap::{Parser};
 use common::FlameContext;
 
 mod client;

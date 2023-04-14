@@ -17,8 +17,8 @@ use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::{FlameContext, FlameError};
-use rpc::flame::frontend_client::FrontendClient;
-use rpc::flame::RegisterExecutorRequest;
+
+
 
 pub struct InitState {
     pub executor: Executor,

@@ -15,7 +15,7 @@ use async_trait::async_trait;
 
 use crate::executor::{Executor, ExecutorState};
 use common::{FlameContext, FlameError};
-use rpc::flame::frontend_client::FrontendClient;
+
 
 mod bound;
 mod idle;

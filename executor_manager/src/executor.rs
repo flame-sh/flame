@@ -16,8 +16,8 @@ use uuid::Uuid;
 
 use ::rpc::flame as rpc;
 
-use crate::client::BackendClient;
-use crate::{client, states};
+
+use crate::{states};
 use common::{FlameContext, FlameError};
 
 #[derive(Clone, Copy, Debug)]
@@ -142,7 +142,7 @@ impl Executor {
     pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
         let applications = ctx.applications.iter().map(Application::from).collect();
 
-        let mut exec = Executor {
+        let exec = Executor {
             id: Uuid::new_v4().to_string(),
             slots: slots.unwrap_or(1),
             applications,
