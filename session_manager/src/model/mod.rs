@@ -16,6 +16,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
+use common::ptr::CondPtr;
 
 pub use crate::model::snapshot::{ExecutorInfo, SessionInfo, SnapShot, TaskInfo};
 
@@ -41,9 +42,9 @@ pub struct SessionStatus {
     pub allocated: f64,
 }
 
-pub type TaskPtr = Arc<Mutex<Task>>;
-pub type SessionPtr = Arc<Mutex<Session>>;
-pub type ExecutorPtr = Arc<Mutex<Executor>>;
+pub type TaskPtr = CondPtr<Task>;
+pub type SessionPtr = CondPtr<Session>;
+pub type ExecutorPtr = CondPtr<Executor>;
 
 #[derive(Debug, Default)]
 pub struct Session {
@@ -65,13 +66,13 @@ impl Clone for Session {
         let mut tasks_index: HashMap<TaskState, HashMap<TaskID, TaskPtr>> = HashMap::new();
 
         for (id, t) in &self.tasks {
-            let t = t.lock();
+            let t = t.ptr.lock();
             if t.is_err() {
                 log::error!("Failed to lock task: <{}>, ignore it during clone.", id);
                 continue;
             }
             let t = t.unwrap();
-            let task = Arc::new(Mutex::new(t.clone()));
+            let task = TaskPtr::new(t.clone());
 
             tasks.insert(*id, task.clone());
 

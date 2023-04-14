@@ -112,7 +112,7 @@ impl From<&Session> for SessionInfo {
     fn from(ssn: &Session) -> Self {
         let mut tasks = vec![];
         for (_, t) in &ssn.tasks {
-            let task = t.lock();
+            let task = t.ptr.lock();
             if task.is_err() {
                 continue;
             }

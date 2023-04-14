@@ -24,8 +24,15 @@ pub struct CondPtr<T> {
     pub cond: Arc<Condvar>,
 }
 
-impl<T> CondPtr<T> {
-    pub fn wait_while<'a, F>(&self, f: F) -> Result<(), FlameError>
+impl<T: Clone> CondPtr<T> {
+    pub fn new(value: T) -> Self {
+        CondPtr {
+            ptr: Arc::new(Mutex::new(value)),
+            cond: Arc::new(Condvar::new()),
+        }
+    }
+
+    pub fn wait_while<'a, F>(&self, f: F) -> Result<T, FlameError>
     where
         F: Fn(&T) -> bool,
     {
@@ -40,35 +47,24 @@ impl<T> CondPtr<T> {
             let ptr = lock_ptr!(self.ptr)?;
             let cond = f(&*ptr);
             if cond {
-                break;
+                return Ok((*ptr).clone());
             }
             let _gard = self
                 .cond
                 .wait(ptr)
                 .map_err(|_| FlameError::Internal("condptr error".to_string()))?;
         }
-
-        Ok(())
     }
 
-    pub fn modify<'a, F>(&self, mut mod_fn: F) -> Result<(), FlameError>
+    pub fn modify<'a, F>(&self, mut mod_fn: F) -> Result<T, FlameError>
     where
-        F: FnMut(&mut T) -> Result<(), FlameError>,
+        F: FnMut(&mut T) -> Result<T, FlameError>,
     {
         let mut ptr = lock_ptr!(self.ptr)?;
-        mod_fn(&mut *ptr)?;
+        let res = mod_fn(&mut *ptr)?;
 
         self.cond.notify_all();
 
-        Ok(())
-    }
-}
-
-impl<T> From<T> for CondPtr<T> {
-    fn from(value: T) -> Self {
-        CondPtr {
-            ptr: Arc::new(Mutex::new(value)),
-            cond: Arc::new(Condvar::new()),
-        }
+        Ok(res)
     }
 }

@@ -23,8 +23,9 @@ use crate::model::{
     Executor, ExecutorID, ExecutorInfo, ExecutorPtr, Session, SessionID, SessionInfo, SessionPtr,
     Task, TaskID, TaskState,
 };
-use common::lock_ptr;
+use common::ptr::CondPtr;
 use common::FlameError;
+use common::{lock_cond_ptr, lock_ptr};
 
 mod engine;
 
@@ -81,7 +82,7 @@ impl Storage {
             let ssn_map = lock_ptr!(self.sessions)?;
 
             for (_, ssn) in ssn_map.deref() {
-                let ssn = lock_ptr!(ssn)?;
+                let ssn = lock_cond_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
                 res.sessions.push(info);
             }
@@ -91,7 +92,7 @@ impl Storage {
             let exe_map = lock_ptr!(self.executors)?;
 
             for (_, exe) in exe_map.deref() {
-                let exe = lock_ptr!(exe)?;
+                let exe = lock_cond_ptr!(exe)?;
                 res.executors.push(ExecutorInfo::from(&(*exe).clone()));
             }
         }
@@ -108,14 +109,14 @@ impl Storage {
         ssn.application = app;
         ssn.creation_time = Utc::now();
 
-        ssn_map.insert(ssn.id, Arc::new(Mutex::new(ssn.clone())));
+        ssn_map.insert(ssn.id, CondPtr::new(ssn.clone()));
 
         Ok(ssn)
     }
 
     pub fn get_session(&self, id: SessionID) -> Result<Session, FlameError> {
         let ssn_ptr = self.get_session_ptr(id)?;
-        let ssn = lock_ptr!(ssn_ptr)?;
+        let ssn = lock_cond_ptr!(ssn_ptr)?;
         Ok(ssn.clone())
     }
 
@@ -141,7 +142,7 @@ impl Storage {
         let ssn_map = lock_ptr!(self.sessions)?;
 
         for (_, ssn) in ssn_map.deref() {
-            let ssn = lock_ptr!(ssn)?;
+            let ssn = lock_cond_ptr!(ssn)?;
             ssn_list.push((*ssn).clone());
         }
 
@@ -158,7 +159,7 @@ impl Storage {
             .get(&ssn_id)
             .ok_or(FlameError::NotFound(ssn_id.to_string()))?;
 
-        let mut ssn = lock_ptr!(ssn)?;
+        let mut ssn = lock_cond_ptr!(ssn)?;
 
         let state = TaskState::Pending;
         let task_id = self.next_task_id(&ssn_id)?;
@@ -173,7 +174,7 @@ impl Storage {
             state,
         };
 
-        let task_ptr = Arc::new(Mutex::new(task.clone()));
+        let task_ptr = CondPtr::new(task.clone());
         ssn.tasks.insert(task_id, task_ptr.clone());
         if !ssn.tasks_index.contains_key(&state) {
             ssn.tasks_index.insert(state, HashMap::new());
@@ -193,12 +194,12 @@ impl Storage {
             .get(&ssn_id)
             .ok_or(FlameError::NotFound(ssn_id.to_string()))?;
 
-        let ssn = lock_ptr!(ssn)?;
+        let ssn = lock_cond_ptr!(ssn)?;
         let task = ssn
             .tasks
             .get(&id)
             .ok_or(FlameError::NotFound(id.to_string()))?;
-        let task = lock_ptr!(task)?;
+        let task = lock_cond_ptr!(task)?;
         Ok(task.clone())
     }
 
@@ -209,13 +210,13 @@ impl Storage {
             .get(&t.ssn_id)
             .ok_or(FlameError::NotFound(t.ssn_id.to_string()))?;
 
-        let ssn = lock_ptr!(ssn)?;
+        let ssn = lock_cond_ptr!(ssn)?;
         let task = ssn
             .tasks
             .get(&t.id)
             .ok_or(FlameError::NotFound(t.id.to_string()))?;
 
-        let mut task = lock_ptr!(task)?;
+        let mut task = lock_cond_ptr!(task)?;
         task.state = t.state;
 
         Ok((*task).clone())
@@ -227,7 +228,7 @@ impl Storage {
 
     pub fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
         let mut exe_map = lock_ptr!(self.executors)?;
-        let exe = Arc::new(Mutex::new(e.clone()));
+        let exe = CondPtr::new(e.clone());
         exe_map.insert(e.id.clone(), exe);
 
         Ok(())
@@ -244,13 +245,14 @@ impl Storage {
 
     pub fn bind_executor(&self, id: ExecutorID) -> Result<Session, FlameError> {
         let exe_ptr = self.get_executor_ptr(id)?;
-        let exe = lock_ptr!(exe_ptr)?;
-        let cv = Arc::new(Condvar::new());
+        let exe = exe_ptr.wait_while(|e| e.ssn_id.is_some())?;
+        let ssn_id = exe
+            .ssn_id
+            .ok_or(FlameError::Internal("concurrent error".to_string()))?;
+        let ssn_ptr = self.get_session_ptr(ssn_id)?;
+        let ssn = lock_cond_ptr!(ssn_ptr)?;
 
-        cv.notify_all();
-        let _ = cv.wait_while(exe, |exe| exe.ssn_id.is_some());
-
-        Err(FlameError::Internal("test".to_string()))
+        Ok((*ssn).clone())
     }
 
     pub fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {
