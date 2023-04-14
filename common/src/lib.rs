@@ -142,10 +142,10 @@ mod tests {
         thread::spawn(move || {
             let delay = time::Duration::from_millis(3000);
             thread::sleep(delay);
-            pair.modify(|p| {
+            let _v = pair.modify(|p| {
                 *p = true;
                 println!("Update condition: {}", *p);
-                Ok(())
+                Ok(true)
             })
             .unwrap();
         });
