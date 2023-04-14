@@ -11,7 +11,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 use crate::lock_ptr;
 use std::sync::{Arc, Condvar, Mutex};
 
@@ -26,27 +25,43 @@ pub struct CondPtr<T> {
 }
 
 impl<T> CondPtr<T> {
-    pub fn wait_while<'a, F>(&self, condition: F) -> Result<(), FlameError>
+    pub fn wait_while<'a, F>(&self, f: F) -> Result<(), FlameError>
     where
-        F: FnMut(&mut T) -> bool,
+        F: Fn(&T) -> bool,
     {
-        let ptr = lock_ptr!(self.ptr)?;
-        let _guard = self
-            .cond
-            .wait_while(ptr, condition)
-            .map_err(|_| FlameError::Internal("condptr error".to_string()))?;
+        // TODO(k82cn): switch to condvar.wait_while when it works.
+        // let ptr = lock_ptr!(self.ptr)?;
+        // let _guard = self
+        //     .cond
+        //     .wait_while(ptr, f)
+        //     .map_err(|_| FlameError::Internal("condptr error".to_string()))?;
+
+        loop {
+            let ptr = lock_ptr!(self.ptr)?;
+            let cond = f(&*ptr);
+            if cond {
+                break;
+            }
+            let _gard = self
+                .cond
+                .wait(ptr)
+                .map_err(|_| FlameError::Internal("condptr error".to_string()))?;
+        }
 
         Ok(())
     }
 
-    // pub fn modify<'a, F>(&self, cond: F) -> Result<(), FlameError>
-    // where F: FnMut(&MutexPtr<T>) -> Result<(), FlameError>,
-    // {
-    //     cond.call_once((&self.ptr, ))?;
-    //     self.cond.notify_all();
-    //
-    //     Ok(())
-    // }
+    pub fn modify<'a, F>(&self, mut mod_fn: F) -> Result<(), FlameError>
+    where
+        F: FnMut(&mut T) -> Result<(), FlameError>,
+    {
+        let mut ptr = lock_ptr!(self.ptr)?;
+        mod_fn(&mut *ptr)?;
+
+        self.cond.notify_all();
+
+        Ok(())
+    }
 }
 
 impl<T> From<T> for CondPtr<T> {
@@ -57,6 +72,3 @@ impl<T> From<T> for CondPtr<T> {
         }
     }
 }
-
-
-

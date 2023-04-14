@@ -21,10 +21,7 @@ use rpc::flame::{
     DeleteTaskRequest, GetSessionRequest, GetTaskRequest, ListSessionRequest, OpenSessionRequest,
 };
 
-use rpc::flame::{
-    Metadata, Session, SessionList, SessionSpec, SessionState, SessionStatus, Task, TaskSpec,
-    TaskState, TaskStatus,
-};
+use rpc::flame::{Session, SessionList, Task};
 
 use crate::apiserver::Flame;
 use crate::model;

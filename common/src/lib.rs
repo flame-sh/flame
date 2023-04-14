@@ -129,27 +129,30 @@ impl FlameContext {
 
 #[cfg(test)]
 mod tests {
-    use std::{thread, time};
     use crate::ptr::CondPtr;
-    use crate::FlameError;
+    use std::{thread, time};
 
     #[test]
     fn test_ptr() {
         let pair = CondPtr::from(false);
         let pair2 = pair.clone();
 
-        thread::spawn(move|| {
-            let delay = time::Duration::from_millis(10000);
+        thread::spawn(move || {
+            let delay = time::Duration::from_millis(3000);
             thread::sleep(delay);
-            let mut pending = lock_ptr!(pair.ptr).unwrap();
-            *pending = true;
-            // We notify the condvar that the value has changed.
-            println!("Info all: {}", *pending);
-            pair.cond.notify_all();
+            pair.modify(|p| {
+                *p = true;
+                println!("Update condition: {}", *p);
+                Ok(())
+            })
+            .unwrap();
         });
 
-        pair2.wait_while(|pending| {
-            println!("The pending is: {}", *pending);
-            *pending }).unwrap();
+        pair2
+            .wait_while(|pending| {
+                println!("Waiting for condition: {}", *pending);
+                *pending
+            })
+            .unwrap();
     }
 }
