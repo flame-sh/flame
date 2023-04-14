@@ -64,9 +64,13 @@ impl Backend for Flame {
     }
     async fn bind_executor(
         &self,
-        _: Request<BindExecutorRequest>,
+        req: Request<BindExecutorRequest>,
     ) -> Result<Response<Session>, Status> {
-        todo!()
+        let req = req.into_inner();
+
+        let ssn = self.storage.bind_executor(req.executor_id.to_string())?;
+
+        Ok(Response::new(Session::from(&ssn)))
     }
     async fn unbind_executor(
         &self,

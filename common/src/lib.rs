@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+mod ptr;
+
 use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
 use tonic::Status;
@@ -54,7 +56,17 @@ macro_rules! lock_ptr {
     ( $mutex_arc:expr ) => {
         $mutex_arc
             .lock()
-            .map_err(|_| FlameError::Internal("mutex".to_string()))?
+            .map_err(|_| FlameError::Internal("mutex".to_string()))
+    };
+}
+
+#[macro_export]
+macro_rules! lock_cond_ptr {
+    ( $mutex_arc:expr ) => {
+        $mutex_arc
+            .ptr
+            .lock()
+            .map_err(|_| FlameError::Internal("mutex".to_string()))
     };
 }
 
@@ -112,5 +124,32 @@ impl FlameContext {
         }
 
         Ok(ctx)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{thread, time};
+    use crate::ptr::CondPtr;
+    use crate::FlameError;
+
+    #[test]
+    fn test_ptr() {
+        let pair = CondPtr::from(false);
+        let pair2 = pair.clone();
+
+        thread::spawn(move|| {
+            let delay = time::Duration::from_millis(10000);
+            thread::sleep(delay);
+            let mut pending = lock_ptr!(pair.ptr).unwrap();
+            *pending = true;
+            // We notify the condvar that the value has changed.
+            println!("Info all: {}", *pending);
+            pair.cond.notify_all();
+        });
+
+        pair2.wait_while(|pending| {
+            println!("The pending is: {}", *pending);
+            *pending }).unwrap();
     }
 }

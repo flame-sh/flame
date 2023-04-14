@@ -18,7 +18,7 @@ use lazy_static::lazy_static;
 use tonic::transport::Channel;
 
 use self::rpc::backend_client::BackendClient as FlameBackendClient;
-use self::rpc::{RegisterExecutorRequest, BindExecutorRequest};
+use self::rpc::{BindExecutorRequest, RegisterExecutorRequest};
 use ::rpc::flame as rpc;
 
 use crate::executor::Executor;
@@ -42,14 +42,14 @@ pub async fn install(ctx: &FlameContext) -> Result<(), FlameError> {
         .await
         .map_err(|_e| FlameError::Network("tonic connection".to_string()))?;
 
-    let mut cs = lock_ptr!(INSTANCE.client_pool);
+    let mut cs = lock_ptr!(INSTANCE.client_pool)?;
     cs.insert(ctx.name.clone(), client);
 
     Ok(())
 }
 
 fn get_client(ctx: &FlameContext) -> Result<FlameClient, FlameError> {
-    let cs = lock_ptr!(INSTANCE.client_pool);
+    let cs = lock_ptr!(INSTANCE.client_pool)?;
     let client = cs.get(&ctx.name).ok_or(FlameError::Uninitialized(format!(
         "client {}",
         ctx.name.clone()
@@ -82,7 +82,6 @@ pub async fn bind_executor(ctx: &FlameContext, exe: &Executor) -> Result<(), Fla
 
     Ok(())
 }
-
 
 // rpc BindExecutor (BindExecutorRequest) returns (Session) {}
 

@@ -21,7 +21,7 @@ use common::FlameError;
 
 pub fn from(_: &Application) -> Result<Box<dyn Shim>, FlameError> {
     // TODO(k82cn): Load shim based on application's configuration.
-    Ok(Box::new(LogShim{}))
+    Ok(Box::new(LogShim {}))
 }
 
 #[async_trait]

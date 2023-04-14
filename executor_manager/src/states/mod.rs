@@ -27,9 +27,9 @@ pub fn from(e: &Executor) -> Result<Box<dyn State>, FlameError> {
         ExecutorState::Init => Ok(Box::new(init::InitState {
             executor: e.clone(),
         })),
-        _ => Ok(Box::new(idle::IdleState{
+        _ => Ok(Box::new(idle::IdleState {
             executor: e.clone(),
-        }))
+        })),
     }
 }
 

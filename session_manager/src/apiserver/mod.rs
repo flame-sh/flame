@@ -16,9 +16,13 @@ use tonic::transport::Server;
 
 use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
+use rpc::flame::{
+    Metadata, Session, SessionList, SessionSpec, SessionState, SessionStatus, Task, TaskSpec,
+    TaskState, TaskStatus,
+};
 
 use crate::storage::Storage;
-use crate::{storage, FlameError};
+use crate::{model, storage, FlameError};
 
 mod backend;
 mod frontend;
@@ -45,4 +49,85 @@ pub async fn run() -> Result<(), FlameError> {
         .map_err(|e| FlameError::Network(e.to_string()))?;
 
     Ok(())
+}
+
+impl From<model::TaskState> for TaskState {
+    fn from(state: model::TaskState) -> Self {
+        match state {
+            model::TaskState::Pending => TaskState::TaskPending,
+            model::TaskState::Running => TaskState::TaskRunning,
+            model::TaskState::Succeed => TaskState::TaskSucceed,
+            model::TaskState::Failed => TaskState::TaskFailed,
+        }
+    }
+}
+
+impl From<&model::Task> for Task {
+    fn from(task: &model::Task) -> Self {
+        Task {
+            metadata: Some(Metadata {
+                id: task.id.to_string(),
+                owner: Some(task.ssn_id.to_string()),
+            }),
+            spec: Some(TaskSpec {
+                session_id: task.ssn_id.to_string(),
+                input: task.input.clone(),
+                output: task.output.clone(),
+            }),
+            status: Some(TaskStatus {
+                state: TaskState::from(task.state) as i32,
+                creation_time: task.creation_time.timestamp(),
+                completion_time: match task.completion_time {
+                    None => None,
+                    Some(s) => Some(s.timestamp()),
+                },
+            }),
+        }
+    }
+}
+
+impl From<model::SessionState> for SessionState {
+    fn from(state: model::SessionState) -> Self {
+        match state {
+            model::SessionState::Open => SessionState::SessionOpen,
+            model::SessionState::Closed => SessionState::SessionClosed,
+        }
+    }
+}
+
+impl From<&model::Session> for Session {
+    fn from(ssn: &model::Session) -> Self {
+        let mut status = SessionStatus {
+            state: SessionState::from(ssn.status.state) as i32,
+            creation_time: ssn.creation_time.timestamp(),
+            completion_time: match ssn.completion_time {
+                None => None,
+                Some(s) => Some(s.timestamp()),
+            },
+            failed: 0,
+            pending: 0,
+            running: 0,
+            succeed: 0,
+        };
+        for (s, v) in &ssn.tasks_index {
+            match s {
+                model::TaskState::Pending => status.pending = v.len() as i32,
+                model::TaskState::Running => status.running = v.len() as i32,
+                model::TaskState::Succeed => status.succeed = v.len() as i32,
+                model::TaskState::Failed => status.failed = v.len() as i32,
+            }
+        }
+
+        Session {
+            metadata: Some(Metadata {
+                id: ssn.id.to_string(),
+                owner: None,
+            }),
+            spec: Some(SessionSpec {
+                application: ssn.application.clone(),
+                slots: ssn.slots,
+            }),
+            status: Some(status),
+        }
+    }
 }

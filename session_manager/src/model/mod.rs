@@ -13,7 +13,7 @@ limitations under the License.
 
 use std::collections::HashMap;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 
 use chrono::{DateTime, Utc};
 
@@ -41,8 +41,9 @@ pub struct SessionStatus {
     pub allocated: f64,
 }
 
-type TaskPtr = Arc<Mutex<Task>>;
-type SessionPtr = Arc<Mutex<Session>>;
+pub type TaskPtr = Arc<Mutex<Task>>;
+pub type SessionPtr = Arc<Mutex<Session>>;
+pub type ExecutorPtr = Arc<Mutex<Executor>>;
 
 #[derive(Debug, Default)]
 pub struct Session {
