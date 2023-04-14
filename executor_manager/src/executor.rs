@@ -16,8 +16,7 @@ use uuid::Uuid;
 
 use ::rpc::flame as rpc;
 
-
-use crate::{states};
+use crate::states;
 use common::{FlameContext, FlameError};
 
 #[derive(Clone, Copy, Debug)]

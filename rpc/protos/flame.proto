@@ -163,7 +163,7 @@ message GetTaskRequest {
   e.g. register executor, invoke tasks and so on.
  */
 service Backend {
-  rpc RegisterExecutor (RegisterExecutorRequest) returns (Executor) {}
+  rpc RegisterExecutor (RegisterExecutorRequest) returns (Result) {}
   rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
 
   rpc BindExecutor (BindExecutorRequest) returns (Session) {}

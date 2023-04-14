@@ -18,8 +18,6 @@ use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::{FlameContext, FlameError};
 
-
-
 pub struct InitState {
     pub executor: Executor,
 }

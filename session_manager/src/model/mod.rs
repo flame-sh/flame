@@ -17,9 +17,6 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Utc};
 
-
-
-
 pub use crate::model::snapshot::{ExecutorInfo, SessionInfo, SnapShot, TaskInfo};
 
 mod snapshot;
@@ -143,7 +140,7 @@ pub struct Application {
 pub struct Executor {
     pub id: ExecutorID,
     pub slots: i32,
-    pub application: Application,
+    pub applications: Vec<Application>,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 

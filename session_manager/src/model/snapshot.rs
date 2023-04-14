@@ -11,16 +11,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-
 use chrono::{DateTime, Utc};
 
 use crate::model::{
     Application, Executor, ExecutorID, ExecutorState, Session, SessionID, SessionState, Task,
     TaskID, TaskState,
 };
-
-
 
 pub struct SnapShot {
     pub sessions: Vec<SessionInfo>,
@@ -58,7 +54,7 @@ pub struct SessionInfo {
 #[derive(Clone, Debug)]
 pub struct ExecutorInfo {
     pub id: ExecutorID,
-    pub application: Application,
+    pub applications: Vec<AppInfo>,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
@@ -66,11 +62,32 @@ pub struct ExecutorInfo {
     pub state: ExecutorState,
 }
 
+#[derive(Clone, Debug)]
+pub struct AppInfo {
+    pub name: String,
+}
+
+impl From<Application> for AppInfo {
+    fn from(app: Application) -> Self {
+        AppInfo::from(&app)
+    }
+}
+
+impl From<&Application> for AppInfo {
+    fn from(app: &Application) -> Self {
+        AppInfo {
+            name: app.name.to_string(),
+        }
+    }
+}
+
 impl From<&Executor> for ExecutorInfo {
     fn from(exec: &Executor) -> Self {
+        let applications = exec.applications.iter().map(AppInfo::from).collect();
+
         ExecutorInfo {
             id: exec.id.clone(),
-            application: exec.application.clone(),
+            applications,
             task_id: exec.task_id.clone(),
             ssn_id: exec.ssn_id.clone(),
             creation_time: exec.creation_time.clone(),

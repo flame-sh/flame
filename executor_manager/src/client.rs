@@ -18,7 +18,7 @@ use lazy_static::lazy_static;
 use tonic::transport::Channel;
 
 use self::rpc::backend_client::BackendClient as FlameBackendClient;
-use self::rpc::{RegisterExecutorRequest};
+use self::rpc::RegisterExecutorRequest;
 use ::rpc::flame as rpc;
 
 use crate::executor::Executor;

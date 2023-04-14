@@ -18,7 +18,13 @@ use crate::FlameError;
 pub struct AllocateAction {}
 
 impl Action for AllocateAction {
-    fn execute(&self, _: &mut SnapShot) -> Result<(), FlameError> {
+    fn execute(&self, ss: &mut SnapShot) -> Result<(), FlameError> {
+        log::debug!(
+            "Session: <{}>, Executor: <{}>",
+            ss.sessions.len(),
+            ss.executors.len()
+        );
+
         Ok(())
     }
 }

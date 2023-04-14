@@ -22,7 +22,7 @@ mod actions;
 pub fn start() -> Result<(), FlameError> {
     // TODO(k82cn): support gracefully exit.
     thread::spawn(move || {
-        let delay = time::Duration::from_millis(100);
+        let delay = time::Duration::from_millis(10000);
         loop {
             match run() {
                 Err(e) => log::error!("Failed to run scheduling: {}", e),

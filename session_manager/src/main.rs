@@ -20,8 +20,14 @@ mod storage;
 
 #[tokio::main]
 async fn main() -> Result<(), FlameError> {
+    env_logger::init();
+
+    log::info!("flame-session-manager is starting ...");
+
     // storage::start()?;
     scheduler::start()?;
+    log::debug!("scheduler was started.");
+
     apiserver::run().await?;
 
     Ok(())

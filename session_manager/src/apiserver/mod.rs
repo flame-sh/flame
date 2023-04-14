@@ -14,6 +14,7 @@ limitations under the License.
 use std::sync::Arc;
 use tonic::transport::Server;
 
+use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
 
 use crate::storage::Storage;
@@ -28,12 +29,17 @@ pub struct Flame {
 
 pub async fn run() -> Result<(), FlameError> {
     let address = "[::1]:8080".parse().unwrap();
-    let flame_service = Flame {
+    let frontend_service = Flame {
+        storage: storage::instance(),
+    };
+
+    let backend_service = Flame {
         storage: storage::instance(),
     };
 
     Server::builder()
-        .add_service(FrontendServer::new(flame_service))
+        .add_service(FrontendServer::new(frontend_service))
+        .add_service(BackendServer::new(backend_service))
         .serve(address)
         .await
         .map_err(|e| FlameError::Network(e.to_string()))?;

@@ -20,8 +20,7 @@ use lazy_static::lazy_static;
 
 use crate::model;
 use crate::model::{
-    Executor, ExecutorID, ExecutorInfo, Session, SessionID, SessionInfo, Task,
-    TaskID, TaskState,
+    Executor, ExecutorID, ExecutorInfo, Session, SessionID, SessionInfo, Task, TaskID, TaskState,
 };
 use common::lock_ptr;
 use common::FlameError;
@@ -122,11 +121,11 @@ impl Storage {
         Ok(ssn.clone())
     }
 
-    fn delete_session(&self, _id: SessionID) -> Result<(), FlameError> {
+    pub fn delete_session(&self, _id: SessionID) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn update_session(&self, _ssn: &Session) -> Result<Session, FlameError> {
+    pub fn update_session(&self, _ssn: &Session) -> Result<Session, FlameError> {
         todo!()
     }
 
@@ -142,7 +141,7 @@ impl Storage {
         Ok(ssn_list)
     }
 
-    pub(crate) fn create_task(
+    pub fn create_task(
         &self,
         ssn_id: SessionID,
         task_input: Option<String>,
@@ -180,7 +179,7 @@ impl Storage {
         Ok(task)
     }
 
-    pub(crate) fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
+    pub fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
         let ssn_map = lock_ptr!(self.sessions);
 
         let ssn = ssn_map
@@ -196,7 +195,7 @@ impl Storage {
         Ok(task.clone())
     }
 
-    fn update_task(&self, t: &Task) -> Result<Task, FlameError> {
+    pub fn update_task_state(&self, t: &Task) -> Result<Task, FlameError> {
         let ssn_map = lock_ptr!(self.sessions);
 
         let ssn = ssn_map
@@ -215,23 +214,23 @@ impl Storage {
         Ok((*task).clone())
     }
 
-    fn delete_task(&self, _ssn_id: SessionID, _id: TaskID) -> Result<(), FlameError> {
+    // fn delete_task(&self, _ssn_id: SessionID, _id: TaskID) -> Result<(), FlameError> {
+    //     todo!()
+    // }
+
+    pub fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
+        let mut exe_map = lock_ptr!(self.executors);
+        let exe = Arc::new(Mutex::new(e.clone()));
+        exe_map.insert(e.id.clone(), exe);
+
+        Ok(())
+    }
+
+    pub fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn register_executor(&self, _e: &Executor) -> Result<(), FlameError> {
-        todo!()
-    }
-
-    fn get_executor(&self, _id: ExecutorID) -> Result<Executor, FlameError> {
-        todo!()
-    }
-
-    fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {
-        todo!()
-    }
-
-    fn update_executor(&self, _e: &Executor) -> Result<Executor, FlameError> {
+    pub fn get_executor(&self, _id: ExecutorID) -> Result<Executor, FlameError> {
         todo!()
     }
 }

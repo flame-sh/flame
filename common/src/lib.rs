@@ -45,9 +45,7 @@ impl From<FlameError> for Status {
 
 impl From<Status> for FlameError {
     fn from(value: Status) -> Self {
-        match value {
-            Status { .. } => FlameError::Network("grpc".to_string()),
-        }
+        FlameError::Network(value.code().to_string())
     }
 }
 
