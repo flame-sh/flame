@@ -131,10 +131,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 TaskState::from_i32(task_status.state).ok_or(Status::data_loss("no task state"))?;
 
             match state {
-                TaskState::Pending => pending = pending + 1,
-                TaskState::Running => running = running + 1,
-                TaskState::Succeed => succeed = succeed + 1,
-                TaskState::Failed => failed = failed + 1,
+                TaskState::TaskPending => pending = pending + 1,
+                TaskState::TaskRunning => running = running + 1,
+                TaskState::TaskSucceed => succeed = succeed + 1,
+                TaskState::TaskFailed => failed = failed + 1,
             }
         }
 

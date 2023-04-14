@@ -14,9 +14,11 @@ limitations under the License.
 use std::env;
 use std::error::Error;
 
+use crate::executor::Executor;
 use clap::{Parser, Subcommand};
 use common::FlameContext;
 
+mod client;
 mod executor;
 mod states;
 
@@ -29,9 +31,7 @@ struct Cli {
     #[arg(long)]
     flame_conf: Option<String>,
     #[arg(long)]
-    app_name: Option<String>,
-    #[arg(long)]
-    slot: Option<i32>,
+    slots: Option<i32>,
 }
 
 #[tokio::main]
@@ -41,7 +41,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     let ctx = FlameContext::from_file(cli.flame_conf)?;
 
-    executor::run(&ctx, cli.app_name, cli.slot).await?;
+    // Setup Flame backend client.
+    client::install(&ctx).await?;
 
-    Ok(())
+    // Run executor.
+    // TODO(k82cn): 1. enable gracefully exit, 2. build ExecutorManager for multiple executors.
+    let mut exec = Executor::from_context(&ctx, cli.slots).await?;
+    loop {
+        let res = exec.run(&ctx).await;
+        if let Err(e) = res {
+            log::error!("Failed to execute: {}", e);
+        }
+    }
 }

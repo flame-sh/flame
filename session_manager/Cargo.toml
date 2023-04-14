@@ -7,14 +7,14 @@ edition = "2021"
 
 [dependencies]
 rpc = { path = "../rpc" }
-common = {path = "../common"}
+common = { path = "../common" }
 
 tokio = { workspace = true }
 tonic = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
+async-trait = { workspace = true }
 
-async-trait = "0.1"
 thiserror = "1"
 chrono = "0.4"
 lazy_static = "1.4"

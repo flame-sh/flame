@@ -8,8 +8,8 @@ message Metadata {
 }
 
 enum SessionState {
-  Open = 0;
-  Closed = 1;
+  SessionOpen = 0;
+  SessionClosed = 1;
 }
 
 message SessionStatus {
@@ -36,10 +36,10 @@ message Session {
 }
 
 enum TaskState {
-  Pending = 0;
-  Running = 1;
-  Succeed = 2;
-  Failed = 3;
+  TaskPending = 0;
+  TaskRunning = 1;
+  TaskSucceed = 2;
+  TaskFailed = 3;
 }
 
 message TaskStatus {
@@ -76,8 +76,10 @@ message ExecutorSpec {
 }
 
 enum ExecutorState {
-  idle = 0;
-  bound = 1;
+  ExecutorIdle = 0;
+  ExecutorBound = 1;
+  ExecutorRunning = 2;
+  ExecutorUnknown = 3;
 }
 
 message ExecutorStatus {
@@ -172,7 +174,8 @@ service Backend {
 }
 
 message RegisterExecutorRequest {
-  ExecutorSpec executor = 1;
+  string executor_id = 1;
+  ExecutorSpec executor_spec = 2;
 }
 
 message UnregisterExecutorRequest {

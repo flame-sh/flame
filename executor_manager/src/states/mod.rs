@@ -11,10 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use rpc::flame::frontend_client::FrontendClient;
+use async_trait::async_trait;
 
 use crate::executor::{Executor, ExecutorState};
 use common::{FlameContext, FlameError};
+use rpc::flame::frontend_client::FrontendClient;
 
 mod bound;
 mod idle;
@@ -22,20 +23,15 @@ mod init;
 mod running;
 mod unknown;
 
-pub fn get_state(e: &Executor) -> Result<Box<dyn State>, FlameError> {
+pub fn from(e: &Executor) -> Result<Box<dyn State>, FlameError> {
     match e.state {
-        ExecutorState::Initialized => Ok(Box::new(int::InitState {})),
-        ExecutorState::Idle => {}
-        ExecutorState::Bound => {}
-        ExecutorState::Running => {}
-        ExecutorState::Unknown => {}
+        _ => Ok(Box::new(init::InitState {
+            executor: e.clone(),
+        })),
     }
 }
 
+#[async_trait]
 pub trait State {
-    fn execute<T>(
-        &self,
-        ctx: &FlameContext,
-        client: &mut FrontendClient<T>,
-    ) -> Result<(), FlameError>;
+    async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError>;
 }

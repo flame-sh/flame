@@ -13,7 +13,6 @@ limitations under the License.
 
 use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
-use tonic::transport::{Error as TonicError, Error};
 use tonic::Status;
 
 #[derive(Error, Debug)]
@@ -29,6 +28,9 @@ pub enum FlameError {
 
     #[error("'{0}'")]
     InvalidConfig(String),
+
+    #[error("'{0}' is not initialized")]
+    Uninitialized(String),
 }
 
 impl From<FlameError> for Status {
@@ -37,6 +39,14 @@ impl From<FlameError> for Status {
             FlameError::NotFound(s) => Status::not_found(s),
             FlameError::Internal(s) => Status::internal(s),
             _ => Status::unknown("unknown"),
+        }
+    }
+}
+
+impl From<Status> for FlameError {
+    fn from(value: Status) -> Self {
+        match value {
+            Status { .. } => FlameError::Network("grpc".to_string()),
         }
     }
 }
@@ -98,6 +108,11 @@ impl FlameContext {
 
         let ctx: FlameContext =
             confy::load_path(fp).map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
+
+        if ctx.applications.len() == 0 {
+            return Err(FlameError::InvalidConfig("no application".to_string()));
+        }
+
         Ok(ctx)
     }
 }

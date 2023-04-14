@@ -14,17 +14,30 @@ limitations under the License.
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::states;
+use ::rpc::flame as rpc;
+
+use crate::client::BackendClient;
+use crate::{client, states};
 use common::{FlameContext, FlameError};
-use rpc::flame::frontend_client::FrontendClient;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ExecutorState {
-    Initialized = 0,
+    Init = 0,
     Idle = 1,
     Bound = 2,
     Running = 3,
     Unknown = 4,
+}
+
+impl From<ExecutorState> for rpc::ExecutorState {
+    fn from(state: ExecutorState) -> Self {
+        match state {
+            ExecutorState::Init | ExecutorState::Idle => rpc::ExecutorState::ExecutorIdle,
+            ExecutorState::Bound => rpc::ExecutorState::ExecutorBound,
+            ExecutorState::Running => rpc::ExecutorState::ExecutorRunning,
+            ExecutorState::Unknown => rpc::ExecutorState::ExecutorUnknown,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -34,6 +47,18 @@ pub struct Application {
     pub arguments: Vec<String>,
     pub environments: Vec<String>,
     pub working_directory: String,
+}
+
+impl From<&Application> for rpc::Application {
+    fn from(app: &Application) -> Self {
+        rpc::Application {
+            name: app.name.clone(),
+            command: app.command.clone(),
+            arguments: app.arguments.to_vec(),
+            environments: app.environments.to_vec(),
+            working_directory: app.working_directory.clone(),
+        }
+    }
 }
 
 impl From<&common::Application> for Application {
@@ -49,76 +74,83 @@ impl From<&common::Application> for Application {
 }
 
 #[derive(Clone, Debug)]
-pub struct Task {
+pub struct TaskContext {
     id: String,
     ssn_id: String,
     input: String,
 }
 
 #[derive(Clone, Debug)]
+pub struct SessionContext {
+    ssn_id: String,
+    application: String,
+    slots: i32,
+}
+
+#[derive(Clone, Debug)]
 pub struct Executor {
     pub id: String,
     pub slots: i32,
-    pub application: Application,
-    pub task: Option<Task>,
+    pub applications: Vec<Application>,
+    pub task: Option<TaskContext>,
 
     pub start_time: DateTime<Utc>,
     pub state: ExecutorState,
 }
 
+impl From<&Executor> for rpc::Executor {
+    fn from(e: &Executor) -> Self {
+        let metadata = Some(rpc::Metadata {
+            id: e.id.clone(),
+            owner: None,
+        });
+
+        let spec = Some(rpc::ExecutorSpec {
+            slots: e.slots,
+            applications: e.applications.iter().map(rpc::Application::from).collect(),
+        });
+
+        let status = Some(rpc::ExecutorStatus {
+            state: rpc::ExecutorState::from(e.state) as i32,
+        });
+
+        rpc::Executor {
+            metadata,
+            spec,
+            status,
+        }
+    }
+}
+
+impl From<&Executor> for rpc::ExecutorSpec {
+    fn from(e: &Executor) -> Self {
+        rpc::ExecutorSpec {
+            slots: e.slots,
+            applications: e.applications.iter().map(rpc::Application::from).collect(),
+        }
+    }
+}
+
 impl Executor {
-    pub fn from_context(
-        ctx: &FlameContext,
-        appname: Option<String>,
-        slot: Option<i32>,
-    ) -> Result<Self, FlameError> {
-        let application: Result<Application, FlameError> = match appname {
-            Some(n) => {
-                if let Some(app) = ctx.applications.iter().find(|&s| s.name == n) {
-                    Ok(Application::from(app))
-                } else {
-                    return Err(FlameError::InvalidConfig(n));
-                }
-            }
-            None => Err(FlameError::InvalidConfig("no application name".to_string())),
-        };
+    pub async fn run(&mut self, ctx: &FlameContext) -> Result<(), FlameError> {
+        let state = states::from(self)?;
+        self.state = state.execute(ctx).await?;
+
+        Ok(())
+    }
+
+    pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
+        let applications = ctx.applications.iter().map(Application::from).collect();
 
         let mut exec = Executor {
             id: Uuid::new_v4().to_string(),
-            slots: slot.unwrap_or(1),
-            application: application?,
+            slots: slots.unwrap_or(1),
+            applications,
             task: None,
             start_time: Utc::now(),
             state: ExecutorState::Initialized,
         };
 
         Ok(exec)
-    }
-
-    pub async fn run<T>(
-        &self,
-        ctx: &FlameContext,
-        client: &mut FrontendClient<T>,
-    ) -> Result<(), FlameError> {
-        let state = states::get_state(self)?;
-        state.execute(ctx, client)
-    }
-}
-
-pub async fn run(
-    ctx: &FlameContext,
-    appname: Option<String>,
-    slot: Option<i32>,
-) -> Result<(), FlameError> {
-    let exec = Executor::from_context(ctx, appname, slot)?;
-    let mut client = FrontendClient::connect(ctx.endpoint.clone())
-        .await
-        .map_err(|e| FlameError::Network("tonic connection".to_string()))?;
-
-    loop {
-        let res = exec.run(ctx, &mut client).await;
-        if let Err(e) = res {
-            log::error!("Failed to execute: {}", e);
-        }
     }
 }

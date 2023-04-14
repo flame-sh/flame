@@ -11,20 +11,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use async_trait::async_trait;
+
+use crate::client;
+use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::{FlameContext, FlameError};
 use rpc::flame::frontend_client::FrontendClient;
-
 use rpc::flame::RegisterExecutorRequest;
 
-pub struct InitState {}
+pub struct InitState {
+    pub executor: Executor,
+}
 
+#[async_trait]
 impl State for InitState {
-    fn execute<T>(
-        &self,
-        ctx: &FlameContext,
-        client: &mut FrontendClient<T>,
-    ) -> Result<(), FlameError> {
-        Ok(())
+    async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError> {
+        client::register_executor(ctx, &self.executor).await?;
+
+        Ok(ExecutorState::Idle)
     }
 }

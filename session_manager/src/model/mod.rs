@@ -20,9 +20,9 @@ use chrono::{DateTime, Utc};
 use common::FlameError;
 use rpc::flame;
 
-mod snapshot;
-
 pub use crate::model::snapshot::{ExecutorInfo, SessionInfo, SnapShot, TaskInfo};
+
+mod snapshot;
 
 pub type SessionID = i64;
 pub type TaskID = i64;

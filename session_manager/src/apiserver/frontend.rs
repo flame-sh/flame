@@ -145,10 +145,10 @@ impl Frontend for Flame {
 impl From<model::TaskState> for TaskState {
     fn from(state: model::TaskState) -> Self {
         match state {
-            model::TaskState::Pending => TaskState::Pending,
-            model::TaskState::Running => TaskState::Running,
-            model::TaskState::Succeed => TaskState::Succeed,
-            model::TaskState::Failed => TaskState::Failed,
+            model::TaskState::Pending => TaskState::TaskPending,
+            model::TaskState::Running => TaskState::TaskRunning,
+            model::TaskState::Succeed => TaskState::TaskSucceed,
+            model::TaskState::Failed => TaskState::TaskFailed,
         }
     }
 }
@@ -180,8 +180,8 @@ impl From<&model::Task> for Task {
 impl From<model::SessionState> for SessionState {
     fn from(state: model::SessionState) -> Self {
         match state {
-            model::SessionState::Open => SessionState::Open,
-            model::SessionState::Closed => SessionState::Closed,
+            model::SessionState::Open => SessionState::SessionOpen,
+            model::SessionState::Closed => SessionState::SessionClosed,
         }
     }
 }
