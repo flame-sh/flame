@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_ptr() {
-        let pair = CondPtr::from(false);
+        let pair = CondPtr::new(false);
         let pair2 = pair.clone();
 
         thread::spawn(move || {

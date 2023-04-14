@@ -13,7 +13,7 @@ limitations under the License.
 
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use lazy_static::lazy_static;
