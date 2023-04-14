@@ -24,9 +24,12 @@ mod unknown;
 
 pub fn from(e: &Executor) -> Result<Box<dyn State>, FlameError> {
     match e.state {
-        _ => Ok(Box::new(init::InitState {
+        ExecutorState::Init => Ok(Box::new(init::InitState {
             executor: e.clone(),
         })),
+        _ => Ok(Box::new(idle::IdleState{
+            executor: e.clone(),
+        }))
     }
 }
 

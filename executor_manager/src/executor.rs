@@ -74,16 +74,16 @@ impl From<&common::Application> for Application {
 
 #[derive(Clone, Debug)]
 pub struct TaskContext {
-    id: String,
-    ssn_id: String,
-    input: String,
+    pub id: String,
+    pub ssn_id: String,
+    pub input: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct SessionContext {
-    ssn_id: String,
-    application: String,
-    slots: i32,
+    pub ssn_id: String,
+    pub application: String,
+    pub slots: i32,
 }
 
 #[derive(Clone, Debug)]

@@ -11,22 +11,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+mod log_shim;
+
+pub use log_shim::LogShim;
+
+use crate::executor::{Application, SessionContext, TaskContext};
 use async_trait::async_trait;
+use common::FlameError;
 
-use crate::client;
-use crate::executor::{Executor, ExecutorState};
-use crate::states::State;
-use common::{FlameContext, FlameError};
-
-pub struct IdleState {
-    pub executor: Executor,
+pub fn from(_: &Application) -> Result<Box<dyn Shim>, FlameError> {
+    // TODO(k82cn): Load shim based on application's configuration.
+    Ok(Box::new(LogShim{}))
 }
 
 #[async_trait]
-impl State for IdleState {
-    async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError> {
-        client::bind_executor(ctx, &self.executor).await?;
-
-        Ok(ExecutorState::Idle)
-    }
+pub trait Shim {
+    fn on_session_enter(&self, ctx: &SessionContext) -> Result<(), FlameError>;
+    fn on_task_invoke(&self, ctx: &TaskContext) -> Result<(), FlameError>;
+    fn on_session_leave(&self, ctx: &SessionContext) -> Result<(), FlameError>;
 }

@@ -18,7 +18,7 @@ use lazy_static::lazy_static;
 use tonic::transport::Channel;
 
 use self::rpc::backend_client::BackendClient as FlameBackendClient;
-use self::rpc::RegisterExecutorRequest;
+use self::rpc::{RegisterExecutorRequest, BindExecutorRequest};
 use ::rpc::flame as rpc;
 
 use crate::executor::Executor;
@@ -70,6 +70,21 @@ pub async fn register_executor(ctx: &FlameContext, exe: &Executor) -> Result<(),
 
     Ok(())
 }
+
+pub async fn bind_executor(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
+    let mut ins = get_client(ctx)?;
+
+    let req = BindExecutorRequest {
+        executor_id: exe.id.clone(),
+    };
+
+    ins.bind_executor(req).await.map_err(FlameError::from)?;
+
+    Ok(())
+}
+
+
+// rpc BindExecutor (BindExecutorRequest) returns (Session) {}
 
 //
 // rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}

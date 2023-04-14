@@ -19,6 +19,7 @@ use common::FlameContext;
 
 mod client;
 mod executor;
+mod shims;
 mod states;
 
 #[derive(Parser)]
