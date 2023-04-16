@@ -20,14 +20,15 @@ use lazy_static::lazy_static;
 
 use crate::model;
 use crate::model::{
-    Executor, ExecutorID, ExecutorInfo, ExecutorPtr, Session, SessionID, SessionInfo, SessionPtr,
-    Task, TaskID, TaskState,
+    Executor, ExecutorID, ExecutorInfo, ExecutorPtr, ExecutorState, Session, SessionID,
+    SessionInfo, SessionPtr, Task, TaskID, TaskState,
 };
 use common::ptr::CondPtr;
 use common::FlameError;
 use common::{lock_cond_ptr, lock_ptr};
 
 mod engine;
+mod states;
 
 lazy_static! {
     static ref INSTANCE: Arc<Storage> = Arc::new(Storage {
@@ -243,16 +244,26 @@ impl Storage {
         Ok(exe.clone())
     }
 
-    pub fn bind_executor(&self, id: ExecutorID) -> Result<Session, FlameError> {
+    pub fn wait_for_session(&self, id: ExecutorID) -> Result<Session, FlameError> {
         let exe_ptr = self.get_executor_ptr(id)?;
-        let exe = exe_ptr.wait_while(|e| e.ssn_id.is_some())?;
-        let ssn_id = exe
-            .ssn_id
-            .ok_or(FlameError::Internal("concurrent error".to_string()))?;
+        let state = states::from(exe_ptr)?;
+
+        let ssn_id = (*state).wait_for_session()?;
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
         let ssn = lock_cond_ptr!(ssn_ptr)?;
 
         Ok((*ssn).clone())
+    }
+
+    pub fn bind_session(&self, id: ExecutorID, ssn_id: SessionID) -> Result<(), FlameError> {
+        let exe_ptr = self.get_executor_ptr(id)?;
+        let _exe = exe_ptr.modify(|e| {
+            e.ssn_id = Some(ssn_id);
+            e.state = ExecutorState::Binding;
+            Ok(())
+        })?;
+
+        Ok(())
     }
 
     pub fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {

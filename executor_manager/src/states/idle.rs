@@ -16,7 +16,7 @@ use async_trait::async_trait;
 use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
-use common::{FlameContext, FlameError};
+use common::{FlameContext, FlameError, trace_fn, trace::TraceFn};
 
 pub struct IdleState {
     pub executor: Executor,
@@ -25,8 +25,9 @@ pub struct IdleState {
 #[async_trait]
 impl State for IdleState {
     async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError> {
+        trace_fn!("IdleState::execute");
         client::bind_executor(ctx, &self.executor).await?;
 
-        Ok(ExecutorState::Idle)
+        Ok(ExecutorState::Bound)
     }
 }

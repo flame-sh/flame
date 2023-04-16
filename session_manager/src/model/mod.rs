@@ -13,8 +13,6 @@ limitations under the License.
 
 use std::collections::HashMap;
 
-
-
 use chrono::{DateTime, Utc};
 use common::ptr::CondPtr;
 

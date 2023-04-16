@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 pub mod ptr;
+pub mod trace;
 
 // pub use ptr::{CondPtr, MutexPtr};
 
@@ -142,12 +143,13 @@ mod tests {
         thread::spawn(move || {
             let delay = time::Duration::from_millis(3000);
             thread::sleep(delay);
-            let _v = pair.modify(|p| {
-                *p = true;
-                println!("Update condition: {}", *p);
-                Ok(true)
-            })
-            .unwrap();
+            let _v = pair
+                .modify(|p| {
+                    *p = true;
+                    println!("Update condition: {}", *p);
+                    Ok(())
+                })
+                .unwrap();
         });
 
         pair2

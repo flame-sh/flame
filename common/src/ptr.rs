@@ -12,7 +12,7 @@ limitations under the License.
 */
 
 use crate::lock_ptr;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{Arc, Condvar, Mutex, MutexGuard};
 
 use crate::FlameError;
 
@@ -32,7 +32,7 @@ impl<T: Clone> CondPtr<T> {
         }
     }
 
-    pub fn wait_while<'a, F>(&self, f: F) -> Result<T, FlameError>
+    pub fn wait_while<'a, F>(&self, f: F) -> Result<MutexGuard<T>, FlameError>
     where
         F: Fn(&T) -> bool,
     {
@@ -47,7 +47,7 @@ impl<T: Clone> CondPtr<T> {
             let ptr = lock_ptr!(self.ptr)?;
             let cond = f(&*ptr);
             if cond {
-                return Ok((*ptr).clone());
+                return Ok(ptr);
             }
             let _gard = self
                 .cond
@@ -56,15 +56,15 @@ impl<T: Clone> CondPtr<T> {
         }
     }
 
-    pub fn modify<'a, F>(&self, mut mod_fn: F) -> Result<T, FlameError>
+    pub fn modify<'a, F>(&self, mut mod_fn: F) -> Result<MutexGuard<T>, FlameError>
     where
-        F: FnMut(&mut T) -> Result<T, FlameError>,
+        F: FnMut(&mut T) -> Result<(), FlameError>,
     {
         let mut ptr = lock_ptr!(self.ptr)?;
-        let res = mod_fn(&mut *ptr)?;
+        mod_fn(&mut *ptr)?;
 
         self.cond.notify_all();
 
-        Ok(res)
+        Ok(ptr)
     }
 }

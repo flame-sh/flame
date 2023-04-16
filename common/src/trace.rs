@@ -11,23 +11,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use async_trait::async_trait;
-
-use crate::client;
-use crate::executor::{Executor, ExecutorState};
-use crate::states::State;
-use common::{FlameContext, FlameError, trace_fn, trace::TraceFn};
-
-pub struct InitState {
-    pub executor: Executor,
+pub struct TraceFn{
+    pub fn_name : String,
 }
 
-#[async_trait]
-impl State for InitState {
-    async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError> {
-        trace_fn!("InitState::execute");
-        client::register_executor(ctx, &self.executor).await?;
-
-        Ok(ExecutorState::Idle)
+impl TraceFn {
+    pub fn new(n: String) -> Self {
+        log::debug!("{} Enter", n);
+        TraceFn {fn_name: n}
     }
+}
+
+impl Drop for TraceFn {
+    fn drop(&mut self) {
+        log::debug!("{} Leaving", self.fn_name);
+    }
+}
+
+#[macro_export]
+macro_rules! trace_fn {
+    ($e:expr) => (
+        let _trace_fn = TraceFn::new($e.to_string());
+        // let _scope_call = TraceFn { fn_name: $e.to_string() };
+    )
 }
