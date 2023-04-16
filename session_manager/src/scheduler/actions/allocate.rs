@@ -12,11 +12,11 @@ limitations under the License.
 */
 
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::BinaryHeap;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use crate::model::{ExecutorState, SessionID, SessionInfo, SnapShot, TaskState};
+use crate::model::{ExecutorState, SessionID, SnapShot, TaskState};
 use crate::scheduler::actions::Action;
 use crate::storage::Storage;
 use crate::FlameError;

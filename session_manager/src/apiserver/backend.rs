@@ -13,7 +13,7 @@ limitations under the License.
 
 use async_trait::async_trait;
 use chrono::Utc;
-use common::{FlameError, trace_fn, trace::TraceFn};
+use common::{trace::TraceFn, trace_fn, FlameError};
 use tonic::{Request, Response, Status};
 
 use self::rpc::backend_server::Backend;

@@ -12,7 +12,6 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
-use std::sync::LockResult;
 
 use chrono::{DateTime, Utc};
 

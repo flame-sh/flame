@@ -13,8 +13,8 @@ limitations under the License.
 
 use async_trait::async_trait;
 
+use common::{trace::TraceFn, trace_fn};
 use tonic::{Request, Response, Status};
-use common::{trace_fn, trace::TraceFn};
 
 use rpc::flame::frontend_server::Frontend;
 use rpc::flame::{

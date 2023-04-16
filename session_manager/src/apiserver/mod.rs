@@ -17,8 +17,8 @@ use tonic::transport::Server;
 use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
 use rpc::flame::{
-    Metadata, Session, SessionSpec, SessionState, SessionStatus, Task, TaskSpec, TaskState,
-    TaskStatus, Application,
+    Application, Metadata, Session, SessionSpec, SessionState, SessionStatus, Task, TaskSpec,
+    TaskState, TaskStatus,
 };
 
 use crate::storage::Storage;
@@ -133,7 +133,6 @@ impl From<&model::Session> for Session {
         }
     }
 }
-
 
 impl From<Application> for model::Application {
     fn from(app: Application) -> Self {

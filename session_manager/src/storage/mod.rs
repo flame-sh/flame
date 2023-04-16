@@ -21,10 +21,10 @@ use lazy_static::lazy_static;
 
 use crate::model;
 use crate::model::{
-    Executor, ExecutorID, ExecutorInfo, ExecutorPtr, ExecutorState, Session, SessionID,
-    SessionInfo, SessionPtr, Task, TaskID, TaskPtr, TaskState,
+    Executor, ExecutorID, ExecutorInfo, ExecutorPtr, Session, SessionID, SessionInfo, SessionPtr,
+    Task, TaskID, TaskState,
 };
-use common::ptr::CondPtr;
+
 use common::FlameError;
 use common::{lock_cond_ptr, lock_ptr};
 
