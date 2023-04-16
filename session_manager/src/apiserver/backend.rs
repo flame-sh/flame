@@ -68,9 +68,7 @@ impl Backend for Flame {
     ) -> Result<Response<Session>, Status> {
         let req = req.into_inner();
 
-        let ssn = self
-            .storage
-            .wait_for_session(req.executor_id.to_string())?;
+        let ssn = self.storage.wait_for_session(req.executor_id.to_string())?;
 
         Ok(Response::new(Session::from(&ssn)))
     }

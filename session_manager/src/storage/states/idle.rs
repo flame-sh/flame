@@ -11,16 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
-use common::{FlameError, lock_cond_ptr};
 use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::States;
+use common::{lock_cond_ptr, FlameError};
 
 pub struct IdleState {
     pub executor: ExecutorPtr,
 }
 
-impl States for IdleState{
+impl States for IdleState {
     fn wait_for_session(&self) -> Result<SessionID, FlameError> {
         let exe = self.executor.wait_while(|e| e.ssn_id.is_some())?;
         let ssn_id = exe
@@ -45,7 +44,7 @@ impl States for IdleState{
         Ok(())
     }
 
-    fn bind_session_completed(&self, ssn: SessionPtr) -> Result<(), FlameError> {
+    fn bind_session_completed(&self, _ssn: SessionPtr) -> Result<(), FlameError> {
         todo!()
     }
 
@@ -57,11 +56,11 @@ impl States for IdleState{
         todo!()
     }
 
-    fn launch_task(&self, task: TaskPtr) -> Result<(), FlameError> {
+    fn launch_task(&self, _task: TaskPtr) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn complete_task(&self, task: TaskPtr) -> Result<(), FlameError> {
+    fn complete_task(&self, _task: TaskPtr) -> Result<(), FlameError> {
         todo!()
     }
 }

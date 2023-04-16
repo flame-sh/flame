@@ -78,9 +78,7 @@ pub async fn bind_executor(ctx: &FlameContext, exe: &Executor) -> Result<(), Fla
         executor_id: exe.id.clone(),
     };
 
-    let ssn = ins.bind_executor(req).await.map_err(FlameError::from)?;
-
-
+    let _ssn = ins.bind_executor(req).await.map_err(FlameError::from)?;
 
     Ok(())
 }

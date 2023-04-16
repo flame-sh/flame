@@ -16,7 +16,7 @@ use async_trait::async_trait;
 use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
-use common::{FlameContext, FlameError, trace_fn, trace::TraceFn};
+use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct InitState {
     pub executor: Executor,

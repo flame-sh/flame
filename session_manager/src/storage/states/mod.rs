@@ -11,24 +11,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::{FlameError, lock_cond_ptr};
 use crate::model::{ExecutorPtr, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::idle::IdleState;
+use common::{lock_cond_ptr, FlameError};
 
 mod idle;
 
 pub fn from(exe_ptr: ExecutorPtr) -> Result<Box<dyn States>, FlameError> {
     let exe = lock_cond_ptr!(exe_ptr)?;
     match exe.state {
-        _ => Ok(Box::new(IdleState{executor: exe_ptr.clone()})),
+        _ => Ok(Box::new(IdleState {
+            executor: exe_ptr.clone(),
+        })),
     }
 }
 
 pub trait States {
     fn wait_for_session(&self) -> Result<SessionID, FlameError>;
 
-    fn bind_session(&self, ssn: SessionPtr)-> Result<(), FlameError>;
-    fn bind_session_completed(&self, ssn: SessionPtr)-> Result<(), FlameError>;
+    fn bind_session(&self, ssn: SessionPtr) -> Result<(), FlameError>;
+    fn bind_session_completed(&self, ssn: SessionPtr) -> Result<(), FlameError>;
 
     fn unbind_session(&self) -> Result<(), FlameError>;
     fn unbind_session_completed(&self) -> Result<(), FlameError>;

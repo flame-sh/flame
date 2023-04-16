@@ -11,14 +11,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub struct TraceFn{
-    pub fn_name : String,
+pub struct TraceFn {
+    pub fn_name: String,
 }
 
 impl TraceFn {
     pub fn new(n: String) -> Self {
         log::debug!("{} Enter", n);
-        TraceFn {fn_name: n}
+        TraceFn { fn_name: n }
     }
 }
 
@@ -30,8 +30,8 @@ impl Drop for TraceFn {
 
 #[macro_export]
 macro_rules! trace_fn {
-    ($e:expr) => (
+    ($e:expr) => {
         let _trace_fn = TraceFn::new($e.to_string());
         // let _scope_call = TraceFn { fn_name: $e.to_string() };
-    )
+    };
 }
