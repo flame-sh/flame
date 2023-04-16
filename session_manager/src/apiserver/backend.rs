@@ -13,7 +13,7 @@ limitations under the License.
 
 use async_trait::async_trait;
 use chrono::Utc;
-use common::FlameError;
+use common::{FlameError, trace_fn, trace::TraceFn};
 use tonic::{Request, Response, Status};
 
 use self::rpc::backend_server::Backend;
@@ -32,6 +32,7 @@ impl Backend for Flame {
         &self,
         req: Request<RegisterExecutorRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
+        trace_fn!("Backend::bind_executor");
         let req = req.into_inner();
         let spec = req
             .executor_spec
@@ -66,6 +67,7 @@ impl Backend for Flame {
         &self,
         req: Request<BindExecutorRequest>,
     ) -> Result<Response<Session>, Status> {
+        trace_fn!("Backend::bind_executor");
         let req = req.into_inner();
 
         let ssn = self.storage.wait_for_session(req.executor_id.to_string())?;
@@ -86,23 +88,5 @@ impl Backend for Flame {
         _: Request<CompleteTaskRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         todo!()
-    }
-}
-
-impl From<rpc::Application> for model::Application {
-    fn from(app: rpc::Application) -> Self {
-        model::Application::from(&app)
-    }
-}
-
-impl From<&rpc::Application> for model::Application {
-    fn from(app: &rpc::Application) -> Self {
-        model::Application {
-            name: app.name.to_string(),
-            command: app.command.to_string(),
-            arguments: app.arguments.to_vec(),
-            environments: app.environments.to_vec(),
-            working_directory: app.working_directory.to_string(),
-        }
     }
 }

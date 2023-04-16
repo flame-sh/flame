@@ -13,6 +13,7 @@ limitations under the License.
 
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
@@ -21,7 +22,7 @@ use lazy_static::lazy_static;
 use crate::model;
 use crate::model::{
     Executor, ExecutorID, ExecutorInfo, ExecutorPtr, ExecutorState, Session, SessionID,
-    SessionInfo, SessionPtr, Task, TaskID, TaskState,
+    SessionInfo, SessionPtr, Task, TaskID, TaskPtr, TaskState,
 };
 use common::ptr::CondPtr;
 use common::FlameError;
@@ -76,25 +77,71 @@ impl Storage {
     pub fn snapshot(&self) -> Result<model::SnapShot, FlameError> {
         let mut res = model::SnapShot {
             sessions: vec![],
+            ssn_index: HashMap::new(),
+            ssn_state_index: HashMap::new(),
+
             executors: vec![],
+            exec_index: HashMap::new(),
+            exec_state_index: HashMap::new(),
         };
 
         {
             let ssn_map = lock_ptr!(self.sessions)?;
-
             for (_, ssn) in ssn_map.deref() {
                 let ssn = lock_cond_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
-                res.sessions.push(info);
+                res.sessions.push(Rc::new(info));
             }
         }
 
         {
             let exe_map = lock_ptr!(self.executors)?;
-
             for (_, exe) in exe_map.deref() {
                 let exe = lock_cond_ptr!(exe)?;
-                res.executors.push(ExecutorInfo::from(&(*exe).clone()));
+                let info = ExecutorInfo::from(&(*exe).clone());
+                res.executors.push(Rc::new(info));
+            }
+        }
+
+        // Build index without related locks.
+        for ssn in &res.sessions {
+            res.ssn_index.insert(ssn.id.clone(), ssn.clone());
+            if !res.ssn_state_index.contains_key(&ssn.state) {
+                res.ssn_state_index.insert(ssn.state.clone(), Vec::new());
+            }
+
+            if let Some(si) = res.ssn_state_index.get_mut(&ssn.state) {
+                si.push(ssn.clone());
+            }
+        }
+
+        for exec in &res.executors {
+            res.exec_index.insert(exec.id.clone(), exec.clone());
+            if !res.exec_state_index.contains_key(&exec.state) {
+                res.exec_state_index.insert(exec.state.clone(), Vec::new());
+            }
+
+            if let Some(ei) = res.exec_state_index.get_mut(&exec.state) {
+                ei.push(exec.clone());
+            }
+
+            // Update session's status
+            if let Some(ssn_id) = &exec.ssn_id {
+                match res.ssn_index.get_mut(ssn_id) {
+                    // ssn.executors.insert(exec.id.clone, exec.clone());
+                    None => {
+                        log::warn!(
+                            "Failed to find Session <{}> for Executor <{}>",
+                            ssn_id,
+                            exec.id
+                        );
+                    }
+                    Some(ssn) => {
+                        if let Some(ssn) = Rc::get_mut(ssn) {
+                            (*ssn).executors.insert(exec.id.clone(), exec.clone());
+                        }
+                    }
+                }
             }
         }
 
@@ -110,7 +157,7 @@ impl Storage {
         ssn.application = app;
         ssn.creation_time = Utc::now();
 
-        ssn_map.insert(ssn.id, CondPtr::new(ssn.clone()));
+        ssn_map.insert(ssn.id, SessionPtr::new(ssn.clone()));
 
         Ok(ssn)
     }
@@ -175,15 +222,7 @@ impl Storage {
             state,
         };
 
-        let task_ptr = CondPtr::new(task.clone());
-        ssn.tasks.insert(task_id, task_ptr.clone());
-        if !ssn.tasks_index.contains_key(&state) {
-            ssn.tasks_index.insert(state, HashMap::new());
-        }
-        ssn.tasks_index
-            .get_mut(&state)
-            .unwrap()
-            .insert(0, task_ptr.clone());
+        ssn.add_task(&task);
 
         Ok(task)
     }
@@ -229,7 +268,7 @@ impl Storage {
 
     pub fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
         let mut exe_map = lock_ptr!(self.executors)?;
-        let exe = CondPtr::new(e.clone());
+        let exe = ExecutorPtr::new(e.clone());
         exe_map.insert(e.id.clone(), exe);
 
         Ok(())
@@ -257,11 +296,15 @@ impl Storage {
 
     pub fn bind_session(&self, id: ExecutorID, ssn_id: SessionID) -> Result<(), FlameError> {
         let exe_ptr = self.get_executor_ptr(id)?;
-        let _exe = exe_ptr.modify(|e| {
-            e.ssn_id = Some(ssn_id);
-            e.state = ExecutorState::Binding;
-            Ok(())
-        })?;
+        let state = states::from(exe_ptr)?;
+
+        let ssn_ptr = self.get_session_ptr(ssn_id)?;
+        state.bind_session(ssn_ptr)?;
+        // let _exe = exe_ptr.modify(|e| {
+        //     e.ssn_id = Some(ssn_id);
+        //     e.state = ExecutorState::Binding;
+        //     Ok(())
+        // })?;
 
         Ok(())
     }

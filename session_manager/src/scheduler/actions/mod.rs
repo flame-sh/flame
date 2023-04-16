@@ -12,12 +12,8 @@ limitations under the License.
 */
 
 mod allocate;
-mod assign;
-mod preempt;
 
 pub use allocate::AllocateAction;
-pub use assign::AssignAction;
-pub use preempt::PreemptAction;
 
 use crate::model::SnapShot;
 use crate::FlameError;

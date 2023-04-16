@@ -12,9 +12,12 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
+use std::sync::LockResult;
 
 use chrono::{DateTime, Utc};
+
 use common::ptr::CondPtr;
+use common::{lock_cond_ptr, FlameError};
 
 pub use crate::model::snapshot::{ExecutorInfo, SessionInfo, SnapShot, TaskInfo};
 
@@ -24,7 +27,7 @@ pub type SessionID = i64;
 pub type TaskID = i64;
 pub type ExecutorID = String;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum SessionState {
     #[default]
     Open = 0,
@@ -34,10 +37,9 @@ pub enum SessionState {
 #[derive(Clone, Debug, Default)]
 pub struct SessionStatus {
     pub state: SessionState,
-
-    pub total: f64,
-    pub desired: f64,
-    pub allocated: f64,
+    // pub total: f64,
+    // pub desired: f64,
+    // pub allocated: f64,
 }
 
 pub type TaskPtr = CondPtr<Task>;
@@ -51,52 +53,90 @@ pub struct Session {
     pub slots: i32,
     pub tasks: HashMap<TaskID, TaskPtr>,
     pub tasks_index: HashMap<TaskState, HashMap<TaskID, TaskPtr>>,
-
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
 
     pub status: SessionStatus,
 }
 
-impl Clone for Session {
-    fn clone(&self) -> Self {
-        let mut tasks: HashMap<TaskID, TaskPtr> = HashMap::new();
-        let mut tasks_index: HashMap<TaskState, HashMap<TaskID, TaskPtr>> = HashMap::new();
+impl Session {
+    pub fn add_task(&mut self, task: &Task) {
+        let task_ptr = TaskPtr::new(task.clone());
 
-        for (id, t) in &self.tasks {
-            let t = t.ptr.lock();
-            if t.is_err() {
-                log::error!("Failed to lock task: <{}>, ignore it during clone.", id);
-                continue;
+        self.tasks.insert(self.id, task_ptr.clone());
+        if !self.tasks_index.contains_key(&task.state) {
+            self.tasks_index.insert(task.state.clone(), HashMap::new());
+        }
+        self.tasks_index
+            .get_mut(&task.state)
+            .unwrap()
+            .insert(self.id, task_ptr.clone());
+    }
+
+    pub fn update_task_state(
+        &mut self,
+        task_ptr: TaskPtr,
+        state: TaskState,
+    ) -> Result<(), FlameError> {
+        let mut task = lock_cond_ptr!(task_ptr)?;
+        match self.tasks_index.get_mut(&task.state) {
+            None => {
+                log::error!(
+                    "Failed to find task <{}> in state map <{}>.",
+                    task.id,
+                    task.state.to_string()
+                );
+
+                return Err(FlameError::NotFound(format!(
+                    "task <{}> in state map <{}>",
+                    task.id,
+                    task.state.to_string()
+                )));
             }
-            let t = t.unwrap();
-            let task = TaskPtr::new(t.clone());
 
-            tasks.insert(*id, task.clone());
-
-            if !tasks_index.contains_key(&t.state) {
-                tasks_index.insert(t.state, HashMap::new());
+            Some(index) => {
+                index.remove(&task.id);
             }
-            tasks_index
-                .get_mut(&t.state)
-                .unwrap()
-                .insert(*id, task.clone());
         }
 
-        Session {
-            id: self.id,
-            application: self.application.clone(),
-            slots: self.slots,
-            tasks,
-            tasks_index,
-            creation_time: self.creation_time.clone(),
-            completion_time: self.completion_time.clone(),
-            status: self.status.clone(),
-        }
+        self.tasks.remove(&task.id);
+
+        task.state = state;
+        self.add_task(&*task);
+
+        Ok(())
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash)]
+impl Clone for Session {
+    fn clone(&self) -> Self {
+        let mut ssn = Session {
+            id: self.id,
+            application: self.application.clone(),
+            slots: self.slots,
+            tasks: HashMap::new(),
+            tasks_index: HashMap::new(),
+            creation_time: self.creation_time.clone(),
+            completion_time: self.completion_time.clone(),
+            status: self.status.clone(),
+        };
+
+        for (id, t) in &self.tasks {
+            match t.ptr.lock() {
+                Ok(t) => {
+                    ssn.add_task(&*t);
+                }
+                Err(_) => {
+                    log::error!("Failed to lock task: <{}>, ignore it during clone.", id);
+                }
+            }
+        }
+
+        ssn
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum TaskState {
     #[default]
     Pending = 0,
@@ -118,8 +158,9 @@ pub struct Task {
     pub state: TaskState,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum ExecutorState {
+    #[default]
     Idle = 0,
     Binding = 1,
     Bound = 2,

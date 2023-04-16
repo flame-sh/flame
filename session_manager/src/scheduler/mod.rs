@@ -13,7 +13,7 @@ limitations under the License.
 
 use std::{thread, time};
 
-use crate::scheduler::actions::{Action, AllocateAction, AssignAction, PreemptAction};
+use crate::scheduler::actions::{Action, AllocateAction};
 use crate::storage;
 use common::FlameError;
 
@@ -35,11 +35,9 @@ pub fn start() -> Result<(), FlameError> {
 
 fn run() -> Result<(), FlameError> {
     let mut snapshot = storage::instance().snapshot()?;
-    let actions: Vec<Box<dyn Action>> = vec![
-        Box::new(AllocateAction {}),
-        Box::new(PreemptAction {}),
-        Box::new(AssignAction {}),
-    ];
+    let actions: Vec<Box<dyn Action>> = vec![Box::new(AllocateAction {
+        storage: storage::instance(),
+    })];
 
     for action in actions {
         action.execute(&mut snapshot)?;

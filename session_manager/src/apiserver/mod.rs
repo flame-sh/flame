@@ -18,7 +18,7 @@ use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
 use rpc::flame::{
     Metadata, Session, SessionSpec, SessionState, SessionStatus, Task, TaskSpec, TaskState,
-    TaskStatus,
+    TaskStatus, Application,
 };
 
 use crate::storage::Storage;
@@ -42,6 +42,8 @@ pub async fn run() -> Result<(), FlameError> {
     };
 
     Server::builder()
+        // TODO(k82cn): separate frontend & backend concurrent limit.
+        .concurrency_limit_per_connection(6000)
         .add_service(FrontendServer::new(frontend_service))
         .add_service(BackendServer::new(backend_service))
         .serve(address)
@@ -128,6 +130,25 @@ impl From<&model::Session> for Session {
                 slots: ssn.slots,
             }),
             status: Some(status),
+        }
+    }
+}
+
+
+impl From<Application> for model::Application {
+    fn from(app: Application) -> Self {
+        model::Application::from(&app)
+    }
+}
+
+impl From<&Application> for model::Application {
+    fn from(app: &Application) -> Self {
+        model::Application {
+            name: app.name.to_string(),
+            command: app.command.to_string(),
+            arguments: app.arguments.to_vec(),
+            environments: app.environments.to_vec(),
+            working_directory: app.working_directory.to_string(),
         }
     }
 }

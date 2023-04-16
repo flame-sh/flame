@@ -11,6 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::LockResult;
+
 use chrono::{DateTime, Utc};
 
 use crate::model::{
@@ -19,11 +23,15 @@ use crate::model::{
 };
 
 pub struct SnapShot {
-    pub sessions: Vec<SessionInfo>,
-    pub executors: Vec<ExecutorInfo>,
+    pub sessions: Vec<Rc<SessionInfo>>,
+    pub ssn_index: HashMap<SessionID, Rc<SessionInfo>>,
+    pub ssn_state_index: HashMap<SessionState, Vec<Rc<SessionInfo>>>,
+    pub executors: Vec<Rc<ExecutorInfo>>,
+    pub exec_index: HashMap<ExecutorID, Rc<ExecutorInfo>>,
+    pub exec_state_index: HashMap<ExecutorState, Vec<Rc<ExecutorInfo>>>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct TaskInfo {
     pub id: TaskID,
     pub ssn_id: SessionID,
@@ -34,12 +42,14 @@ pub struct TaskInfo {
     pub state: TaskState,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct SessionInfo {
     pub id: SessionID,
     pub application: String,
     pub slots: i32,
-    pub tasks: Vec<TaskInfo>,
+
+    pub tasks_status: HashMap<TaskState, i32>,
+    pub executors: HashMap<ExecutorID, Rc<ExecutorInfo>>,
 
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
@@ -50,8 +60,34 @@ pub struct SessionInfo {
     pub desired: f64,
     pub allocated: f64,
 }
+//
+// impl SessionInfo {
+//     pub fn add_task_info(&mut self, task: &TaskInfo) {
+//         let task = Rc::new((*task).clone());
+//         if !self.tasks_index.contains_key(&task.state) {
+//             self.tasks_index.insert(task.state.clone(), vec![]);
+//         }
+//         self.tasks.push(task.clone());
+//         if let Some(ts) = self.tasks_index.get_mut(&task.state){
+//              ts.insert(task.state.clone(), task);
+//         }
+//     }
+//
+//     pub fn delete_task_info(&mut self, task: &TaskInfo) {
+//
+//         if let Some(ts) = tasks_index.get_mut(&task.state){
+//             tsts.remove;
+//         }
+//     }
+//
+//     pub fn update_task_info_state(&mut self, task: &TaskInfo, state: TaskState) {
+//
+//     }
+//
+//
+// }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ExecutorInfo {
     pub id: ExecutorID,
     pub applications: Vec<AppInfo>,
@@ -62,7 +98,7 @@ pub struct ExecutorInfo {
     pub state: ExecutorState,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct AppInfo {
     pub name: String,
 }
@@ -110,28 +146,26 @@ impl From<&Task> for TaskInfo {
 
 impl From<&Session> for SessionInfo {
     fn from(ssn: &Session) -> Self {
-        let mut tasks = vec![];
-        for (_, t) in &ssn.tasks {
-            let task = t.ptr.lock();
-            if task.is_err() {
-                continue;
-            }
-            let task = task.unwrap().clone();
-            tasks.push(TaskInfo::from(&task));
+        // let mut tasks = vec![];
+        let mut tasks_status = HashMap::new();
+        for (k, v) in &ssn.tasks_index {
+            tasks_status.insert((*k).clone(), v.len() as i32);
         }
 
         SessionInfo {
             id: ssn.id,
             application: ssn.application.clone(),
             slots: ssn.slots,
-            tasks,
+            // tasks,
+            tasks_status,
+            executors: HashMap::new(),
             creation_time: ssn.creation_time.clone(),
             completion_time: ssn.completion_time.clone(),
             state: ssn.status.state,
 
-            total: ssn.status.total,
-            desired: ssn.status.desired,
-            allocated: ssn.status.allocated,
+            total: 0.0,
+            desired: 0.0,
+            allocated: 0.0,
         }
     }
 }

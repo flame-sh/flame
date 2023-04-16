@@ -14,6 +14,7 @@ limitations under the License.
 use async_trait::async_trait;
 
 use tonic::{Request, Response, Status};
+use common::{trace_fn, trace::TraceFn};
 
 use rpc::flame::frontend_server::Frontend;
 use rpc::flame::{
@@ -32,6 +33,7 @@ impl Frontend for Flame {
         &self,
         req: Request<CreateSessionRequest>,
     ) -> Result<Response<Session>, Status> {
+        trace_fn!("Frontend::create_session");
         let ssn_spec = req
             .into_inner()
             .session
@@ -70,6 +72,7 @@ impl Frontend for Flame {
         &self,
         req: Request<GetSessionRequest>,
     ) -> Result<Response<Session>, Status> {
+        trace_fn!("Frontend::get_session");
         let ssn_id = req
             .into_inner()
             .session_id
@@ -84,6 +87,7 @@ impl Frontend for Flame {
         &self,
         _: Request<ListSessionRequest>,
     ) -> Result<Response<SessionList>, Status> {
+        trace_fn!("Frontend::list_session");
         let ssn_list = self.storage.list_session().map_err(Status::from)?;
 
         let mut sessions = vec![];
@@ -95,6 +99,7 @@ impl Frontend for Flame {
     }
 
     async fn create_task(&self, req: Request<CreateTaskRequest>) -> Result<Response<Task>, Status> {
+        trace_fn!("Frontend::create_task");
         let task_spec = req
             .into_inner()
             .task
@@ -119,6 +124,7 @@ impl Frontend for Flame {
     }
 
     async fn get_task(&self, req: Request<GetTaskRequest>) -> Result<Response<Task>, Status> {
+        trace_fn!("Frontend::get_session");
         let req = req.into_inner();
         let ssn_id = req
             .session_id

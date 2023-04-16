@@ -14,8 +14,6 @@ limitations under the License.
 pub mod ptr;
 pub mod trace;
 
-// pub use ptr::{CondPtr, MutexPtr};
-
 use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
 use tonic::Status;
