@@ -13,9 +13,9 @@ limitations under the License.
 
 use std::error::Error;
 
-use crate::executor::Executor;
+use crate::executor::{Executor, ExecutorPtr};
 use clap::Parser;
-use common::FlameContext;
+use common::{FlameContext, FlameError};
 
 mod client;
 mod executor;
@@ -47,10 +47,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Run executor.
     // TODO(k82cn): 1. enable gracefully exit, 2. build ExecutorManager for multiple executors.
     let mut exec = Executor::from_context(&ctx, cli.slots).await?;
+    // let mut exec_ptr = ExecutorPtr::new(exec);
+
     loop {
-        let res = exec.run(&ctx).await;
-        if let Err(e) = res {
-            log::error!("Failed to execute: {}", e);
+        let mut state = states::from(exec.clone());
+        match state.execute(&ctx).await {
+            Ok(next_state) => {
+                exec.update_state(&next_state);
+            }
+            Err(e) => {
+                log::error!("Failed to execute: {}", e);
+            }
         }
     }
 }

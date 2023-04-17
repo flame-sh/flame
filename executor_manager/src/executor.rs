@@ -12,19 +12,25 @@ limitations under the License.
 */
 
 use chrono::{DateTime, Utc};
+use std::rc::Rc;
+use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::shims::Shim;
 use ::rpc::flame as rpc;
+use common::ptr::CondPtr;
+use common::{FlameContext, FlameError};
 
 use crate::states;
-use common::{FlameContext, FlameError};
+
+pub type ExecutorPtr = CondPtr<Executor>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ExecutorState {
     Init = 0,
     Idle = 1,
     Bound = 2,
-    Running = 3,
+    Unbound = 3,
     Unknown = 4,
 }
 
@@ -33,7 +39,7 @@ impl From<ExecutorState> for rpc::ExecutorState {
         match state {
             ExecutorState::Init | ExecutorState::Idle => rpc::ExecutorState::ExecutorIdle,
             ExecutorState::Bound => rpc::ExecutorState::ExecutorBound,
-            ExecutorState::Running => rpc::ExecutorState::ExecutorRunning,
+            ExecutorState::Unbound => rpc::ExecutorState::ExecutorRunning,
             ExecutorState::Unknown => rpc::ExecutorState::ExecutorUnknown,
         }
     }
@@ -76,7 +82,26 @@ impl From<&common::Application> for Application {
 pub struct TaskContext {
     pub id: String,
     pub ssn_id: String,
-    pub input: String,
+    pub input: Option<String>,
+}
+
+impl TryFrom<rpc::Task> for TaskContext {
+    type Error = FlameError;
+
+    fn try_from(task: rpc::Task) -> Result<Self, Self::Error> {
+        let metadata = task
+            .metadata
+            .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
+        let spec = task
+            .spec
+            .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
+
+        Ok(TaskContext {
+            id: metadata.id.to_string(),
+            ssn_id: spec.session_id.to_string(),
+            input: spec.input.clone(),
+        })
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -105,12 +130,13 @@ impl TryFrom<rpc::Session> for SessionContext {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Executor {
     pub id: String,
     pub slots: i32,
     pub applications: Vec<Application>,
-    pub task: Option<TaskContext>,
+
+    pub shim: Option<Arc<dyn Shim>>,
 
     pub start_time: DateTime<Utc>,
     pub state: ExecutorState,
@@ -150,11 +176,9 @@ impl From<&Executor> for rpc::ExecutorSpec {
 }
 
 impl Executor {
-    pub async fn run(&mut self, ctx: &FlameContext) -> Result<(), FlameError> {
-        let state = states::from(self)?;
-        self.state = state.execute(ctx).await?;
-
-        Ok(())
+    pub fn update_state(&mut self, next: &Executor) {
+        self.state = next.state;
+        self.shim = next.shim.clone();
     }
 
     pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
@@ -164,7 +188,8 @@ impl Executor {
             id: Uuid::new_v4().to_string(),
             slots: slots.unwrap_or(1),
             applications,
-            task: None,
+            // task: None,
+            shim: None,
             start_time: Utc::now(),
             state: ExecutorState::Init,
         };

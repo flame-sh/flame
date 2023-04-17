@@ -21,7 +21,7 @@ use self::rpc::backend_client::BackendClient as FlameBackendClient;
 use self::rpc::{BindExecutorCompletedRequest, BindExecutorRequest, RegisterExecutorRequest};
 use ::rpc::flame as rpc;
 
-use crate::executor::{Executor, SessionContext};
+use crate::executor::{Executor, SessionContext, TaskContext};
 use common::{lock_ptr, FlameContext, FlameError};
 
 type FlameClient = FlameBackendClient<Channel>;
@@ -99,12 +99,57 @@ pub async fn bind_executor_completed(ctx: &FlameContext, exe: &Executor) -> Resu
     Ok(())
 }
 
-// rpc BindExecutor (BindExecutorRequest) returns (Session) {}
-
 //
 // rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
 //
-// rpc BindExecutor (BindExecutorRequest) returns (Session) {}
+
+pub async fn unbind_executor(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
+    let mut ins = get_client(ctx)?;
+
+    let req = UnbindExecutorRequest {
+        executor_id: exe.id.clone(),
+    };
+
+    ins.unbind_executor(req).await.map_err(FlameError::from)?;
+    Ok(())
+}
+
+pub async fn unbind_executor_completed(
+    ctx: &FlameContext,
+    exe: &Executor,
+) -> Result<(), FlameError> {
+    let mut ins = get_client(ctx)?;
+
+    let req = UnbindExecutorCompletedRequest {
+        executor_id: exe.id.clone(),
+    };
+
+    ins.unbind_executor_completed(req)
+        .await
+        .map_err(FlameError::from)?;
+
+    Ok(())
+}
+
+pub async fn launch_task(
+    ctx: &FlameContext,
+    exe: &Executor,
+) -> Result<Option<TaskContext>, FlameError> {
+    let mut ins = get_client(ctx)?;
+
+    let req = LaunchTaskRequest {
+        executor_id: exe.id.clone(),
+    };
+
+    let resp = ins.launch_task(req)
+        .await
+        .map_err(FlameError::from)?;
+
+    Ok(None)
+}
+
+
+
 // rpc UnbindExecutor (UnbindExecutorRequest) returns (Result) {}
 //
 // rpc LaunchTask (LaunchTaskRequest) returns (Task) {}

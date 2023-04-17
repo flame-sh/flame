@@ -169,11 +169,10 @@ service Backend {
   rpc BindExecutor (BindExecutorRequest) returns (Session) {}
   rpc BindExecutorCompleted (BindExecutorCompletedRequest) returns (Result) {}
 
-
   rpc UnbindExecutor (UnbindExecutorRequest) returns (Result) {}
   rpc UnbindExecutorCompleted (UnbindExecutorCompletedRequest) returns (Result) {}
 
-  rpc LaunchTask (LaunchTaskRequest) returns (Task) {}
+  rpc LaunchTask (LaunchTaskRequest) returns (LaunchTaskResponse) {}
   rpc CompleteTask(CompleteTaskRequest) returns (Result) {}
 }
 
@@ -204,6 +203,11 @@ message UnbindExecutorCompletedRequest {
 
 message LaunchTaskRequest {
   string executor_id = 1;
+}
+
+message LaunchTaskResponse {
+  // If no more task in the session, the result is empty.
+  optional Task task = 1;
 }
 
 message CompleteTaskRequest {

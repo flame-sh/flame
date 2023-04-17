@@ -15,8 +15,8 @@ use async_trait::async_trait;
 
 use crate::executor::{Application, Executor, ExecutorState};
 use crate::states::State;
-use crate::{client, shims};
-use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
+use crate::{client, shims, ExecutorPtr};
+use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct IdleState {
     pub executor: Executor,
@@ -24,9 +24,10 @@ pub struct IdleState {
 
 #[async_trait]
 impl State for IdleState {
-    async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError> {
+    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError> {
         trace_fn!("IdleState::execute");
-        let ssn = client::bind_executor(ctx, &self.executor).await?;
+
+        let ssn = client::bind_executor(ctx, &self.executor.clone()).await?;
 
         let app = ctx.get_application(&ssn.application);
         match app {
@@ -44,9 +45,13 @@ impl State for IdleState {
                 // TODO(k82cn): if on_session_enter failed, add retry limits.
                 shim.on_session_enter(&ssn).await?;
 
-                client::bind_executor_completed(ctx, &self.executor).await?;
+                client::bind_executor_completed(ctx, &self.executor.clone()).await?;
 
-                Ok(ExecutorState::Bound)
+                // Own the shim.
+                self.executor.shim = Some(shim.clone());
+                self.executor.state = ExecutorState::Bound;
+
+                Ok(self.executor.clone())
             }
         }
     }

@@ -17,37 +17,49 @@ use crate::executor::{SessionContext, TaskContext};
 use crate::shims::Shim;
 use common::FlameError;
 
-pub struct LogShim {}
+pub struct LogShim {
+    pub session_context: Option<SessionContext>,
+}
 
 #[async_trait]
 impl Shim for LogShim {
-    async fn on_session_enter(&self, ctx: &SessionContext) -> Result<(), FlameError> {
+    async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
         log::info!(
             "on_session_enter: Session: <{}>, Application: <{}>, Slots: <{}>",
             ctx.ssn_id,
             ctx.application,
             ctx.slots
         );
+        self.session_context = Some(ctx.clone());
+
         Ok(())
     }
 
-    async fn on_task_invoke(&self, ctx: &TaskContext) -> Result<(), FlameError> {
+    async fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError> {
         log::info!(
             "on_task_invoke: Task: <{}>, Session: <{}>, Input: <{}>",
             ctx.id,
             ctx.ssn_id,
-            ctx.input
+            ctx.input.unwrap_or("".to_string())
         );
         Ok(())
     }
 
-    async fn on_session_leave(&self, ctx: &SessionContext) -> Result<(), FlameError> {
-        log::info!(
-            "on_session_leave: Session: <{}>, Application: <{}>, Slots: <{}>",
-            ctx.ssn_id,
-            ctx.application,
-            ctx.slots
-        );
+    async fn on_session_leave(&mut self) -> Result<(), FlameError> {
+        match &self.session_context {
+            None => {
+                log::info!("on_session_leave")
+            }
+            Some(ctx) => {
+                log::info!(
+                    "on_session_leave: Session: <{}>, Application: <{}>, Slots: <{}>",
+                    ctx.ssn_id,
+                    ctx.application,
+                    ctx.slots
+                );
+            }
+        }
+
         Ok(())
     }
 }

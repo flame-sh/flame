@@ -14,26 +14,36 @@ limitations under the License.
 use async_trait::async_trait;
 
 use crate::executor::{Executor, ExecutorState};
+use crate::ExecutorPtr;
 use common::{FlameContext, FlameError};
 
 mod bound;
 mod idle;
 mod init;
-mod running;
+mod unbound;
 mod unknown;
 
-pub fn from(e: &Executor) -> Result<Box<dyn State>, FlameError> {
+pub fn from(e: Executor) -> Box<dyn State> {
     match e.state {
-        ExecutorState::Init => Ok(Box::new(init::InitState {
+        ExecutorState::Init => Box::new(init::InitState {
             executor: e.clone(),
-        })),
-        _ => Ok(Box::new(idle::IdleState {
+        }),
+        ExecutorState::Idle => Box::new(idle::IdleState {
             executor: e.clone(),
-        })),
+        }),
+        ExecutorState::Bound => Box::new(bound::BoundState {
+            executor: e.clone(),
+        }),
+        ExecutorState::Unbound => Box::new(unbound::UnboundState {
+            executor: e.clone(),
+        }),
+        ExecutorState::Unknown => Box::new(unknown::UnknownState {
+            executor: e.clone(),
+        }),
     }
 }
 
 #[async_trait]
 pub trait State {
-    async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError>;
+    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError>;
 }

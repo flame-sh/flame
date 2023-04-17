@@ -18,18 +18,20 @@ use crate::states::State;
 use crate::{client, ExecutorPtr};
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
-pub struct InitState {
+pub struct UnboundState {
     pub executor: Executor,
 }
 
 #[async_trait]
-impl State for InitState {
+impl State for UnboundState {
     async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError> {
-        trace_fn!("InitState::execute");
+        trace_fn!("UnboundState::execute");
 
-        client::register_executor(ctx, &self.executor.clone()).await?;
-
-        self.executor.state = ExecutorState::Idle;
+        client::unbind_executor(ctx, &self.executor.clone()).await?;
+        if let Some(mut shim) = &self.executor.shim {
+            shim.on_session_leave().await?;
+            client::unbind_executor_completed(ctx, &self.executor.clone()).await?;
+        }
 
         Ok(self.executor.clone())
     }

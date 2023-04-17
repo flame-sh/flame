@@ -10,3 +10,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+use async_trait::async_trait;
+
+use crate::executor::{Executor, ExecutorState};
+use crate::states::State;
+use crate::{client, ExecutorPtr};
+use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
+
+pub struct UnknownState {
+    pub executor: Executor,
+}
+
+#[async_trait]
+impl State for UnknownState {
+    async fn execute(&mut self, _ctx: &FlameContext) -> Result<Executor, FlameError> {
+        trace_fn!("UnknownState::execute");
+
+        Ok(self.executor.clone())
+    }
+}
