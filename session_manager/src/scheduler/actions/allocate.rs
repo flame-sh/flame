@@ -13,10 +13,10 @@ limitations under the License.
 
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
-use crate::model::{ExecutorState, SessionID, SessionInfo, SnapShot, TaskState};
+use crate::model::{ExecutorState, SessionID, SnapShot, TaskState};
 use crate::scheduler::actions::Action;
 use crate::storage::Storage;
 use crate::FlameError;
@@ -84,7 +84,7 @@ impl Action for AllocateAction {
                 }
             }
 
-            let mut allocated = ssn.executors.len() as f64 * (ssn.slots as f64);
+            let allocated = ssn.executors.len() as f64 * (ssn.slots as f64);
 
             ssn_order_info.push(SsnOrderInfo {
                 id: ssn.id.clone(),
