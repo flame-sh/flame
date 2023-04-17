@@ -16,9 +16,9 @@ use chrono::{DateTime, Utc};
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::shims::Shim;
+use crate::shims::{Shim, ShimPtr};
 use ::rpc::flame as rpc;
-use common::ptr::CondPtr;
+use common::ptr::{CondPtr, MutexPtr};
 use common::{FlameContext, FlameError};
 
 pub type ExecutorPtr = CondPtr<Executor>;
@@ -139,7 +139,7 @@ pub struct Executor {
     pub session: Option<SessionContext>,
     pub task: Option<TaskContext>,
 
-    pub shim: Option<Arc<dyn Shim>>,
+    pub shim: Option<ShimPtr>,
 
     pub start_time: DateTime<Utc>,
     pub state: ExecutorState,

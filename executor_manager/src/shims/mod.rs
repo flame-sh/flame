@@ -15,17 +15,20 @@ mod log_shim;
 
 use async_trait::async_trait;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::executor::{Application, SessionContext, TaskContext};
+use common::ptr::MutexPtr;
 use common::FlameError;
 use log_shim::LogShim;
 
-pub fn from(_: &Application) -> Result<Arc<dyn Shim>, FlameError> {
+pub type ShimPtr = MutexPtr<dyn Shim>;
+
+pub fn from(_: &Application) -> Result<ShimPtr, FlameError> {
     // TODO(k82cn): Load shim based on application's configuration.
-    Ok(Arc::new(LogShim {
+    Ok(Arc::new(Mutex::new(LogShim {
         session_context: None,
-    }))
+    })))
 }
 
 #[async_trait]

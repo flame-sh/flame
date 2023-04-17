@@ -17,7 +17,7 @@ use std::sync::Arc;
 use crate::executor::{Application, Executor, ExecutorState};
 use crate::states::State;
 use crate::{client, shims};
-use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
+use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct IdleState {
     pub executor: Executor,
@@ -42,11 +42,12 @@ impl State for IdleState {
             Some(app) => {
                 let app = Application::from(&app);
                 let mut shim_ptr = shims::from(&app)?;
-                let shim = Arc::get_mut(&mut shim_ptr)
-                    .ok_or(FlameError::Internal("shim ptr".to_string()))?;
 
-                // TODO(k82cn): if on_session_enter failed, add retry limits.
-                shim.on_session_enter(&ssn).await?;
+                {
+                    // TODO(k82cn): if on_session_enter failed, add retry limits.
+                    let mut shim = lock_ptr!(shim_ptr)?;
+                    shim.on_session_enter(&ssn).await?;
+                };
 
                 client::bind_executor_completed(ctx, &self.executor.clone()).await?;
 

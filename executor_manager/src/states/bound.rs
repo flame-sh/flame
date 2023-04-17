@@ -17,7 +17,7 @@ use std::sync::Arc;
 use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
-use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
+use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct BoundState {
     pub executor: Executor,
@@ -31,12 +31,15 @@ impl State for BoundState {
         let task = client::launch_task(ctx, &self.executor.clone()).await?;
         match task {
             Some(task_ctx) => {
-                if let Some(shim_ptr) = &mut self.executor.shim {
-                    let shim = Arc::get_mut(shim_ptr)
-                        .ok_or(FlameError::Internal("shim ptr".to_string()))?;
+                let shim_ptr = &mut self.executor.shim.ok_or(FlameError::InvalidState(
+                    "no shim in bound state".to_string(),
+                ))?;
+                {
+                    let mut shim = lock_ptr!(shim_ptr)?;
                     shim.on_task_invoke(&task_ctx).await?;
-                    client::complete_task(ctx, &self.executor.clone()).await?;
-                }
+                };
+
+                client::complete_task(ctx, &self.executor.clone()).await?;
             }
             None => {
                 self.executor.state = ExecutorState::Unbound;

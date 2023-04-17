@@ -60,7 +60,7 @@ macro_rules! lock_ptr {
     ( $mutex_arc:expr ) => {
         $mutex_arc
             .lock()
-            .map_err(|_| FlameError::Internal("mutex".to_string()))
+            .map_err(|_| FlameError::Internal("mutex ptr".to_string()))
     };
 }
 
@@ -70,7 +70,7 @@ macro_rules! lock_cond_ptr {
         $mutex_arc
             .ptr
             .lock()
-            .map_err(|_| FlameError::Internal("mutex".to_string()))
+            .map_err(|_| FlameError::Internal("cond ptr".to_string()))
     };
 }
 
