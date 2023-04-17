@@ -124,7 +124,6 @@ impl Frontend for Flame {
     }
 
     async fn get_task(&self, req: Request<GetTaskRequest>) -> Result<Response<Task>, Status> {
-        trace_fn!("Frontend::get_session");
         let req = req.into_inner();
         let ssn_id = req
             .session_id

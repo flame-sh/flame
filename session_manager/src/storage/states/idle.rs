@@ -12,13 +12,14 @@ limitations under the License.
 */
 
 use futures::future::BoxFuture;
+use log::log;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::States;
-use common::{lock_cond_ptr, FlameError};
+use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct IdleState {
     pub executor: ExecutorPtr,
@@ -33,10 +34,15 @@ impl States for IdleState {
         impl Future for WaitForSsnFuture {
             type Output = Result<SessionID, FlameError>;
 
-            fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
+            fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
                 let exe = lock_cond_ptr!(self.executor)?;
+
                 match exe.ssn_id {
-                    None => Poll::Pending,
+                    None => {
+                        // No bound session, trigger waker.
+                        ctx.waker().wake_by_ref();
+                        Poll::Pending
+                    }
                     Some(ssn_id) => Poll::Ready(Ok(ssn_id)),
                 }
             }
@@ -48,16 +54,16 @@ impl States for IdleState {
     }
 
     fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
+        trace_fn!("IdleState::bind_session");
+
         let ssn_id = {
             let ssn = lock_cond_ptr!(ssn_ptr)?;
             ssn.id
         };
 
-        let _exe = self.executor.modify(|e| {
-            e.ssn_id = Some(ssn_id);
-            e.state = ExecutorState::Binding;
-            Ok(())
-        })?;
+        let mut e = lock_cond_ptr!(self.executor)?;
+        e.ssn_id = Some(ssn_id);
+        e.state = ExecutorState::Binding;
 
         Ok(())
     }

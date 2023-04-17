@@ -25,8 +25,8 @@ use crate::model::{
     Task, TaskID, TaskState,
 };
 
-use common::FlameError;
 use common::{lock_cond_ptr, lock_ptr};
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 mod engine;
 mod states;
@@ -295,16 +295,13 @@ impl Storage {
     }
 
     pub fn bind_session(&self, id: ExecutorID, ssn_id: SessionID) -> Result<(), FlameError> {
+        trace_fn!("Storage::bind_session");
+
         let exe_ptr = self.get_executor_ptr(id)?;
         let state = states::from(exe_ptr)?;
 
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
         state.bind_session(ssn_ptr)?;
-        // let _exe = exe_ptr.modify(|e| {
-        //     e.ssn_id = Some(ssn_id);
-        //     e.state = ExecutorState::Binding;
-        //     Ok(())
-        // })?;
 
         Ok(())
     }

@@ -62,14 +62,14 @@ impl Session {
     pub fn add_task(&mut self, task: &Task) {
         let task_ptr = TaskPtr::new(task.clone());
 
-        self.tasks.insert(self.id, task_ptr.clone());
+        self.tasks.insert(task.id, task_ptr.clone());
         if !self.tasks_index.contains_key(&task.state) {
             self.tasks_index.insert(task.state.clone(), HashMap::new());
         }
         self.tasks_index
             .get_mut(&task.state)
             .unwrap()
-            .insert(self.id, task_ptr.clone());
+            .insert(task.id, task_ptr.clone());
     }
 
     pub fn update_task_state(
