@@ -12,9 +12,6 @@ limitations under the License.
 */
 
 use futures::future::BoxFuture;
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
 use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::States;

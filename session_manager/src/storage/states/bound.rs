@@ -12,9 +12,6 @@ limitations under the License.
 */
 
 use futures::future::BoxFuture;
-use std::future::Future;
-use std::pin::Pin;
-use std::task::{Context, Poll};
 
 use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::States;
@@ -29,7 +26,7 @@ impl States for BoundState {
         todo!()
     }
 
-    fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
+    fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         todo!()
     }
 
