@@ -18,10 +18,10 @@ use lazy_static::lazy_static;
 use tonic::transport::Channel;
 
 use self::rpc::backend_client::BackendClient as FlameBackendClient;
-use self::rpc::{BindExecutorRequest, RegisterExecutorRequest};
+use self::rpc::{BindExecutorRequest, RegisterExecutorRequest, BindExecutorCompletedRequest};
 use ::rpc::flame as rpc;
 
-use crate::executor::Executor;
+use crate::executor::{Executor, SessionContext};
 use common::{lock_ptr, FlameContext, FlameError};
 
 type FlameClient = FlameBackendClient<Channel>;
@@ -71,15 +71,31 @@ pub async fn register_executor(ctx: &FlameContext, exe: &Executor) -> Result<(),
     Ok(())
 }
 
-pub async fn bind_executor(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
+pub async fn bind_executor(
+    ctx: &FlameContext,
+    exe: &Executor,
+) -> Result<SessionContext, FlameError> {
     let mut ins = get_client(ctx)?;
 
     let req = BindExecutorRequest {
         executor_id: exe.id.clone(),
     };
 
-    let _ssn = ins.bind_executor(req).await.map_err(FlameError::from)?;
+    let ssn = ins.bind_executor(req).await.map_err(FlameError::from)?;
+    Ok(SessionContext::try_from(ssn.into_inner())?)
+}
 
+pub async fn bind_executor_completed(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
+    let mut ins = get_client(ctx)?;
+
+    let req = BindExecutorCompletedRequest {
+        executor_id: exe.id.clone(),
+    };
+
+    let ssn = ins
+        .bind_executor_completed(req)
+        .await
+        .map_err(FlameError::from)?;
     Ok(())
 }
 

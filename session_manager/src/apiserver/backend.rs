@@ -18,8 +18,8 @@ use tonic::{Request, Response, Status};
 
 use self::rpc::backend_server::Backend;
 use self::rpc::{
-    BindExecutorRequest, CompleteTaskRequest, LaunchTaskRequest, RegisterExecutorRequest, Session,
-    Task, UnbindExecutorRequest, UnregisterExecutorRequest,
+    BindExecutorRequest,BindExecutorCompletedRequest, CompleteTaskRequest, LaunchTaskRequest, RegisterExecutorRequest, Session,
+    Task, UnbindExecutorRequest,UnbindExecutorCompletedRequest, UnregisterExecutorRequest,
 };
 use ::rpc::flame as rpc;
 
@@ -63,6 +63,7 @@ impl Backend for Flame {
     ) -> Result<Response<rpc::Result>, Status> {
         todo!()
     }
+
     async fn bind_executor(
         &self,
         req: Request<BindExecutorRequest>,
@@ -77,15 +78,32 @@ impl Backend for Flame {
 
         Ok(Response::new(Session::from(&ssn)))
     }
+
+    async fn bind_executor_completed(
+        &self,
+        req: Request<BindExecutorCompletedRequest>,
+    ) -> Result<Response<rpc::Result>, Status> {
+        todo!()
+    }
+
     async fn unbind_executor(
         &self,
         _: Request<UnbindExecutorRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         todo!()
     }
+
+    async fn unbind_executor_completed(
+        &self,
+        req: Request<UnbindExecutorCompletedRequest>,
+    ) -> Result<Response<rpc::Result>, Status> {
+        todo!()
+    }
+
     async fn launch_task(&self, _: Request<LaunchTaskRequest>) -> Result<Response<Task>, Status> {
         todo!()
     }
+
     async fn complete_task(
         &self,
         _: Request<CompleteTaskRequest>,

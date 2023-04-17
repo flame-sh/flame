@@ -86,6 +86,25 @@ pub struct SessionContext {
     pub slots: i32,
 }
 
+impl TryFrom<rpc::Session> for SessionContext {
+    type Error = FlameError;
+
+    fn try_from(ssn: rpc::Session) -> Result<Self, Self::Error> {
+        let metadata = ssn
+            .metadata
+            .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
+        let spec = ssn
+            .spec
+            .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
+
+        Ok(SessionContext {
+            ssn_id: metadata.id.clone(),
+            application: spec.application.clone(),
+            slots: spec.slots,
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Executor {
     pub id: String,

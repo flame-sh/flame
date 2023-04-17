@@ -13,9 +13,9 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::client;
-use crate::executor::{Executor, ExecutorState};
+use crate::executor::{Application, Executor, ExecutorState};
 use crate::states::State;
+use crate::{client, shims};
 use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct IdleState {
@@ -26,8 +26,28 @@ pub struct IdleState {
 impl State for IdleState {
     async fn execute(&self, ctx: &FlameContext) -> Result<ExecutorState, FlameError> {
         trace_fn!("IdleState::execute");
-        client::bind_executor(ctx, &self.executor).await?;
+        let ssn = client::bind_executor(ctx, &self.executor).await?;
 
-        Ok(ExecutorState::Bound)
+        let app = ctx.get_application(&ssn.application);
+        match app {
+            None => {
+                log::error!("Failed to find Application in Executor.");
+                Err(FlameError::NotFound(format!(
+                    "Application <{}>",
+                    ssn.application
+                )))
+            }
+            Some(app) => {
+                let app = Application::from(&app);
+                let shim = shims::from(&app)?;
+
+                // TODO(k82cn): if on_session_enter failed, add retry limits.
+                shim.on_session_enter(&ssn).await?;
+
+                client::bind_executor_completed(ctx, &self.executor).await?;
+
+                Ok(ExecutorState::Bound)
+            }
+        }
     }
 }

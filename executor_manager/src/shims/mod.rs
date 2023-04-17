@@ -13,11 +13,11 @@ limitations under the License.
 
 mod log_shim;
 
-pub use log_shim::LogShim;
+use async_trait::async_trait;
 
 use crate::executor::{Application, SessionContext, TaskContext};
-use async_trait::async_trait;
 use common::FlameError;
+use log_shim::LogShim;
 
 pub fn from(_: &Application) -> Result<Box<dyn Shim>, FlameError> {
     // TODO(k82cn): Load shim based on application's configuration.
@@ -25,8 +25,8 @@ pub fn from(_: &Application) -> Result<Box<dyn Shim>, FlameError> {
 }
 
 #[async_trait]
-pub trait Shim {
-    fn on_session_enter(&self, ctx: &SessionContext) -> Result<(), FlameError>;
-    fn on_task_invoke(&self, ctx: &TaskContext) -> Result<(), FlameError>;
-    fn on_session_leave(&self, ctx: &SessionContext) -> Result<(), FlameError>;
+pub trait Shim: Send + Sync + 'static {
+    async fn on_session_enter(&self, ctx: &SessionContext) -> Result<(), FlameError>;
+    async fn on_task_invoke(&self, ctx: &TaskContext) -> Result<(), FlameError>;
+    async fn on_session_leave(&self, ctx: &SessionContext) -> Result<(), FlameError>;
 }

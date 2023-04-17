@@ -126,6 +126,19 @@ impl FlameContext {
 
         Ok(ctx)
     }
+
+    pub fn get_application(&self, n: &String) -> Option<Application> {
+        let mut application = None;
+
+        for app in &self.applications {
+            if n == &app.name {
+                application = Some(app.clone());
+                break;
+            }
+        }
+
+        application
+    }
 }
 
 #[cfg(test)]

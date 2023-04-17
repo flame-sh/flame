@@ -167,7 +167,11 @@ service Backend {
   rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
 
   rpc BindExecutor (BindExecutorRequest) returns (Session) {}
+  rpc BindExecutorCompleted (BindExecutorCompletedRequest) returns (Result) {}
+
+
   rpc UnbindExecutor (UnbindExecutorRequest) returns (Result) {}
+  rpc UnbindExecutorCompleted (UnbindExecutorCompletedRequest) returns (Result) {}
 
   rpc LaunchTask (LaunchTaskRequest) returns (Task) {}
   rpc CompleteTask(CompleteTaskRequest) returns (Result) {}
@@ -186,7 +190,15 @@ message BindExecutorRequest {
   string executor_id = 1;
 }
 
+message BindExecutorCompletedRequest {
+  string executor_id = 1;
+}
+
 message UnbindExecutorRequest {
+  string executor_id = 1;
+}
+
+message UnbindExecutorCompletedRequest {
   string executor_id = 1;
 }
 
