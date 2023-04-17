@@ -34,6 +34,9 @@ pub enum FlameError {
 
     #[error("'{0}' is not initialized")]
     Uninitialized(String),
+
+    #[error("'{0}'")]
+    InvalidState(String),
 }
 
 impl From<FlameError> for Status {

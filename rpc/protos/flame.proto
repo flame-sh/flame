@@ -212,7 +212,8 @@ message LaunchTaskResponse {
 
 message CompleteTaskRequest {
   string executor_id = 1;
-  string task_id = 2;
+  string ssn_id = 2;
+  string task_id = 3;
 
-  string task_output = 3;
+  optional string task_output = 4;
 }

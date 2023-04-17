@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use async_trait::async_trait;
+use std::sync::Arc;
 
 use crate::executor::{Application, Executor, ExecutorState};
 use crate::states::State;
@@ -35,12 +36,14 @@ impl State for IdleState {
                 log::error!("Failed to find Application in Executor.");
                 Err(FlameError::NotFound(format!(
                     "Application <{}>",
-                    ssn.application
+                    &ssn.application
                 )))
             }
             Some(app) => {
                 let app = Application::from(&app);
-                let shim = shims::from(&app)?;
+                let mut shim_ptr = shims::from(&app)?;
+                let shim = Arc::get_mut(&mut shim_ptr)
+                    .ok_or(FlameError::Internal("shim ptr".to_string()))?;
 
                 // TODO(k82cn): if on_session_enter failed, add retry limits.
                 shim.on_session_enter(&ssn).await?;
@@ -48,7 +51,8 @@ impl State for IdleState {
                 client::bind_executor_completed(ctx, &self.executor.clone()).await?;
 
                 // Own the shim.
-                self.executor.shim = Some(shim.clone());
+                self.executor.shim = Some(shim_ptr.clone());
+                self.executor.session = Some(ssn);
                 self.executor.state = ExecutorState::Bound;
 
                 Ok(self.executor.clone())

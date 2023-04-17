@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use async_trait::async_trait;
+use std::sync::Arc;
 
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
@@ -28,7 +29,9 @@ impl State for UnboundState {
         trace_fn!("UnboundState::execute");
 
         client::unbind_executor(ctx, &self.executor.clone()).await?;
-        if let Some(mut shim) = &self.executor.shim {
+        if let Some(shim_ptr) = &mut self.executor.shim {
+            let shim =
+                Arc::get_mut(shim_ptr).ok_or(FlameError::Internal("shim ptr".to_string()))?;
             shim.on_session_leave().await?;
             client::unbind_executor_completed(ctx, &self.executor.clone()).await?;
         }

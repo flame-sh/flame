@@ -83,6 +83,7 @@ pub struct TaskContext {
     pub id: String,
     pub ssn_id: String,
     pub input: Option<String>,
+    pub output: Option<String>,
 }
 
 impl TryFrom<rpc::Task> for TaskContext {
@@ -100,6 +101,7 @@ impl TryFrom<rpc::Task> for TaskContext {
             id: metadata.id.to_string(),
             ssn_id: spec.session_id.to_string(),
             input: spec.input.clone(),
+            output: spec.output.clone(),
         })
     }
 }
@@ -135,6 +137,9 @@ pub struct Executor {
     pub id: String,
     pub slots: i32,
     pub applications: Vec<Application>,
+
+    pub session: Option<SessionContext>,
+    pub task: Option<TaskContext>,
 
     pub shim: Option<Arc<dyn Shim>>,
 
@@ -188,7 +193,8 @@ impl Executor {
             id: Uuid::new_v4().to_string(),
             slots: slots.unwrap_or(1),
             applications,
-            // task: None,
+            session: None,
+            task: None,
             shim: None,
             start_time: Utc::now(),
             state: ExecutorState::Init,

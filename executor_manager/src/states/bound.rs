@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use async_trait::async_trait;
+use std::sync::Arc;
 
 use crate::executor::{Application, Executor, ExecutorState, TaskContext};
 use crate::states::State;
@@ -29,9 +30,10 @@ impl State for BoundState {
 
         let task = client::launch_task(ctx, &self.executor.clone()).await?;
         match task {
-            Some(t) => {
-                let task_ctx = TaskContext::try_from(t)?;
-                if let Some(shim) = &self.executor.shim {
+            Some(task_ctx) => {
+                if let Some(shim_ptr) = &mut self.executor.shim {
+                    let shim = Arc::get_mut(shim_ptr)
+                        .ok_or(FlameError::Internal("shim ptr".to_string()))?;
                     shim.on_task_invoke(&task_ctx).await?;
                     client::complete_task(ctx, &self.executor.clone()).await?;
                 }

@@ -37,10 +37,9 @@ impl Shim for LogShim {
 
     async fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError> {
         log::info!(
-            "on_task_invoke: Task: <{}>, Session: <{}>, Input: <{}>",
+            "on_task_invoke: Task: <{}>, Session: <{}>",
             ctx.id,
-            ctx.ssn_id,
-            ctx.input.unwrap_or("".to_string())
+            ctx.ssn_id
         );
         Ok(())
     }

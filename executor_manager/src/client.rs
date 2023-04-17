@@ -18,7 +18,10 @@ use lazy_static::lazy_static;
 use tonic::transport::Channel;
 
 use self::rpc::backend_client::BackendClient as FlameBackendClient;
-use self::rpc::{BindExecutorCompletedRequest, BindExecutorRequest, RegisterExecutorRequest};
+use self::rpc::{
+    BindExecutorCompletedRequest, BindExecutorRequest, CompleteTaskRequest, LaunchTaskRequest,
+    RegisterExecutorRequest, UnbindExecutorCompletedRequest, UnbindExecutorRequest,
+};
 use ::rpc::flame as rpc;
 
 use crate::executor::{Executor, SessionContext, TaskContext};
@@ -141,14 +144,34 @@ pub async fn launch_task(
         executor_id: exe.id.clone(),
     };
 
-    let resp = ins.launch_task(req)
-        .await
-        .map_err(FlameError::from)?;
+    let resp = ins.launch_task(req).await.map_err(FlameError::from)?;
+
+    if let Some(t) = resp.into_inner().task {
+        return Ok(Some(TaskContext::try_from(t)?));
+    }
 
     Ok(None)
 }
 
+pub async fn complete_task(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
+    let mut ins = get_client(ctx)?;
 
+    let task = exe
+        .task
+        .clone()
+        .ok_or(FlameError::InvalidState("no task in executor".to_string()))?;
+
+    let req = CompleteTaskRequest {
+        executor_id: exe.id.clone(),
+        ssn_id: task.ssn_id.clone(),
+        task_id: task.id.clone(),
+        task_output: task.output.clone(),
+    };
+
+    ins.complete_task(req).await.map_err(FlameError::from)?;
+
+    Ok(())
+}
 
 // rpc UnbindExecutor (UnbindExecutorRequest) returns (Result) {}
 //
