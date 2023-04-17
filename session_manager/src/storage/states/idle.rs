@@ -11,6 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use futures::future::BoxFuture;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
 use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::States;
 use common::{lock_cond_ptr, FlameError};
@@ -20,13 +25,26 @@ pub struct IdleState {
 }
 
 impl States for IdleState {
-    fn wait_for_session(&self) -> Result<SessionID, FlameError> {
-        let exe = self.executor.wait_while(|e| e.ssn_id.is_some())?;
-        let ssn_id = exe
-            .ssn_id
-            .ok_or(FlameError::Internal("concurrent error".to_string()))?;
+    fn wait_for_session(&self) -> BoxFuture<'static, Result<SessionID, FlameError>> {
+        struct WaitForSsnFuture {
+            executor: ExecutorPtr,
+        }
 
-        Ok(ssn_id)
+        impl Future for WaitForSsnFuture {
+            type Output = Result<SessionID, FlameError>;
+
+            fn poll(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<Self::Output> {
+                let exe = lock_cond_ptr!(self.executor)?;
+                match exe.ssn_id {
+                    None => Poll::Pending,
+                    Some(ssn_id) => Poll::Ready(Ok(ssn_id)),
+                }
+            }
+        }
+
+        Box::pin(WaitForSsnFuture {
+            executor: self.executor.clone(),
+        })
     }
 
     fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {

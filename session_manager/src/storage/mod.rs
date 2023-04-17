@@ -283,11 +283,11 @@ impl Storage {
         Ok(exe.clone())
     }
 
-    pub fn wait_for_session(&self, id: ExecutorID) -> Result<Session, FlameError> {
+    pub async fn wait_for_session(&self, id: ExecutorID) -> Result<Session, FlameError> {
         let exe_ptr = self.get_executor_ptr(id)?;
         let state = states::from(exe_ptr)?;
 
-        let ssn_id = (*state).wait_for_session()?;
+        let ssn_id = (*state).wait_for_session().await?;
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
         let ssn = lock_cond_ptr!(ssn_ptr)?;
 

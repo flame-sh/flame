@@ -32,7 +32,7 @@ impl Backend for Flame {
         &self,
         req: Request<RegisterExecutorRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
-        trace_fn!("Backend::bind_executor");
+        trace_fn!("Backend::register_executor");
         let req = req.into_inner();
         let spec = req
             .executor_spec
@@ -70,7 +70,10 @@ impl Backend for Flame {
         trace_fn!("Backend::bind_executor");
         let req = req.into_inner();
 
-        let ssn = self.storage.wait_for_session(req.executor_id.to_string())?;
+        let ssn = self
+            .storage
+            .wait_for_session(req.executor_id.to_string())
+            .await?;
 
         Ok(Response::new(Session::from(&ssn)))
     }

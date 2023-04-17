@@ -14,6 +14,7 @@ limitations under the License.
 use crate::model::{ExecutorPtr, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::idle::IdleState;
 use common::{lock_cond_ptr, FlameError};
+use futures::future::BoxFuture;
 
 mod idle;
 
@@ -26,8 +27,8 @@ pub fn from(exe_ptr: ExecutorPtr) -> Result<Box<dyn States>, FlameError> {
     }
 }
 
-pub trait States {
-    fn wait_for_session(&self) -> Result<SessionID, FlameError>;
+pub trait States: Send + Sync + 'static {
+    fn wait_for_session(&self) -> BoxFuture<'static, Result<SessionID, FlameError>>;
 
     fn bind_session(&self, ssn: SessionPtr) -> Result<(), FlameError>;
     fn bind_session_completed(&self, ssn: SessionPtr) -> Result<(), FlameError>;

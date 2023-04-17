@@ -16,7 +16,7 @@ use std::collections::BinaryHeap;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use crate::model::{ExecutorState, SessionID, SnapShot, TaskState};
+use crate::model::{ExecutorState, SessionID, SessionInfo, SnapShot, TaskState};
 use crate::scheduler::actions::Action;
 use crate::storage::Storage;
 use crate::FlameError;
@@ -77,22 +77,20 @@ impl Action for AllocateAction {
 
         // TODO(k82cn): move this into SsnOrderFn plugin.
         for ssn in &mut ss.sessions {
-            let ssn = Rc::get_mut(ssn).unwrap();
-
-            ssn.desired = 0.0;
+            let mut desired = 0.0;
             for p in vec![TaskState::Pending, TaskState::Running] {
                 if let Some(s) = ssn.tasks_status.get(&p) {
-                    ssn.desired += *s as f64 * (ssn.slots as f64);
+                    desired += *s as f64 * (ssn.slots as f64);
                 }
             }
 
-            ssn.allocated = ssn.executors.len() as f64 * (ssn.slots as f64);
+            let mut allocated = ssn.executors.len() as f64 * (ssn.slots as f64);
 
             ssn_order_info.push(SsnOrderInfo {
                 id: ssn.id.clone(),
                 slots: ssn.slots,
-                desired: ssn.desired,
-                allocated: ssn.allocated,
+                desired,
+                allocated,
             })
         }
 
