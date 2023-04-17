@@ -22,7 +22,7 @@ use lazy_static::lazy_static;
 use crate::model;
 use crate::model::{
     Executor, ExecutorID, ExecutorInfo, ExecutorPtr, Session, SessionID, SessionInfo, SessionPtr,
-    Task, TaskID, TaskState,
+    Task, TaskID, TaskPtr, TaskState,
 };
 
 use common::{lock_cond_ptr, lock_ptr};
@@ -177,6 +177,21 @@ impl Storage {
         Ok(ssn.clone())
     }
 
+    fn get_task_ptr(&self, ssn_id: SessionID, task_id: TaskID) -> Result<TaskPtr, FlameError> {
+        let ssn_map = lock_ptr!(self.sessions)?;
+        let ssn_ptr = ssn_map
+            .get(&ssn_id)
+            .ok_or(FlameError::NotFound(ssn_id.to_string()))?;
+
+        let ssn = lock_cond_ptr!(ssn_ptr)?;
+        let task_ptr = ssn
+            .tasks
+            .get(&task_id)
+            .ok_or(FlameError::NotFound(ssn_id.to_string()))?;
+
+        Ok(task_ptr.clone())
+    }
+
     pub fn delete_session(&self, _id: SessionID) -> Result<(), FlameError> {
         todo!()
     }
@@ -304,6 +319,57 @@ impl Storage {
         state.bind_session(ssn_ptr)?;
 
         Ok(())
+    }
+
+    pub fn bind_session_completed(&self, id: ExecutorID) -> Result<(), FlameError> {
+        trace_fn!("Storage::bind_session_completed");
+
+        let exe_ptr = self.get_executor_ptr(id)?;
+        let state = states::from(exe_ptr)?;
+
+        state.bind_session_completed()?;
+
+        Ok(())
+    }
+
+    pub fn launch_task(&self, id: ExecutorID) -> Result<Option<Task>, FlameError> {
+        let exe_ptr = self.get_executor_ptr(id)?;
+        let state = states::from(exe_ptr.clone())?;
+        let (ssn_id, task_id) = {
+            let exec = lock_cond_ptr!(exe_ptr)?;
+            (exec.ssn_id.clone(), exec.task_id.clone())
+        };
+        let ssn_id = ssn_id.ok_or(FlameError::InvalidState(
+            "no session in bound executor".to_string(),
+        ))?;
+
+        //
+        if let Some(task_id) = task_id {
+            log::warn!(
+                "Re-launch the task <{}/{}>",
+                ssn_id.clone(),
+                task_id.clone()
+            );
+            let task_ptr = self.get_task_ptr(ssn_id, task_id)?;
+
+            let task = lock_cond_ptr!(task_ptr)?;
+            return Ok(Some((*task).clone()));
+        }
+
+        let ssn_ptr = self.get_session_ptr(ssn_id)?;
+        let mut ssn = lock_cond_ptr!(ssn_ptr)?;
+
+        let task_ptr = ssn.pop_pending_task();
+        if let Some(task_ptr) = task_ptr {
+            state.launch_task(task_ptr.clone())?;
+            ssn.update_task_state(task_ptr.clone(), TaskState::Running)?;
+
+            // Return task info.
+            let task = lock_cond_ptr!(task_ptr)?;
+            return Ok(Some((*task).clone()));
+        }
+
+        Ok(None)
     }
 
     pub fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {

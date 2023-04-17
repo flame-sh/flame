@@ -20,40 +20,17 @@ use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::States;
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
-pub struct IdleState {
+pub struct BindingState {
     pub executor: ExecutorPtr,
 }
 
-impl States for IdleState {
+impl States for BindingState {
     fn wait_for_session(&self) -> BoxFuture<'static, Result<SessionID, FlameError>> {
-        struct WaitForSsnFuture {
-            executor: ExecutorPtr,
-        }
-
-        impl Future for WaitForSsnFuture {
-            type Output = Result<SessionID, FlameError>;
-
-            fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-                let exe = lock_cond_ptr!(self.executor)?;
-
-                match exe.ssn_id {
-                    None => {
-                        // No bound session, trigger waker.
-                        ctx.waker().wake_by_ref();
-                        Poll::Pending
-                    }
-                    Some(ssn_id) => Poll::Ready(Ok(ssn_id)),
-                }
-            }
-        }
-
-        Box::pin(WaitForSsnFuture {
-            executor: self.executor.clone(),
-        })
+        todo!()
     }
 
     fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
-        trace_fn!("IdleState::bind_session");
+        trace_fn!("BindingState::bind_session");
 
         let ssn_id = {
             let ssn = lock_cond_ptr!(ssn_ptr)?;
@@ -68,7 +45,12 @@ impl States for IdleState {
     }
 
     fn bind_session_completed(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BindingState::bind_session");
+
+        let mut e = lock_cond_ptr!(self.executor)?;
+        e.state = ExecutorState::Bound;
+
+        Ok(())
     }
 
     fn unbind_session(&self) -> Result<(), FlameError> {

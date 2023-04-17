@@ -20,51 +20,17 @@ use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
 use crate::storage::states::States;
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
-pub struct IdleState {
+pub struct BoundState {
     pub executor: ExecutorPtr,
 }
 
-impl States for IdleState {
+impl States for BoundState {
     fn wait_for_session(&self) -> BoxFuture<'static, Result<SessionID, FlameError>> {
-        struct WaitForSsnFuture {
-            executor: ExecutorPtr,
-        }
-
-        impl Future for WaitForSsnFuture {
-            type Output = Result<SessionID, FlameError>;
-
-            fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-                let exe = lock_cond_ptr!(self.executor)?;
-
-                match exe.ssn_id {
-                    None => {
-                        // No bound session, trigger waker.
-                        ctx.waker().wake_by_ref();
-                        Poll::Pending
-                    }
-                    Some(ssn_id) => Poll::Ready(Ok(ssn_id)),
-                }
-            }
-        }
-
-        Box::pin(WaitForSsnFuture {
-            executor: self.executor.clone(),
-        })
+        todo!()
     }
 
     fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
-        trace_fn!("IdleState::bind_session");
-
-        let ssn_id = {
-            let ssn = lock_cond_ptr!(ssn_ptr)?;
-            ssn.id
-        };
-
-        let mut e = lock_cond_ptr!(self.executor)?;
-        e.ssn_id = Some(ssn_id);
-        e.state = ExecutorState::Binding;
-
-        Ok(())
+        todo!()
     }
 
     fn bind_session_completed(&self) -> Result<(), FlameError> {
@@ -72,18 +38,40 @@ impl States for IdleState {
     }
 
     fn unbind_session(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BoundState::unbind_session");
+
+        let mut e = lock_cond_ptr!(self.executor)?;
+        e.state = ExecutorState::Unbinding;
+
+        Ok(())
     }
 
     fn unbind_session_completed(&self) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn launch_task(&self, _task: TaskPtr) -> Result<(), FlameError> {
-        todo!()
+    fn launch_task(&self, task: TaskPtr) -> Result<(), FlameError> {
+        trace_fn!("BoundState::launch_task");
+
+        let (task_id, ssn_id) = {
+            let t = lock_cond_ptr!(task)?;
+            (t.id, t.ssn_id)
+        };
+
+        let mut e = lock_cond_ptr!(self.executor)?;
+        e.task_id = Some(task_id);
+        e.ssn_id = Some(ssn_id);
+
+        Ok(())
     }
 
     fn complete_task(&self, _task: TaskPtr) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BoundState::complete_task");
+
+        let mut e = lock_cond_ptr!(self.executor)?;
+        e.task_id = None;
+        e.ssn_id = None;
+
+        Ok(())
     }
 }

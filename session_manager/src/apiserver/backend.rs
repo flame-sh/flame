@@ -82,9 +82,18 @@ impl Backend for Flame {
 
     async fn bind_executor_completed(
         &self,
-        _req: Request<BindExecutorCompletedRequest>,
+        req: Request<BindExecutorCompletedRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
-        todo!()
+        trace_fn!("Backend::bind_executor_completed");
+        let req = req.into_inner();
+
+        self.storage
+            .bind_session_completed(req.executor_id.to_string())?;
+
+        Ok(Response::new(rpc::Result {
+            return_code: 0,
+            message: None,
+        }))
     }
 
     async fn unbind_executor(
@@ -103,9 +112,17 @@ impl Backend for Flame {
 
     async fn launch_task(
         &self,
-        _: Request<LaunchTaskRequest>,
+        req: Request<LaunchTaskRequest>,
     ) -> Result<Response<LaunchTaskResponse>, Status> {
-        todo!()
+        let req = req.into_inner();
+        let task = self.storage.launch_task(req.executor_id.clone())?;
+        if let Some(task) = task {
+            return Ok(Response::new(LaunchTaskResponse {
+                task: Some(rpc::Task::from(&task)),
+            }));
+        }
+
+        Ok(Response::new(LaunchTaskResponse { task: None }))
     }
 
     async fn complete_task(

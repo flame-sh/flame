@@ -72,6 +72,17 @@ impl Session {
             .insert(task.id, task_ptr.clone());
     }
 
+    pub fn pop_pending_task(&mut self) -> Option<TaskPtr> {
+        let pending_tasks = self.tasks_index.get_mut(&TaskState::Pending);
+        if let Some(tasks) = pending_tasks {
+            for (_, task) in tasks {
+                return Some(task.clone());
+            }
+        }
+
+        None
+    }
+
     pub fn update_task_state(
         &mut self,
         task_ptr: TaskPtr,
@@ -164,7 +175,6 @@ pub enum ExecutorState {
     Binding = 1,
     Bound = 2,
     Unbinding = 3,
-    Unknown = 4,
 }
 
 #[derive(Clone, Debug)]

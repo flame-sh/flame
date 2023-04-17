@@ -94,7 +94,7 @@ message Executor {
 
 message Result {
   int32 return_code = 1;
-  string message = 2;
+  optional string message = 2;
 }
 
 message SessionList {
