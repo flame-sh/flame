@@ -18,8 +18,9 @@ use tonic::{Request, Response, Status};
 
 use self::rpc::backend_server::Backend;
 use self::rpc::{
-    BindExecutorRequest,BindExecutorCompletedRequest, CompleteTaskRequest, LaunchTaskRequest, RegisterExecutorRequest, Session,
-    Task, UnbindExecutorRequest,UnbindExecutorCompletedRequest, UnregisterExecutorRequest,
+    BindExecutorCompletedRequest, BindExecutorRequest, CompleteTaskRequest, LaunchTaskRequest,
+    RegisterExecutorRequest, Session, Task, UnbindExecutorCompletedRequest, UnbindExecutorRequest,
+    UnregisterExecutorRequest,
 };
 use ::rpc::flame as rpc;
 
@@ -81,7 +82,7 @@ impl Backend for Flame {
 
     async fn bind_executor_completed(
         &self,
-        req: Request<BindExecutorCompletedRequest>,
+        _req: Request<BindExecutorCompletedRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         todo!()
     }
@@ -95,7 +96,7 @@ impl Backend for Flame {
 
     async fn unbind_executor_completed(
         &self,
-        req: Request<UnbindExecutorCompletedRequest>,
+        _req: Request<UnbindExecutorCompletedRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         todo!()
     }

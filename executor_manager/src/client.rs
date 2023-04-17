@@ -18,7 +18,7 @@ use lazy_static::lazy_static;
 use tonic::transport::Channel;
 
 use self::rpc::backend_client::BackendClient as FlameBackendClient;
-use self::rpc::{BindExecutorRequest, RegisterExecutorRequest, BindExecutorCompletedRequest};
+use self::rpc::{BindExecutorCompletedRequest, BindExecutorRequest, RegisterExecutorRequest};
 use ::rpc::flame as rpc;
 
 use crate::executor::{Executor, SessionContext};
@@ -92,10 +92,10 @@ pub async fn bind_executor_completed(ctx: &FlameContext, exe: &Executor) -> Resu
         executor_id: exe.id.clone(),
     };
 
-    let ssn = ins
-        .bind_executor_completed(req)
+    ins.bind_executor_completed(req)
         .await
         .map_err(FlameError::from)?;
+
     Ok(())
 }
 
