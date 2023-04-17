@@ -19,7 +19,7 @@ use tonic::{Request, Response, Status};
 use self::rpc::backend_server::Backend;
 use self::rpc::{
     BindExecutorCompletedRequest, BindExecutorRequest, CompleteTaskRequest, LaunchTaskRequest,
-    LaunchTaskResponse, RegisterExecutorRequest, Session, Task, UnbindExecutorCompletedRequest,
+    LaunchTaskResponse, RegisterExecutorRequest, Session, UnbindExecutorCompletedRequest,
     UnbindExecutorRequest, UnregisterExecutorRequest,
 };
 use ::rpc::flame as rpc;

@@ -14,7 +14,7 @@ limitations under the License.
 use async_trait::async_trait;
 
 use crate::executor::{Executor, ExecutorState};
-use crate::ExecutorPtr;
+
 use common::{FlameContext, FlameError};
 
 mod bound;

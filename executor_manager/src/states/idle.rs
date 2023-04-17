@@ -16,8 +16,8 @@ use std::sync::Arc;
 
 use crate::executor::{Application, Executor, ExecutorState};
 use crate::states::State;
-use crate::{client, shims, ExecutorPtr};
-use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
+use crate::{client, shims};
+use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct IdleState {
     pub executor: Executor,

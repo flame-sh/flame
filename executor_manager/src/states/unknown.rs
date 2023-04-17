@@ -13,10 +13,10 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::executor::{Executor, ExecutorState};
+use crate::executor::Executor;
 use crate::states::State;
-use crate::{client, ExecutorPtr};
-use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
+
+use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct UnknownState {
     pub executor: Executor,

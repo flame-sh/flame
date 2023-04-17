@@ -14,7 +14,7 @@ limitations under the License.
 mod log_shim;
 
 use async_trait::async_trait;
-use std::rc::Rc;
+
 use std::sync::Arc;
 
 use crate::executor::{Application, SessionContext, TaskContext};

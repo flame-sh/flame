@@ -13,9 +13,9 @@ limitations under the License.
 
 use std::error::Error;
 
-use crate::executor::{Executor, ExecutorPtr};
+use crate::executor::Executor;
 use clap::Parser;
-use common::{FlameContext, FlameError};
+use common::FlameContext;
 
 mod client;
 mod executor;

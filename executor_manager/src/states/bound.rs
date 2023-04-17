@@ -14,10 +14,10 @@ limitations under the License.
 use async_trait::async_trait;
 use std::sync::Arc;
 
-use crate::executor::{Application, Executor, ExecutorState, TaskContext};
+use crate::client;
+use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
-use crate::{client, shims, ExecutorPtr};
-use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
+use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
 
 pub struct BoundState {
     pub executor: Executor,
