@@ -14,8 +14,8 @@ tonic = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 async-trait = { workspace = true }
+clap = { workspace = true }
 
-clap = { version = "4.1", features = ["derive"] }
 chrono = "0.4"
 lazy_static = "1.4"
 

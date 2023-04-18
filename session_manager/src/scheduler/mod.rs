@@ -40,7 +40,7 @@ impl FlameThread for SchedulerRunner {
                 };
             }
 
-            let delay = time::Duration::from_millis(10000);
+            let delay = time::Duration::from_millis(500);
             thread::sleep(delay);
         }
     }

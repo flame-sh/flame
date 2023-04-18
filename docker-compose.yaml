@@ -1,0 +1,43 @@
+version: '3'
+services:
+  fsm:
+    image: flame-session-manager:v0.1.0
+    network_mode: host
+    volumes:
+    - ./flame-conf.yaml:/opt/flame-conf.yaml
+    command: [ "--flame-conf", "/opt/flame-conf.yaml" ]
+    environment:
+    - RUST_LOG=debug
+  fem-1:
+    image: flame-executor-manager:v0.1.0
+    command: [ "--flame-conf", "/opt/flame-conf.yaml" ]
+    network_mode: host
+    volumes:
+    - ./flame-conf.yaml:/opt/flame-conf.yaml
+    depends_on:
+    - fsm
+    environment:
+    - RUST_LOG=debug
+
+  fem-2:
+    image: flame-executor-manager:v0.1.0
+    command: [ "--flame-conf", "/opt/flame-conf.yaml" ]
+    network_mode: host
+    volumes:
+    - ./flame-conf.yaml:/opt/flame-conf.yaml
+    depends_on:
+    - fsm
+    environment:
+    - RUST_LOG=debug
+
+  fem-3:
+    image: flame-executor-manager:v0.1.0
+    command: [ "--flame-conf", "/opt/flame-conf.yaml" ]
+    network_mode: host
+    volumes:
+    - ./flame-conf.yaml:/opt/flame-conf.yaml
+    depends_on:
+    - fsm
+    environment:
+    - RUST_LOG=debug
+

@@ -11,32 +11,43 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::{FlameContext, FlameError};
+use std::collections::HashMap;
 use std::thread;
+
+use clap::Parser;
+
+use common::{FlameContext, FlameError};
 
 mod apiserver;
 mod model;
 mod scheduler;
 mod storage;
 
+#[derive(Parser)]
+#[command(name = "flame-session-manager")]
+#[command(author = "Klaus Ma <klaus@xflops.cn>")]
+#[command(version = "0.1.0")]
+#[command(about = "Flame Session Manager", long_about = None)]
+struct Cli {
+    #[arg(long)]
+    flame_conf: Option<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), FlameError> {
     env_logger::init();
 
-    let ctx = FlameContext::from_file(None)?;
+    let cli = Cli::parse();
+    let ctx = FlameContext::from_file(cli.flame_conf)?;
 
     log::info!("flame-session-manager is starting ...");
 
-    // storage::start()?;
-    // scheduler::start()?;
-    // log::debug!("scheduler was started.");
-
-    // apiserver::run().await?;
-
     let mut handlers = vec![];
-    let threads = vec![scheduler::new(), apiserver::new()];
+    let mut threads = HashMap::new();
+    threads.insert("scheduler", scheduler::new());
+    threads.insert("apiserver", apiserver::new());
 
-    for thread in threads {
+    for (n, thread) in threads {
         let ctx = ctx.clone();
         let handler = thread::spawn(move || {
             match thread.run(ctx) {
@@ -46,6 +57,8 @@ async fn main() -> Result<(), FlameError> {
                 }
             };
         });
+
+        log::info!("<{}> thread was started.", n);
 
         handlers.push(handler);
     }
@@ -62,34 +75,3 @@ async fn main() -> Result<(), FlameError> {
 pub trait FlameThread: Send + Sync + 'static {
     fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
 }
-//
-// struct ThreadManager {
-//     pub threads: HashMap<String, Box<dyn FlameThread>>,
-// }
-//
-// impl ThreadManager {
-//     pub fn run(&self) -> Result<(), FlameError> {
-//         let mut handlers = HashMap::new();
-//
-//         let ctx = FlameContext::from_file(None)?;
-//
-//         for (n, t) in self.threads.iter().clone() {
-//             let ctx = ctx.clone();
-//             let handler = thread::spawn(move||{
-//                 match t.run(ctx){
-//                     Ok(_) => {}
-//                     Err(e) => {
-//                         log::error!("Failed to run thread: {}", e);
-//                     }
-//                 };
-//             });
-//
-//             handlers.insert(n, handler);
-//         }
-//
-//
-//
-//         Ok(())
-//     }
-//
-// }
