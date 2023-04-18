@@ -56,7 +56,11 @@ impl State for IdleState {
                 self.executor.session = Some(ssn.clone());
                 self.executor.state = ExecutorState::Bound;
 
-                log::debug!("Executor <{}> was bound to <{}>.", &self.executor.id.clone(), &ssn.ssn_id.clone());
+                log::debug!(
+                    "Executor <{}> was bound to <{}>.",
+                    &self.executor.id.clone(),
+                    &ssn.ssn_id.clone()
+                );
 
                 Ok(self.executor.clone())
             }

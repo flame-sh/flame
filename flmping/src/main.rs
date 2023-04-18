@@ -147,6 +147,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             running
         );
 
+        // If all tasks finished, exit.
+        if task_ids.len() == failed + succeed {
+            break;
+        }
+
         thread::sleep(time::Duration::from_secs(1));
     }
 
