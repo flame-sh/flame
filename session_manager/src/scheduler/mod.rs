@@ -14,34 +14,34 @@ limitations under the License.
 use std::{thread, time};
 
 use crate::scheduler::actions::{Action, AllocateAction};
-use crate::storage;
-use common::FlameError;
+use crate::{storage, FlameThread};
+use common::{FlameContext, FlameError};
 
 mod actions;
 
-pub fn start() -> Result<(), FlameError> {
-    // TODO(k82cn): support gracefully exit.
-    thread::spawn(move || {
-        let delay = time::Duration::from_millis(10000);
-        loop {
-            match run() {
-                Err(e) => log::error!("Failed to run scheduling: {}", e),
-                Ok(..) => thread::sleep(delay),
-            }
-        }
-    });
-    Ok(())
+pub fn new() -> Box<dyn FlameThread> {
+    Box::new(SchedulerRunner {})
 }
 
-fn run() -> Result<(), FlameError> {
-    let mut snapshot = storage::instance().snapshot()?;
-    let actions: Vec<Box<dyn Action>> = vec![Box::new(AllocateAction {
-        storage: storage::instance(),
-    })];
+struct SchedulerRunner {}
 
-    for action in actions {
-        action.execute(&mut snapshot)?;
+impl FlameThread for SchedulerRunner {
+    fn run(&self, _ctx: FlameContext) -> Result<(), FlameError> {
+        loop {
+            let mut snapshot = storage::instance().snapshot()?;
+            let actions: Vec<Box<dyn Action>> = vec![Box::new(AllocateAction {
+                storage: storage::instance(),
+            })];
+
+            for action in actions {
+                if let Err(e) = action.execute(&mut snapshot) {
+                    log::error!("Failed to run scheduling: {}", e);
+                    break;
+                };
+            }
+
+            let delay = time::Duration::from_millis(10000);
+            thread::sleep(delay);
+        }
     }
-
-    Ok(())
 }

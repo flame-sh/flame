@@ -12,8 +12,11 @@ limitations under the License.
 */
 
 use std::sync::Arc;
+
+use tokio::runtime::Runtime;
 use tonic::transport::Server;
 
+use common::FlameContext;
 use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
 use rpc::flame::{
@@ -22,7 +25,7 @@ use rpc::flame::{
 };
 
 use crate::storage::Storage;
-use crate::{model, storage, FlameError};
+use crate::{model, storage, FlameError, FlameThread};
 
 mod backend;
 mod frontend;
@@ -31,26 +34,45 @@ pub struct Flame {
     storage: Arc<Storage>,
 }
 
-pub async fn run() -> Result<(), FlameError> {
-    let address = "[::1]:8080".parse().unwrap();
-    let frontend_service = Flame {
-        storage: storage::instance(),
-    };
+pub fn new() -> Box<dyn FlameThread> {
+    Box::new(ApiserverRunner {})
+}
 
-    let backend_service = Flame {
-        storage: storage::instance(),
-    };
+struct ApiserverRunner {}
 
-    Server::builder()
-        // TODO(k82cn): separate frontend & backend concurrent limit.
-        .concurrency_limit_per_connection(6000)
-        .add_service(FrontendServer::new(frontend_service))
-        .add_service(BackendServer::new(backend_service))
-        .serve(address)
-        .await
-        .map_err(|e| FlameError::Network(e.to_string()))?;
+impl FlameThread for ApiserverRunner {
+    fn run(&self, _ctx: FlameContext) -> Result<(), FlameError> {
+        let address = "[::1]:8080".parse().unwrap();
+        // let url = Url::parse(ctx.endpoint);
 
-    Ok(())
+        let frontend_service = Flame {
+            storage: storage::instance(),
+        };
+
+        let backend_service = Flame {
+            storage: storage::instance(),
+        };
+
+        let rt = Runtime::new().unwrap();
+        // Execute the future, blocking the current thread until completion
+        rt.block_on(async {
+            let rc = Server::builder()
+                // TODO(k82cn): separate frontend & backend concurrent limit.
+                .concurrency_limit_per_connection(6000)
+                .add_service(FrontendServer::new(frontend_service))
+                .add_service(BackendServer::new(backend_service))
+                .serve(address)
+                .await;
+            match rc {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Failed to run apiserver: {}", e)
+                }
+            }
+        });
+
+        Ok(())
+    }
 }
 
 impl From<model::TaskState> for TaskState {
