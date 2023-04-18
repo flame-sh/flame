@@ -36,6 +36,11 @@ pub async fn run(ctx: &FlameContext) -> Result<(), Box<dyn Error>> {
         let status = ssn.status.clone().ok_or(Status::data_loss("no status"))?;
         let state = SessionState::from_i32(status.state).ok_or(Status::data_loss("no state"))?;
 
+        let state = match state {
+            SessionState::SessionOpen => "Open",
+            SessionState::SessionClosed => "Closed",
+        };
+
         let naivedatetime_utc = NaiveDateTime::from_timestamp_millis(status.creation_time * 1000)
             .ok_or(Status::data_loss("no creation_time"))?;
         let created = DateTime::<Utc>::from_utc(naivedatetime_utc, Utc);
@@ -43,7 +48,7 @@ pub async fn run(ctx: &FlameContext) -> Result<(), Box<dyn Error>> {
         println!(
             "{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}",
             meta.id,
-            state.as_str_name(),
+            state,
             spec.application,
             spec.slots,
             status.pending,
