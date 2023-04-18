@@ -32,7 +32,7 @@ impl<T: Clone> CondPtr<T> {
         }
     }
 
-    pub fn wait_while<'a, F>(&self, f: F) -> Result<MutexGuard<T>, FlameError>
+    pub fn wait_while<F>(&self, f: F) -> Result<MutexGuard<T>, FlameError>
     where
         F: Fn(&T) -> bool,
     {
@@ -56,7 +56,7 @@ impl<T: Clone> CondPtr<T> {
         }
     }
 
-    pub fn modify<'a, F>(&self, mut mod_fn: F) -> Result<MutexGuard<T>, FlameError>
+    pub fn modify<F>(&self, mut mod_fn: F) -> Result<MutexGuard<T>, FlameError>
     where
         F: FnMut(&mut T) -> Result<(), FlameError>,
     {

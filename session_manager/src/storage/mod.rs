@@ -157,6 +157,10 @@ impl Storage {
         ssn.application = app;
         ssn.creation_time = Utc::now();
 
+        if let Some(_) = &self.engine {
+            // TODO(k82cn): persist session.
+        }
+
         ssn_map.insert(ssn.id, SessionPtr::new(ssn.clone()));
 
         Ok(ssn)
@@ -208,12 +212,22 @@ impl Storage {
         Ok(task_ptr.clone())
     }
 
-    pub fn delete_session(&self, _id: SessionID) -> Result<(), FlameError> {
-        todo!()
-    }
+    pub fn delete_session(&self, id: SessionID) -> Result<(), FlameError> {
+        let mut ssn_map = lock_ptr!(self.sessions)?;
+        if let Some(ssn_ptr) = ssn_map.get(&id) {
+            {
+                let ssn = lock_cond_ptr!(ssn_ptr)?;
+                if ssn.is_closed() {
+                    return Err(FlameError::InvalidState(
+                        "can not delete an open session".to_string(),
+                    ));
+                }
+            }
 
-    pub fn update_session(&self, _ssn: &Session) -> Result<Session, FlameError> {
-        todo!()
+            ssn_map.remove(&id);
+        }
+
+        Ok(())
     }
 
     pub fn list_session(&self) -> Result<Vec<Session>, FlameError> {
@@ -278,24 +292,24 @@ impl Storage {
         Ok(task.clone())
     }
 
-    pub fn update_task_state(&self, t: &Task) -> Result<Task, FlameError> {
-        let ssn_map = lock_ptr!(self.sessions)?;
-
-        let ssn = ssn_map
-            .get(&t.ssn_id)
-            .ok_or(FlameError::NotFound(t.ssn_id.to_string()))?;
-
-        let ssn = lock_cond_ptr!(ssn)?;
-        let task = ssn
-            .tasks
-            .get(&t.id)
-            .ok_or(FlameError::NotFound(t.id.to_string()))?;
-
-        let mut task = lock_cond_ptr!(task)?;
-        task.state = t.state;
-
-        Ok((*task).clone())
-    }
+    // pub fn update_task_state(&self, t: &Task) -> Result<Task, FlameError> {
+    //     let ssn_map = lock_ptr!(self.sessions)?;
+    //
+    //     let ssn = ssn_map
+    //         .get(&t.ssn_id)
+    //         .ok_or(FlameError::NotFound(t.ssn_id.to_string()))?;
+    //
+    //     let ssn = lock_cond_ptr!(ssn)?;
+    //     let task = ssn
+    //         .tasks
+    //         .get(&t.id)
+    //         .ok_or(FlameError::NotFound(t.id.to_string()))?;
+    //
+    //     let mut task = lock_cond_ptr!(task)?;
+    //     task.state = t.state;
+    //
+    //     Ok((*task).clone())
+    // }
 
     // fn delete_task(&self, _ssn_id: SessionID, _id: TaskID) -> Result<(), FlameError> {
     //     todo!()
@@ -309,12 +323,12 @@ impl Storage {
         Ok(())
     }
 
-    pub fn unregister_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
-        let mut exe_map = lock_ptr!(self.executors)?;
-        exe_map.remove(&id);
-
-        Ok(())
-    }
+    // pub fn unregister_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
+    //     let mut exe_map = lock_ptr!(self.executors)?;
+    //     exe_map.remove(&id);
+    //
+    //     Ok(())
+    // }
 
     fn get_executor_ptr(&self, id: ExecutorID) -> Result<ExecutorPtr, FlameError> {
         let exe_map = lock_ptr!(self.executors)?;

@@ -49,9 +49,20 @@ impl Frontend for Flame {
 
     async fn delete_session(
         &self,
-        _: Request<DeleteSessionRequest>,
+        req: Request<DeleteSessionRequest>,
     ) -> Result<Response<rpc::flame::Result>, Status> {
-        todo!()
+        let ssn_id = req
+            .into_inner()
+            .session_id
+            .parse::<model::SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid session id"))?;
+
+        self.storage.delete_session(ssn_id)?;
+
+        Ok(Response::new(rpc::flame::Result {
+            return_code: 0,
+            message: None,
+        }))
     }
 
     async fn open_session(

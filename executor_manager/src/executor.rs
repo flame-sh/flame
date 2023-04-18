@@ -17,10 +17,10 @@ use uuid::Uuid;
 
 use crate::shims::ShimPtr;
 use ::rpc::flame as rpc;
-use common::ptr::CondPtr;
+// use common::ptr::CondPtr;
 use common::{FlameContext, FlameError};
 
-pub type ExecutorPtr = CondPtr<Executor>;
+// pub type ExecutorPtr = CondPtr<Executor>;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ExecutorState {

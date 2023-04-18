@@ -123,7 +123,7 @@ impl FlameContext {
         let ctx: FlameContext =
             confy::load_path(fp).map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
 
-        if ctx.applications.len() == 0 {
+        if ctx.applications.is_empty() {
             return Err(FlameError::InvalidConfig("no application".to_string()));
         }
 
