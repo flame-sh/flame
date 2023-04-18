@@ -18,6 +18,7 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use lazy_static::lazy_static;
+use log::log;
 
 use crate::model;
 use crate::model::{
@@ -333,6 +334,7 @@ impl Storage {
     }
 
     pub fn launch_task(&self, id: ExecutorID) -> Result<Option<Task>, FlameError> {
+        trace_fn!("Storage::launch_task");
         let exe_ptr = self.get_executor_ptr(id)?;
         let state = states::from(exe_ptr.clone())?;
         let (ssn_id, task_id) = {
@@ -357,19 +359,31 @@ impl Storage {
         }
 
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
-        let mut ssn = lock_cond_ptr!(ssn_ptr)?;
+        return Ok(state.launch_task(ssn_ptr)?);
+    }
 
-        let task_ptr = ssn.pop_pending_task();
-        if let Some(task_ptr) = task_ptr {
-            state.launch_task(task_ptr.clone())?;
-            ssn.update_task_state(task_ptr.clone(), TaskState::Running)?;
+    pub fn complete_task(&self, id: ExecutorID) -> Result<(), FlameError> {
+        trace_fn!("Storage::complete_task");
+        let exe_ptr = self.get_executor_ptr(id)?;
+        let (ssn_id, task_id) = {
+            let exe = lock_cond_ptr!(exe_ptr)?;
+            (
+                exe.ssn_id.clone().ok_or(FlameError::InvalidState(
+                    "no session in executor".to_string(),
+                ))?,
+                exe.task_id
+                    .clone()
+                    .ok_or(FlameError::InvalidState("no task in executor".to_string()))?,
+            )
+        };
 
-            // Return task info.
-            let task = lock_cond_ptr!(task_ptr)?;
-            return Ok(Some((*task).clone()));
-        }
+        let task_ptr = self.get_task_ptr(ssn_id, task_id)?;
+        let ssn_ptr = self.get_session_ptr(ssn_id)?;
 
-        Ok(None)
+        let state = states::from(exe_ptr.clone())?;
+        state.complete_task(ssn_ptr, task_ptr)?;
+
+        Ok(())
     }
 
     pub fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {

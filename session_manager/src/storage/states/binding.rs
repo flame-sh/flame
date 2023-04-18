@@ -13,7 +13,7 @@ limitations under the License.
 
 use futures::future::BoxFuture;
 
-use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
+use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use crate::storage::states::States;
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
@@ -58,11 +58,11 @@ impl States for BindingState {
         todo!()
     }
 
-    fn launch_task(&self, _task: TaskPtr) -> Result<(), FlameError> {
+    fn launch_task(&self, ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
         todo!()
     }
 
-    fn complete_task(&self, _task: TaskPtr) -> Result<(), FlameError> {
+    fn complete_task(&self, ssn: SessionPtr, _task: TaskPtr) -> Result<(), FlameError> {
         todo!()
     }
 }

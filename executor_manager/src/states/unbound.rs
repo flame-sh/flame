@@ -40,6 +40,10 @@ impl State for UnboundState {
 
         client::unbind_executor_completed(ctx, &self.executor.clone()).await?;
 
+        self.executor.task = None;
+        self.executor.session = None;
+        self.executor.shim = None;
+
         Ok(self.executor.clone())
     }
 }

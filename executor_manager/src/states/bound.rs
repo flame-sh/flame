@@ -29,6 +29,8 @@ impl State for BoundState {
         trace_fn!("BoundState::execute");
 
         let task = client::launch_task(ctx, &self.executor.clone()).await?;
+        self.executor.task = task.clone();
+
         match task {
             Some(task_ctx) => {
                 let shim_ptr = &mut self.executor.shim.clone().ok_or(FlameError::InvalidState(
@@ -40,11 +42,19 @@ impl State for BoundState {
                 };
 
                 client::complete_task(ctx, &self.executor.clone()).await?;
+
+                let (ssn_id, task_id) = {
+                    let task = &self.executor.task.clone().unwrap();
+                    (task.ssn_id.clone(), task.id.clone())
+                };
+                log::debug!("Complete task <{}/{}>", ssn_id, task_id)
             }
             None => {
                 self.executor.state = ExecutorState::Unbound;
             }
         }
+
+        self.executor.task = None;
 
         Ok(self.executor.clone())
     }

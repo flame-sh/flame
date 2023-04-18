@@ -53,8 +53,10 @@ impl State for IdleState {
 
                 // Own the shim.
                 self.executor.shim = Some(shim_ptr.clone());
-                self.executor.session = Some(ssn);
+                self.executor.session = Some(ssn.clone());
                 self.executor.state = ExecutorState::Bound;
+
+                log::debug!("Executor <{}> was bound to <{}>.", &self.executor.id.clone(), &ssn.ssn_id.clone());
 
                 Ok(self.executor.clone())
             }

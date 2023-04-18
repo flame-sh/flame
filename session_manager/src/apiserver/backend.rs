@@ -127,8 +127,15 @@ impl Backend for Flame {
 
     async fn complete_task(
         &self,
-        _: Request<CompleteTaskRequest>,
+        req: Request<CompleteTaskRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
-        todo!()
+        let req = req.into_inner();
+
+        self.storage.complete_task(req.executor_id.clone())?;
+
+        Ok(Response::new(rpc::Result {
+            return_code: 0,
+            message: None,
+        }))
     }
 }

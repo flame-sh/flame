@@ -163,8 +163,6 @@ pub async fn complete_task(ctx: &FlameContext, exe: &Executor) -> Result<(), Fla
 
     let req = CompleteTaskRequest {
         executor_id: exe.id.clone(),
-        ssn_id: task.ssn_id.clone(),
-        task_id: task.id.clone(),
         task_output: task.output.clone(),
     };
 

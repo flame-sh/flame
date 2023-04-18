@@ -12,6 +12,8 @@ limitations under the License.
 */
 
 use std::error::Error;
+use std::thread::sleep;
+use std::time;
 
 use crate::executor::Executor;
 use clap::Parser;
@@ -50,6 +52,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // let mut exec_ptr = ExecutorPtr::new(exec);
 
     loop {
+        let delay = time::Duration::from_millis(3000);
+        sleep(delay);
+
         let mut state = states::from(exec.clone());
         match state.execute(&ctx).await {
             Ok(next_state) => {

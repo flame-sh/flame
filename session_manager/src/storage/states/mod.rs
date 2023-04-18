@@ -13,7 +13,7 @@ limitations under the License.
 
 use futures::future::BoxFuture;
 
-use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
+use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use crate::storage::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };
@@ -26,6 +26,8 @@ mod unbinding;
 
 pub fn from(exe_ptr: ExecutorPtr) -> Result<Box<dyn States>, FlameError> {
     let exe = lock_cond_ptr!(exe_ptr)?;
+    log::debug!("Build state <{}> for Executor.", exe.state.to_string());
+
     match exe.state {
         ExecutorState::Idle => Ok(Box::new(IdleState {
             executor: exe_ptr.clone(),
@@ -51,6 +53,6 @@ pub trait States: Send + Sync + 'static {
     fn unbind_session(&self) -> Result<(), FlameError>;
     fn unbind_session_completed(&self) -> Result<(), FlameError>;
 
-    fn launch_task(&self, task: TaskPtr) -> Result<(), FlameError>;
-    fn complete_task(&self, task: TaskPtr) -> Result<(), FlameError>;
+    fn launch_task(&self, ssn: SessionPtr) -> Result<Option<Task>, FlameError>;
+    fn complete_task(&self, ssn: SessionPtr, task: TaskPtr) -> Result<(), FlameError>;
 }

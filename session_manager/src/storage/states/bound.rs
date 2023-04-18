@@ -13,9 +13,10 @@ limitations under the License.
 
 use futures::future::BoxFuture;
 
-use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, TaskPtr};
-use crate::storage::states::States;
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
+
+use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr, TaskState};
+use crate::storage::states::States;
 
 pub struct BoundState {
     pub executor: ExecutorPtr,
@@ -47,27 +48,56 @@ impl States for BoundState {
         todo!()
     }
 
-    fn launch_task(&self, task: TaskPtr) -> Result<(), FlameError> {
+    fn launch_task(&self, ssn_ptr: SessionPtr) -> Result<Option<Task>, FlameError> {
         trace_fn!("BoundState::launch_task");
 
-        let (task_id, ssn_id) = {
-            let t = lock_cond_ptr!(task)?;
-            (t.id, t.ssn_id)
+        let task_ptr = {
+            let mut ssn = lock_cond_ptr!(ssn_ptr)?;
+            let task_ptr = ssn.pop_pending_task();
+            match task_ptr {
+                Some(task_ptr) => {
+                    ssn.update_task_state(task_ptr.clone(), TaskState::Running)?;
+                    Some(task_ptr)
+                }
+                None => None,
+            }
         };
 
-        let mut e = lock_cond_ptr!(self.executor)?;
-        e.task_id = Some(task_id);
-        e.ssn_id = Some(ssn_id);
+        // No pending task, return.
+        if task_ptr.is_none() {
+            return Ok(None);
+        }
 
-        Ok(())
+        // let task_ptr = task_ptr.unwrap();
+        let (ssn_id, task_id) = {
+            let task_ptr = task_ptr.clone().unwrap();
+            let task = lock_cond_ptr!(task_ptr)?;
+            (task.id, task.ssn_id)
+        };
+
+        {
+            let mut e = lock_cond_ptr!(self.executor)?;
+            e.task_id = Some(task_id);
+            e.ssn_id = Some(ssn_id);
+        };
+
+        let task_ptr = task_ptr.clone().unwrap();
+        let task = lock_cond_ptr!(task_ptr)?;
+        Ok(Some((*task).clone()))
     }
 
-    fn complete_task(&self, _task: TaskPtr) -> Result<(), FlameError> {
+    fn complete_task(&self, ssn_ptr: SessionPtr, task_ptr: TaskPtr) -> Result<(), FlameError> {
         trace_fn!("BoundState::complete_task");
 
-        let mut e = lock_cond_ptr!(self.executor)?;
-        e.task_id = None;
-        e.ssn_id = None;
+        {
+            let mut e = lock_cond_ptr!(self.executor)?;
+            (*e).task_id = None;
+        };
+
+        {
+            let mut ssn = lock_cond_ptr!(ssn_ptr)?;
+            ssn.update_task_state(task_ptr, TaskState::Succeed)?;
+        }
 
         Ok(())
     }
