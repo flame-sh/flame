@@ -16,7 +16,7 @@ use std::collections::BinaryHeap;
 
 use std::sync::Arc;
 
-use crate::model::{ExecutorState, SessionID, SnapShot, TaskState};
+use crate::model::{ExecutorState, SessionID, SessionState, SnapShot, TaskState};
 use crate::scheduler::actions::Action;
 use crate::storage::Storage;
 use crate::FlameError;
@@ -76,22 +76,31 @@ impl Action for AllocateAction {
         let mut ssn_order_info = BinaryHeap::new();
 
         // TODO(k82cn): move this into SsnOrderFn plugin.
-        for ssn in &mut ss.sessions {
-            let mut desired = 0.0;
-            for p in vec![TaskState::Pending, TaskState::Running] {
-                if let Some(s) = ssn.tasks_status.get(&p) {
-                    desired += *s as f64 * (ssn.slots as f64);
+        if let Some(ssn_list) = ss.ssn_state_index.get(&SessionState::Open) {
+            for ssn in ssn_list {
+                let mut desired = 0.0;
+                for p in vec![TaskState::Pending, TaskState::Running] {
+                    if let Some(s) = ssn.tasks_status.get(&p) {
+                        desired += *s as f64 * (ssn.slots as f64);
+                    }
                 }
+
+                let allocated = ssn.executors.len() as f64 * (ssn.slots as f64);
+
+                log::debug!(
+                    "Session <{}>: desired <{}>, allocated<{}>",
+                    ssn.id.clone(),
+                    desired.clone(),
+                    allocated.clone()
+                );
+
+                ssn_order_info.push(SsnOrderInfo {
+                    id: ssn.id.clone(),
+                    slots: ssn.slots,
+                    desired,
+                    allocated,
+                })
             }
-
-            let allocated = ssn.executors.len() as f64 * (ssn.slots as f64);
-
-            ssn_order_info.push(SsnOrderInfo {
-                id: ssn.id.clone(),
-                slots: ssn.slots,
-                desired,
-                allocated,
-            })
         }
 
         loop {
