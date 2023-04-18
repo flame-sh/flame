@@ -34,7 +34,7 @@ impl States for UnbindingState {
         todo!()
     }
 
-    fn unbind_session(&self) -> Result<(), FlameError> {
+    fn unbind_executor(&self) -> Result<(), FlameError> {
         trace_fn!("UnbindingState::unbind_session");
 
         let mut e = lock_cond_ptr!(self.executor)?;
@@ -43,11 +43,13 @@ impl States for UnbindingState {
         Ok(())
     }
 
-    fn unbind_session_completed(&self) -> Result<(), FlameError> {
+    fn unbind_executor_completed(&self) -> Result<(), FlameError> {
         trace_fn!("UnbindingState::unbind_session_completed");
 
         let mut e = lock_cond_ptr!(self.executor)?;
         e.state = ExecutorState::Idle;
+        e.ssn_id = None;
+        e.task_id = None;
 
         Ok(())
     }

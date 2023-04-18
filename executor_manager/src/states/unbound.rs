@@ -14,7 +14,7 @@ limitations under the License.
 use async_trait::async_trait;
 
 use crate::client;
-use crate::executor::Executor;
+use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
@@ -43,6 +43,9 @@ impl State for UnboundState {
         self.executor.task = None;
         self.executor.session = None;
         self.executor.shim = None;
+
+        // After unbound from session, the executor is idle now.
+        self.executor.state = ExecutorState::Idle;
 
         Ok(self.executor.clone())
     }

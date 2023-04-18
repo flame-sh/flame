@@ -98,16 +98,29 @@ impl Backend for Flame {
 
     async fn unbind_executor(
         &self,
-        _: Request<UnbindExecutorRequest>,
+        req: Request<UnbindExecutorRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
-        todo!()
+        let req = req.into_inner();
+        self.storage.unbind_executor(req.executor_id.clone())?;
+
+        Ok(Response::new(rpc::Result {
+            return_code: 0,
+            message: None,
+        }))
     }
 
     async fn unbind_executor_completed(
         &self,
-        _req: Request<UnbindExecutorCompletedRequest>,
+        req: Request<UnbindExecutorCompletedRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
-        todo!()
+        let req = req.into_inner();
+        self.storage
+            .unbind_executor_completed(req.executor_id.clone())?;
+
+        Ok(Response::new(rpc::Result {
+            return_code: 0,
+            message: None,
+        }))
     }
 
     async fn launch_task(

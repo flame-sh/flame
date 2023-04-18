@@ -59,6 +59,10 @@ pub struct Session {
 }
 
 impl Session {
+    pub fn is_closed(&self) -> bool {
+        return self.status.state == SessionState::Closed;
+    }
+
     pub fn add_task(&mut self, task: &Task) {
         let task_ptr = TaskPtr::new(task.clone());
 

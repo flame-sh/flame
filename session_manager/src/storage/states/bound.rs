@@ -35,7 +35,7 @@ impl States for BoundState {
         todo!()
     }
 
-    fn unbind_session(&self) -> Result<(), FlameError> {
+    fn unbind_executor(&self) -> Result<(), FlameError> {
         trace_fn!("BoundState::unbind_session");
 
         let mut e = lock_cond_ptr!(self.executor)?;
@@ -44,7 +44,7 @@ impl States for BoundState {
         Ok(())
     }
 
-    fn unbind_session_completed(&self) -> Result<(), FlameError> {
+    fn unbind_executor_completed(&self) -> Result<(), FlameError> {
         todo!()
     }
 

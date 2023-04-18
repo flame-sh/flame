@@ -23,7 +23,7 @@ use log::log;
 use crate::model;
 use crate::model::{
     Executor, ExecutorID, ExecutorInfo, ExecutorPtr, Session, SessionID, SessionInfo, SessionPtr,
-    Task, TaskID, TaskPtr, TaskState,
+    SessionState, Task, TaskID, TaskPtr, TaskState,
 };
 
 use common::{lock_cond_ptr, lock_ptr};
@@ -163,6 +163,22 @@ impl Storage {
         Ok(ssn)
     }
 
+    pub fn close_session(&self, id: SessionID) -> Result<(), FlameError> {
+        let ssn_ptr = self.get_session_ptr(id)?;
+        let mut ssn = lock_cond_ptr!(ssn_ptr)?;
+        if let Some(running_task) = ssn.tasks_index.get(&TaskState::Running) {
+            if running_task.len() > 0 {
+                return Err(FlameError::InvalidState(format!(
+                    "can not close session with {} running tasks",
+                    running_task.len()
+                )));
+            }
+        }
+
+        ssn.status.state = SessionState::Closed;
+        Ok(())
+    }
+
     pub fn get_session(&self, id: SessionID) -> Result<Session, FlameError> {
         let ssn_ptr = self.get_session_ptr(id)?;
         let ssn = lock_cond_ptr!(ssn_ptr)?;
@@ -225,6 +241,10 @@ impl Storage {
 
         let mut ssn = lock_cond_ptr!(ssn)?;
 
+        if ssn.is_closed() {
+            return Err(FlameError::InvalidState("session was closed".to_string()));
+        }
+
         let state = TaskState::Pending;
         let task_id = self.next_task_id(&ssn_id)?;
 
@@ -286,6 +306,13 @@ impl Storage {
         let mut exe_map = lock_ptr!(self.executors)?;
         let exe = ExecutorPtr::new(e.clone());
         exe_map.insert(e.id.clone(), exe);
+
+        Ok(())
+    }
+
+    pub fn unregister_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
+        let mut exe_map = lock_ptr!(self.executors)?;
+        exe_map.remove(&id);
 
         Ok(())
     }
@@ -386,11 +413,20 @@ impl Storage {
         Ok(())
     }
 
-    pub fn unregister_executor(&self, _id: ExecutorID) -> Result<(), FlameError> {
-        todo!()
+    pub fn unbind_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
+        let exe_ptr = self.get_executor_ptr(id)?;
+        let state = states::from(exe_ptr.clone())?;
+        state.unbind_executor()?;
+
+        Ok(())
     }
 
-    pub fn get_executor(&self, _id: ExecutorID) -> Result<Executor, FlameError> {
-        todo!()
+    pub fn unbind_executor_completed(&self, id: ExecutorID) -> Result<(), FlameError> {
+        let exe_ptr = self.get_executor_ptr(id)?;
+        let state = states::from(exe_ptr.clone())?;
+
+        state.unbind_executor_completed()?;
+
+        Ok(())
     }
 }

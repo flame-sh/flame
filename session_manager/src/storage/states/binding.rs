@@ -50,11 +50,11 @@ impl States for BindingState {
         Ok(())
     }
 
-    fn unbind_session(&self) -> Result<(), FlameError> {
+    fn unbind_executor(&self) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn unbind_session_completed(&self) -> Result<(), FlameError> {
+    fn unbind_executor_completed(&self) -> Result<(), FlameError> {
         todo!()
     }
 

@@ -63,9 +63,21 @@ impl Frontend for Flame {
 
     async fn close_session(
         &self,
-        _: Request<CloseSessionRequest>,
+        req: Request<CloseSessionRequest>,
     ) -> Result<Response<rpc::flame::Result>, Status> {
-        todo!()
+        trace_fn!("Frontend::close_session");
+        let ssn_id = req
+            .into_inner()
+            .session_id
+            .parse::<model::SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid session id"))?;
+
+        self.storage.close_session(ssn_id).map_err(Status::from)?;
+
+        Ok(Response::new(rpc::flame::Result {
+            return_code: 0,
+            message: None,
+        }))
     }
 
     async fn get_session(
