@@ -12,7 +12,6 @@ limitations under the License.
 */
 
 use async_trait::async_trait;
-use std::sync::Arc;
 
 use crate::executor::{Application, Executor, ExecutorState};
 use crate::states::State;
@@ -42,7 +41,7 @@ impl State for IdleState {
             }
             Some(app) => {
                 let app = Application::from(&app);
-                let mut shim_ptr = shims::from(&app)?;
+                let shim_ptr = shims::from(&app)?;
 
                 {
                     // TODO(k82cn): if on_session_enter failed, add retry limits.

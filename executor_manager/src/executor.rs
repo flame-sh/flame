@@ -13,12 +13,11 @@ limitations under the License.
 
 use chrono::{DateTime, Utc};
 
-use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::shims::{Shim, ShimPtr};
+use crate::shims::ShimPtr;
 use ::rpc::flame as rpc;
-use common::ptr::{CondPtr, MutexPtr};
+use common::ptr::CondPtr;
 use common::{FlameContext, FlameError};
 
 pub type ExecutorPtr = CondPtr<Executor>;
