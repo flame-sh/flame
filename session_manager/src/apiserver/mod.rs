@@ -41,9 +41,22 @@ pub fn new() -> Box<dyn FlameThread> {
 struct ApiserverRunner {}
 
 impl FlameThread for ApiserverRunner {
-    fn run(&self, _ctx: FlameContext) -> Result<(), FlameError> {
-        let address = "[::1]:8080".parse().unwrap();
-        // let url = Url::parse(ctx.endpoint);
+    fn run(&self, ctx: FlameContext) -> Result<(), FlameError> {
+        let url = url::Url::parse(&ctx.endpoint)
+            .map_err(|_| FlameError::InvalidConfig("invalid endpoint".to_string()))?;
+        let host = url
+            .host_str()
+            .ok_or(FlameError::InvalidConfig("no host in url".to_string()))?;
+        let port = match url.port() {
+            None => 8080,
+            Some(p) => p,
+        };
+
+        let address_str = format!("{}:{}", host, port);
+        log::info!("Listening apiserver at {}", address_str.clone());
+        let address = address_str
+            .parse()
+            .map_err(|_| FlameError::InvalidConfig("failed to parse url".to_string()))?;
 
         let frontend_service = Flame {
             storage: storage::instance(),
@@ -53,7 +66,8 @@ impl FlameThread for ApiserverRunner {
             storage: storage::instance(),
         };
 
-        let rt = Runtime::new().unwrap();
+        let rt = Runtime::new()
+            .map_err(|_| FlameError::Internal("failed to start tokio runtime".to_string()))?;
         // Execute the future, blocking the current thread until completion
         rt.block_on(async {
             let rc = Server::builder()
@@ -63,6 +77,7 @@ impl FlameThread for ApiserverRunner {
                 .add_service(BackendServer::new(backend_service))
                 .serve(address)
                 .await;
+
             match rc {
                 Ok(_) => {}
                 Err(e) => {
