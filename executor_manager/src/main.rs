@@ -12,8 +12,6 @@ limitations under the License.
 */
 
 use std::error::Error;
-use std::thread::sleep;
-use std::time;
 
 use crate::executor::Executor;
 use clap::Parser;

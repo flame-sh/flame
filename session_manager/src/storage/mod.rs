@@ -18,7 +18,6 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use lazy_static::lazy_static;
-use log::log;
 
 use crate::model;
 use crate::model::{
