@@ -11,19 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use async_trait::async_trait;
-
 use crate::executor::{SessionContext, TaskContext};
 use crate::shims::Shim;
 use common::FlameError;
 
+#[derive(Clone)]
 pub struct LogShim {
     pub session_context: Option<SessionContext>,
 }
 
-#[async_trait]
 impl Shim for LogShim {
-    async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
+    fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
         log::info!(
             "on_session_enter: Session: <{}>, Application: <{}>, Slots: <{}>",
             ctx.ssn_id,
@@ -35,7 +33,7 @@ impl Shim for LogShim {
         Ok(())
     }
 
-    async fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError> {
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError> {
         log::info!(
             "on_task_invoke: Task: <{}>, Session: <{}>",
             ctx.id,
@@ -44,7 +42,7 @@ impl Shim for LogShim {
         Ok(())
     }
 
-    async fn on_session_leave(&mut self) -> Result<(), FlameError> {
+    fn on_session_leave(&mut self) -> Result<(), FlameError> {
         match &self.session_context {
             None => {
                 log::info!("on_session_leave")

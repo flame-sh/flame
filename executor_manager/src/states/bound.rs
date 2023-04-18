@@ -19,6 +19,7 @@ use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
+#[derive(Clone)]
 pub struct BoundState {
     pub executor: Executor,
 }
@@ -31,12 +32,12 @@ impl State for BoundState {
         let task = client::launch_task(ctx, &self.executor.clone()).await?;
         match task {
             Some(task_ctx) => {
-                let shim_ptr = &mut self.executor.shim.ok_or(FlameError::InvalidState(
+                let shim_ptr = &mut self.executor.shim.clone().ok_or(FlameError::InvalidState(
                     "no shim in bound state".to_string(),
                 ))?;
                 {
                     let mut shim = lock_ptr!(shim_ptr)?;
-                    shim.on_task_invoke(&task_ctx).await?;
+                    shim.on_task_invoke(&task_ctx)?;
                 };
 
                 client::complete_task(ctx, &self.executor.clone()).await?;

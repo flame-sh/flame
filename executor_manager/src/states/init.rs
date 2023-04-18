@@ -18,6 +18,7 @@ use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
 
+#[derive(Clone)]
 pub struct InitState {
     pub executor: Executor,
 }

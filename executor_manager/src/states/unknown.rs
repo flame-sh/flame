@@ -18,6 +18,7 @@ use crate::states::State;
 
 use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
 
+#[derive(Clone)]
 pub struct UnknownState {
     pub executor: Executor,
 }

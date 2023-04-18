@@ -19,6 +19,7 @@ use crate::executor::Executor;
 use crate::states::State;
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
+#[derive(Clone)]
 pub struct UnboundState {
     pub executor: Executor,
 }
@@ -29,13 +30,13 @@ impl State for UnboundState {
         trace_fn!("UnboundState::execute");
 
         client::unbind_executor(ctx, &self.executor.clone()).await?;
-        let shim_ptr = &mut self.executor.shim.ok_or(FlameError::InvalidState(
+        let shim_ptr = &mut self.executor.shim.clone().ok_or(FlameError::InvalidState(
             "no shim in bound state".to_string(),
         ))?;
 
         {
             let mut shim = lock_ptr!(shim_ptr)?;
-            shim.on_session_leave().await?;
+            shim.on_session_leave()?;
         }
 
         client::unbind_executor_completed(ctx, &self.executor.clone()).await?;

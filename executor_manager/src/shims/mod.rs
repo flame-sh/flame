@@ -13,8 +13,6 @@ limitations under the License.
 
 mod log_shim;
 
-use async_trait::async_trait;
-
 use std::sync::{Arc, Mutex};
 
 use crate::executor::{Application, SessionContext, TaskContext};
@@ -31,9 +29,8 @@ pub fn from(_: &Application) -> Result<ShimPtr, FlameError> {
     })))
 }
 
-#[async_trait]
 pub trait Shim: Send + Sync + 'static {
-    async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError>;
-    async fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError>;
-    async fn on_session_leave(&mut self) -> Result<(), FlameError>;
+    fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError>;
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError>;
+    fn on_session_leave(&mut self) -> Result<(), FlameError>;
 }

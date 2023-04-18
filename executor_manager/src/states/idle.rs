@@ -19,6 +19,7 @@ use crate::states::State;
 use crate::{client, shims};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
 
+#[derive(Clone)]
 pub struct IdleState {
     pub executor: Executor,
 }
@@ -46,7 +47,7 @@ impl State for IdleState {
                 {
                     // TODO(k82cn): if on_session_enter failed, add retry limits.
                     let mut shim = lock_ptr!(shim_ptr)?;
-                    shim.on_session_enter(&ssn).await?;
+                    shim.on_session_enter(&ssn)?;
                 };
 
                 client::bind_executor_completed(ctx, &self.executor.clone()).await?;
