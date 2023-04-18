@@ -116,6 +116,10 @@ impl Session {
         self.tasks.remove(&task.id);
 
         task.state = state;
+        // Also set completion time.
+        if state == TaskState::Succeed || state == TaskState::Failed {
+            task.completion_time = Some(Utc::now());
+        }
         self.add_task(&*task);
 
         Ok(())
