@@ -11,13 +11,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::executor::{SessionContext, TaskContext};
-use crate::shims::Shim;
+use std::sync::{Arc, Mutex};
+
+use crate::executor::{Application, SessionContext, TaskContext};
+use crate::shims::{Shim, ShimPtr};
 use common::FlameError;
 
 #[derive(Clone)]
 pub struct LogShim {
-    pub session_context: Option<SessionContext>,
+    application: Application,
+    session_context: Option<SessionContext>,
+}
+
+impl LogShim {
+    pub fn new(app: &Application) -> ShimPtr {
+        return Arc::new(Mutex::new(LogShim {
+            application: app.clone(),
+            session_context: None,
+        }));
+    }
 }
 
 impl Shim for LogShim {

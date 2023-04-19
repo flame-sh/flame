@@ -74,9 +74,18 @@ macro_rules! lock_cond_ptr {
     };
 }
 
+#[derive(Clone, Debug, Copy, ::prost::Enumeration, Serialize, Deserialize)]
+pub enum Shim {
+    Log = 0,
+    Stdio = 1,
+    Rpc = 2,
+    Rest = 3,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Application {
     pub name: String,
+    pub shim: Shim,
     pub command_line: String,
     pub working_directory: String,
 }
@@ -85,6 +94,7 @@ impl Default for Application {
     fn default() -> Self {
         Application {
             name: "flmexec".to_string(),
+            shim: Shim::Log,
             command_line: "/usr/bin/flmexec".to_string(),
             working_directory: "/tmp".to_string(),
         }
@@ -105,7 +115,7 @@ impl Default for FlameContext {
     fn default() -> Self {
         FlameContext {
             name: "flame".to_string(),
-            endpoint: "http://localhost:8080".to_string(),
+            endpoint: "http://127.0.0.1:8080".to_string(),
             slot: "cpu=1,mem=1g".to_string(),
             policy: "priority".to_string(),
             storage: "mem".to_string(),

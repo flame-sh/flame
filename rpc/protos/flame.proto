@@ -62,12 +62,20 @@ message Task {
   TaskStatus status = 3;
 }
 
+enum Shim {
+  LogShim = 0;
+  StdioShim = 1;
+  RpcShim = 2;
+  RestShim = 3;
+}
+
 message Application {
   string name = 1;
-  string command = 2;
-  repeated string arguments = 3;
-  repeated string environments = 4;
-  string working_directory = 5;
+  Shim shim = 2;
+  string command = 3;
+  repeated string arguments = 4;
+  repeated string environments = 5;
+  string working_directory = 6;
 }
 
 message ExecutorSpec {

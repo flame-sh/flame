@@ -16,21 +16,20 @@ mod stdio_shim;
 
 use std::sync::{Arc, Mutex};
 
+use self::log_shim::LogShim;
+use self::stdio_shim::StdioShim;
+use crate::executor::Shim as ShimType;
 use crate::executor::{Application, SessionContext, TaskContext};
 use common::ptr::MutexPtr;
 use common::FlameError;
-use log_shim::LogShim;
-
-use self::stdio_shim::StdioShim;
 
 pub type ShimPtr = MutexPtr<dyn Shim>;
 
-pub fn from(_: &Application) -> Result<ShimPtr, FlameError> {
-    // TODO(k82cn): Load shim based on application's configuration.
-    Ok(Arc::new(Mutex::new(StdioShim {
-        session_context: None,
-        child: None,
-    })))
+pub fn from(app: &Application) -> Result<ShimPtr, FlameError> {
+    match app.shim {
+        ShimType::Stdio => Ok(StdioShim::new(app)),
+        _ => Ok(LogShim::new(app)),
+    }
 }
 
 pub trait Shim: Send + Sync + 'static {

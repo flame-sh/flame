@@ -185,9 +185,18 @@ pub enum ExecutorState {
     Unbinding = 3,
 }
 
+#[derive(Clone, Debug, ::prost::Enumeration)]
+pub enum Shim {
+    Log = 0,
+    Stdio = 1,
+    Rpc = 2,
+    Rest = 3,
+}
+
 #[derive(Clone, Debug)]
 pub struct Application {
     pub name: String,
+    pub shim: Shim,
     pub command: String,
     pub arguments: Vec<String>,
     pub environments: Vec<String>,

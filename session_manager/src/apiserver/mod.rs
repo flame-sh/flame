@@ -181,6 +181,7 @@ impl From<&Application> for model::Application {
     fn from(app: &Application) -> Self {
         model::Application {
             name: app.name.to_string(),
+            shim: model::Shim::from_i32(app.shim).unwrap_or(model::Shim::default()),
             command: app.command.to_string(),
             arguments: app.arguments.to_vec(),
             environments: app.environments.to_vec(),

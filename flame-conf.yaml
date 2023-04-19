@@ -4,6 +4,7 @@ slot: "cpu=1,mem=1g"
 policy: priority
 storage: mem
 applications: 
-  - name: flmexec
-    command_line: /bin/flmexec
+  - name: pi
+    shim: stdio
+    command_line: pi
     working_directory: /tmp

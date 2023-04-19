@@ -42,9 +42,18 @@ impl From<ExecutorState> for rpc::ExecutorState {
     }
 }
 
+#[derive(Clone, Debug, Copy, ::prost::Enumeration)]
+pub enum Shim {
+    Log = 0,
+    Stdio = 1,
+    Rpc = 2,
+    Rest = 3,
+}
+
 #[derive(Clone, Debug)]
 pub struct Application {
     pub name: String,
+    pub shim: Shim,
     pub command: String,
     pub arguments: Vec<String>,
     pub environments: Vec<String>,
@@ -55,6 +64,7 @@ impl From<&Application> for rpc::Application {
     fn from(app: &Application) -> Self {
         rpc::Application {
             name: app.name.clone(),
+            shim: app.shim as i32,
             command: app.command.clone(),
             arguments: app.arguments.to_vec(),
             environments: app.environments.to_vec(),
@@ -67,6 +77,7 @@ impl From<&common::Application> for Application {
     fn from(app: &common::Application) -> Self {
         Application {
             name: app.name.to_string(),
+            shim: Shim::from_i32(app.shim as i32).unwrap_or(Shim::default()),
             command: app.command_line.to_string(),
             arguments: vec![],
             environments: vec![],
