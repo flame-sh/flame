@@ -21,12 +21,15 @@ use common::ptr::MutexPtr;
 use common::FlameError;
 use log_shim::LogShim;
 
+use self::stdio_shim::StdioShim;
+
 pub type ShimPtr = MutexPtr<dyn Shim>;
 
 pub fn from(_: &Application) -> Result<ShimPtr, FlameError> {
     // TODO(k82cn): Load shim based on application's configuration.
-    Ok(Arc::new(Mutex::new(LogShim {
+    Ok(Arc::new(Mutex::new(StdioShim {
         session_context: None,
+        child: None,
     })))
 }
 
