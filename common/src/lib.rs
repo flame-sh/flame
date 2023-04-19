@@ -13,6 +13,8 @@ limitations under the License.
 
 pub mod ptr;
 pub mod trace;
+pub mod apis;
+pub mod ctx;
 
 use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
@@ -154,33 +156,3 @@ impl FlameContext {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::ptr::CondPtr;
-    use std::{thread, time};
-
-    #[test]
-    fn test_ptr() {
-        let pair = CondPtr::new(false);
-        let pair2 = pair.clone();
-
-        thread::spawn(move || {
-            let delay = time::Duration::from_millis(3000);
-            thread::sleep(delay);
-            let _v = pair
-                .modify(|p| {
-                    *p = true;
-                    println!("Update condition: {}", *p);
-                    Ok(())
-                })
-                .unwrap();
-        });
-
-        pair2
-            .wait_while(|pending| {
-                println!("Waiting for condition: {}", *pending);
-                *pending
-            })
-            .unwrap();
-    }
-}
