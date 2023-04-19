@@ -422,6 +422,19 @@ checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 [[package]]
 name = "flame-client"
 version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "clap",
+ "env_logger",
+ "lazy_static",
+ "log",
+ "prost",
+ "rpc",
+ "thiserror",
+ "tokio",
+ "tonic",
+]
 
 [[package]]
 name = "flame-executor-manager"
@@ -1004,12 +1017,11 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "clap",
- "common",
  "env_logger",
+ "flame-client",
  "log",
  "rand",
  "rand_distr",
- "rpc",
  "tokio",
  "tonic",
 ]
