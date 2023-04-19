@@ -7,6 +7,7 @@ members = [
     "session_manager",
     "executor_manager",
     "rpc",
+    "example/pi",
 ]
 
 

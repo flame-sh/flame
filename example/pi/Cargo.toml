@@ -1,0 +1,20 @@
+[package]
+name = "pi"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand_distr = "*"
+rand="*"
+
+
+[[bin]]
+name = "pi-server"
+path = "src/server/main.rs"
+
+
+[[bin]]
+name = "pi"
+path = "src/client/main.rs"
