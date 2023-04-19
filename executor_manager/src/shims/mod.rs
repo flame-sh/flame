@@ -14,8 +14,6 @@ limitations under the License.
 mod log_shim;
 mod stdio_shim;
 
-use std::sync::{Arc, Mutex};
-
 use self::log_shim::LogShim;
 use self::stdio_shim::StdioShim;
 use crate::executor::Shim as ShimType;

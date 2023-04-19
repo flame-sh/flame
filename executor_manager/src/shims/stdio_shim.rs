@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -19,7 +19,7 @@ use std::thread;
 use crate::executor::{Application, SessionContext, TaskContext};
 use crate::shims::{Shim, ShimPtr};
 use common::ptr::MutexPtr;
-use common::{lock_ptr, FlameError};
+use common::{FlameError};
 
 type ChildPtr = MutexPtr<Child>;
 
@@ -68,7 +68,7 @@ impl Shim for StdioShim {
 
         let mut stdout = child.stdout.take().unwrap();
         let mut data = String::new();
-        let n = stdout
+        let _n = stdout
             .read_to_string(&mut data)
             .map_err(|_| FlameError::Internal("failed to read task output".to_string()))?;
 
