@@ -1,22 +1,22 @@
-# Flame: A Distributed System for Elastic/Parallel Workload
+# Flame: A Distributed System for Intelligent Workload
 
 [![license](https://img.shields.io/github/license/xflops/flame)](http://github.com/xflops/flame)
 [![RepoSize](https://img.shields.io/github/repo-size/xflops/flame)](http://github.com/xflops/flame)
 [![Release](https://img.shields.io/github/release/xflops/flame)](https://github.com/xflops/flame/releases)
 
-Flame is a distributed system for elastic/parallel workload; it provides a suite of mechanisms that are commonly required by many classes of elastic workload, 
-including VaR, Transcoding, BlockChain and so on. Flame builds upon a decade and a half of experience running a wide variety of high performance workloads
+Flame is a distributed system for intelligent workloads; it provides a suite of mechanisms that are commonly required by many classes of elastic workload, 
+including AI/ML, VaR, Transcoding, BlockChain and so on. Flame builds upon a decade and a half of experience running a wide variety of high performance workloads
 at scale using several systems and platforms, combined with best-of-breed ideas and practices from the open source community.
 
 ## Motivation
 
-Most high performance workload can be classified into batch workload and elastic workload; currently, Kubernetes supports batch workload well by
+Most high performance workload can be classified into batch workload and elastic workload; currently, Kubernetes/Slurm/PBS supports batch workload well by
 several features, e.g. fair-sharing, but there's still some gaps for elastic workload:
 
-* **Start time**: Usually, there are millions of tasks per elastic job, and the task execution time is short, e.g. seconds. Meanwhile, it'll take seconds to start a new Pod in Kubernetes.
+* **Start time**: Usually, there are millions of tasks per job, and the task execution time is short, e.g. seconds. Meanwhile, it'll take seconds to start a new Pod in Kubernetes.
   That means we'll spend half of time on starting Pods if one task per Pod.
 
-* **Data reuse**: Tasks in the elastic job may reuse data to speed up the execution, especially the data was got by heavy operator/call, e.g. Database connection.
+* **Data reuse**: Tasks in the job may reuse data to speed up the execution, especially the data was got by heavy operator/call, e.g. Database connection.
   It's hard for tasks to reuse such kind of data in different Pods.
 
 ## Overall Architecture
