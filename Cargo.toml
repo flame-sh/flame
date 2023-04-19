@@ -2,6 +2,7 @@
 
 members = [
     "common",
+    "client",
     "flmctl",
     "flmping",
     "session_manager",
