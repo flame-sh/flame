@@ -11,10 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub mod ptr;
-pub mod trace;
 pub mod apis;
 pub mod ctx;
+pub mod ptr;
+pub mod trace;
 
 use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
@@ -155,4 +155,3 @@ impl FlameContext {
         application
     }
 }
-

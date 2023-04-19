@@ -12,16 +12,13 @@ limitations under the License.
 */
 
 use std::io::{Read, Write};
-use std::process::{Child, Command, Stdio};
+use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
 use crate::executor::{Application, SessionContext, TaskContext};
 use crate::shims::{Shim, ShimPtr};
-use common::ptr::MutexPtr;
-use common::{FlameError};
-
-type ChildPtr = MutexPtr<Child>;
+use common::FlameError;
 
 #[derive(Clone)]
 pub struct StdioShim {

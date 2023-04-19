@@ -1002,8 +1002,16 @@ dependencies = [
 name = "pi"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "clap",
+ "common",
+ "env_logger",
+ "log",
  "rand",
  "rand_distr",
+ "rpc",
+ "tokio",
+ "tonic",
 ]
 
 [[package]]

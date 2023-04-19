@@ -19,11 +19,11 @@ pub struct Session {}
 
 pub struct Task {}
 
-pub struct TaskInput{}
-pub struct TaskOutput{}
+pub struct TaskInput {}
+pub struct TaskOutput {}
 
 type TaskID = String;
-type SessionID = String;
+// type SessionID = String;
 
 impl Session {
     pub fn new() -> Self {

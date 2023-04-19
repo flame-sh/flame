@@ -9,6 +9,16 @@ edition = "2021"
 rand_distr = "*"
 rand="*"
 
+rpc = { path = "../../rpc" }
+common = { path = "../../common" }
+
+tokio = { workspace = true }
+tonic = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+
+clap = { version = "4.1", features = ["derive"] }
+chrono = "0.4"
 
 [[bin]]
 name = "pi-server"

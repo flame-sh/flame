@@ -19,14 +19,12 @@ use common::FlameError;
 
 #[derive(Clone)]
 pub struct LogShim {
-    application: Application,
     session_context: Option<SessionContext>,
 }
 
 impl LogShim {
-    pub fn new(app: &Application) -> ShimPtr {
+    pub fn new(_: &Application) -> ShimPtr {
         return Arc::new(Mutex::new(LogShim {
-            application: app.clone(),
             session_context: None,
         }));
     }
