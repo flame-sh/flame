@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::fmt::{Display, Formatter};
+
 use serde_derive::{Deserialize, Serialize};
 
 use crate::apis::Application;
@@ -24,6 +26,12 @@ pub struct FlameContext {
     pub policy: String,
     pub storage: String,
     pub applications: Vec<Application>,
+}
+
+impl Display for FlameContext {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "name: {}, endpoint: {}", self.name, self.endpoint)
+    }
 }
 
 impl Default for FlameContext {
@@ -46,7 +54,9 @@ impl FlameContext {
         let fp = fp.unwrap_or(DEFAULT_FLAME_CONF.to_string());
 
         let ctx: FlameContext =
-            confy::load_path(fp).map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
+            confy::load_path(fp.clone()).map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
+
+        log::debug!("Load FrameContext from <{}>: {}", &fp, ctx.clone());
 
         if ctx.applications.is_empty() {
             return Err(FlameError::InvalidConfig("no application".to_string()));
