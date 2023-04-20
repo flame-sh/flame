@@ -88,13 +88,23 @@ impl States for BoundState {
         Ok(Some((*task).clone()))
     }
 
-    fn complete_task(&self, ssn_ptr: SessionPtr, task_ptr: TaskPtr) -> Result<(), FlameError> {
+    fn complete_task(
+        &self,
+        ssn_ptr: SessionPtr,
+        task_ptr: TaskPtr,
+        task_output: Option<String>,
+    ) -> Result<(), FlameError> {
         trace_fn!("BoundState::complete_task");
 
         {
             let mut e = lock_cond_ptr!(self.executor)?;
             (*e).task_id = None;
         };
+
+        {
+            let mut task = lock_cond_ptr!(task_ptr)?;
+            task.output = task_output;
+        }
 
         {
             let mut ssn = lock_cond_ptr!(ssn_ptr)?;

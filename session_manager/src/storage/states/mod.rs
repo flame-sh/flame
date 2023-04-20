@@ -54,5 +54,10 @@ pub trait States: Send + Sync + 'static {
     fn unbind_executor_completed(&self) -> Result<(), FlameError>;
 
     fn launch_task(&self, ssn: SessionPtr) -> Result<Option<Task>, FlameError>;
-    fn complete_task(&self, ssn: SessionPtr, task: TaskPtr) -> Result<(), FlameError>;
+    fn complete_task(
+        &self,
+        ssn: SessionPtr,
+        task: TaskPtr,
+        task_output: Option<String>,
+    ) -> Result<(), FlameError>;
 }

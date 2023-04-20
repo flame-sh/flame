@@ -402,7 +402,11 @@ impl Storage {
         return Ok(state.launch_task(ssn_ptr)?);
     }
 
-    pub fn complete_task(&self, id: ExecutorID) -> Result<(), FlameError> {
+    pub fn complete_task(
+        &self,
+        id: ExecutorID,
+        task_output: Option<String>,
+    ) -> Result<(), FlameError> {
         trace_fn!("Storage::complete_task");
         let exe_ptr = self.get_executor_ptr(id)?;
         let (ssn_id, task_id) = {
@@ -421,7 +425,7 @@ impl Storage {
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
 
         let state = states::from(exe_ptr.clone())?;
-        state.complete_task(ssn_ptr, task_ptr)?;
+        state.complete_task(ssn_ptr, task_ptr, task_output)?;
 
         Ok(())
     }

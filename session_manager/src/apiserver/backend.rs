@@ -144,7 +144,8 @@ impl Backend for Flame {
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
 
-        self.storage.complete_task(req.executor_id.clone())?;
+        self.storage
+            .complete_task(req.executor_id.clone(), req.task_output.clone())?;
 
         Ok(Response::new(rpc::Result {
             return_code: 0,

@@ -83,7 +83,12 @@ impl States for IdleState {
         todo!()
     }
 
-    fn complete_task(&self, _ssn: SessionPtr, _task: TaskPtr) -> Result<(), FlameError> {
+    fn complete_task(
+        &self,
+        _ssn: SessionPtr,
+        _task: TaskPtr,
+        _: Option<String>,
+    ) -> Result<(), FlameError> {
         todo!()
     }
 }

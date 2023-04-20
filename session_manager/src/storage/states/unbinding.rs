@@ -55,10 +55,15 @@ impl States for UnbindingState {
     }
 
     fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
-        todo!()
+        Ok(None)
     }
 
-    fn complete_task(&self, _ssn: SessionPtr, _task: TaskPtr) -> Result<(), FlameError> {
+    fn complete_task(
+        &self,
+        _ssn: SessionPtr,
+        _task: TaskPtr,
+        _: Option<String>,
+    ) -> Result<(), FlameError> {
         todo!()
     }
 }
