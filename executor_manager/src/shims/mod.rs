@@ -17,7 +17,7 @@ mod stdio_shim;
 use self::log_shim::LogShim;
 use self::stdio_shim::StdioShim;
 
-use common::apis::{Application, SessionContext, Shim as ShimType, TaskContext};
+use common::apis::{Application, SessionContext, Shim as ShimType, TaskContext, TaskOutput};
 use common::ptr::MutexPtr;
 use common::FlameError;
 
@@ -32,6 +32,6 @@ pub fn from(app: &Application) -> Result<ShimPtr, FlameError> {
 
 pub trait Shim: Send + Sync + 'static {
     fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError>;
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<String>, FlameError>;
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<TaskOutput>, FlameError>;
     fn on_session_leave(&mut self) -> Result<(), FlameError>;
 }

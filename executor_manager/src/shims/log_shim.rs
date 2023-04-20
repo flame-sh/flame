@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::apis::{Application, SessionContext, TaskContext};
+use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
 use std::sync::{Arc, Mutex};
 
 use crate::shims::{Shim, ShimPtr};
@@ -43,7 +43,7 @@ impl Shim for LogShim {
         Ok(())
     }
 
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<String>, FlameError> {
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<TaskOutput>, FlameError> {
         log::info!(
             "on_task_invoke: Task: <{}>, Session: <{}>",
             ctx.id,

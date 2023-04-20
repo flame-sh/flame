@@ -25,7 +25,7 @@ use self::rpc::{
 use ::rpc::flame as rpc;
 
 use crate::executor::Executor;
-use common::apis::{SessionContext, TaskContext};
+use common::apis::{message_to_vec, SessionContext, TaskContext};
 use common::ctx::FlameContext;
 use common::{lock_ptr, FlameError};
 
@@ -165,7 +165,7 @@ pub async fn complete_task(ctx: &FlameContext, exe: &Executor) -> Result<(), Fla
 
     let req = CompleteTaskRequest {
         executor_id: exe.id.clone(),
-        task_output: task.output.clone(),
+        task_output: task.output.map(message_to_vec),
     };
 
     ins.complete_task(req).await.map_err(FlameError::from)?;

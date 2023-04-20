@@ -21,7 +21,7 @@ use lazy_static::lazy_static;
 
 use common::apis::{
     Executor, ExecutorID, ExecutorPtr, Session, SessionID, SessionPtr, SessionState, Task, TaskID,
-    TaskPtr, TaskState,
+    TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 use common::{lock_cond_ptr, lock_ptr};
 use common::{trace::TraceFn, trace_fn, FlameError};
@@ -245,7 +245,7 @@ impl Storage {
     pub fn create_task(
         &self,
         ssn_id: SessionID,
-        task_input: Option<String>,
+        task_input: Option<TaskInput>,
     ) -> Result<Task, FlameError> {
         let ssn_map = lock_ptr!(self.sessions)?;
         let ssn = ssn_map
@@ -405,7 +405,7 @@ impl Storage {
     pub fn complete_task(
         &self,
         id: ExecutorID,
-        task_output: Option<String>,
+        task_output: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
         trace_fn!("Storage::complete_task");
         let exe_ptr = self.get_executor_ptr(id)?;

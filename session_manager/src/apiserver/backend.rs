@@ -26,6 +26,7 @@ use ::rpc::flame as rpc;
 
 use crate::apiserver::Flame;
 use common::apis;
+use common::apis::TaskOutput;
 
 #[async_trait]
 impl Backend for Flame {
@@ -144,8 +145,10 @@ impl Backend for Flame {
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
 
-        self.storage
-            .complete_task(req.executor_id.clone(), req.task_output.clone())?;
+        self.storage.complete_task(
+            req.executor_id.clone(),
+            req.task_output.map(TaskOutput::from),
+        )?;
 
         Ok(Response::new(rpc::Result {
             return_code: 0,

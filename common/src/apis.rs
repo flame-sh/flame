@@ -13,6 +13,7 @@ limitations under the License.
 
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 
@@ -27,6 +28,10 @@ pub type ExecutorID = String;
 pub type TaskPtr = CondPtr<Task>;
 pub type SessionPtr = CondPtr<Session>;
 pub type ExecutorPtr = CondPtr<Executor>;
+
+type Message = bytes::Bytes;
+pub type TaskInput = Message;
+pub type TaskOutput = Message;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum SessionState {
@@ -66,8 +71,8 @@ pub enum TaskState {
 pub struct Task {
     pub id: TaskID,
     pub ssn_id: SessionID,
-    pub input: Option<String>,
-    pub output: Option<String>,
+    pub input: Option<TaskInput>,
+    pub output: Option<TaskOutput>,
 
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
@@ -118,8 +123,8 @@ pub struct Executor {
 pub struct TaskContext {
     pub id: String,
     pub ssn_id: String,
-    pub input: Option<String>,
-    pub output: Option<String>,
+    pub input: Option<TaskInput>,
+    pub output: Option<TaskOutput>,
 }
 
 #[derive(Clone, Debug)]
@@ -225,6 +230,14 @@ impl Clone for Session {
     }
 }
 
+pub fn message_to_vec(m: Message) -> Vec<u8> {
+    m.to_vec()
+}
+
+pub fn vec_to_message(v: Vec<u8>) -> Message {
+    Bytes::from(v)
+}
+
 impl TryFrom<rpc::Task> for TaskContext {
     type Error = FlameError;
 
@@ -239,8 +252,8 @@ impl TryFrom<rpc::Task> for TaskContext {
         Ok(TaskContext {
             id: metadata.id.to_string(),
             ssn_id: spec.session_id.to_string(),
-            input: spec.input.clone(),
-            output: spec.output.clone(),
+            input: spec.input.map(vec_to_message),
+            output: spec.output.map(vec_to_message),
         })
     }
 }
@@ -284,8 +297,8 @@ impl From<&Task> for rpc::Task {
             }),
             spec: Some(rpc::TaskSpec {
                 session_id: task.ssn_id.to_string(),
-                input: task.input.clone(),
-                output: task.output.clone(),
+                input: task.input.clone().map(message_to_vec),
+                output: task.output.clone().map(message_to_vec),
             }),
             status: Some(rpc::TaskStatus {
                 state: TaskState::from(task.state) as i32,

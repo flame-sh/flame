@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::apis::{Application, SessionContext, TaskContext};
+use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
 use std::io::{Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -43,7 +43,7 @@ impl Shim for StdioShim {
         Ok(())
     }
 
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<String>, FlameError> {
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<TaskOutput>, FlameError> {
         let mut child = Command::new(&self.application.command)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -55,7 +55,7 @@ impl Shim for StdioShim {
         if let Some(input) = &ctx.input {
             let input = input.clone();
             let _handler = thread::spawn(move || {
-                match stdin.write_all(input.as_bytes()) {
+                match stdin.write_all(&input.to_vec()) {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("Failed to send input into shim instance: {}.", e);
@@ -65,14 +65,12 @@ impl Shim for StdioShim {
         }
 
         let mut stdout = child.stdout.take().unwrap();
-        let mut data = String::new();
+        let mut data = vec![];
         let _n = stdout
-            .read_to_string(&mut data)
+            .read_to_end(&mut data)
             .map_err(|_| FlameError::Internal("failed to read task output".to_string()))?;
 
-        log::debug!("The output is <{}>", data.clone());
-
-        Ok(Some(data))
+        Ok(Some(TaskOutput::from(data)))
     }
 
     fn on_session_leave(&mut self) -> Result<(), FlameError> {

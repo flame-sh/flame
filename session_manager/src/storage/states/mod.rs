@@ -16,7 +16,7 @@ use futures::future::BoxFuture;
 use crate::storage::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
+use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskOutput, TaskPtr};
 use common::{lock_cond_ptr, FlameError};
 
 mod binding;
@@ -58,6 +58,6 @@ pub trait States: Send + Sync + 'static {
         &self,
         ssn: SessionPtr,
         task: TaskPtr,
-        task_output: Option<String>,
+        task_output: Option<TaskOutput>,
     ) -> Result<(), FlameError>;
 }

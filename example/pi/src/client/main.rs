@@ -17,7 +17,7 @@ use std::{thread, time};
 use clap::Parser;
 
 use flame_client as flame;
-use flame_client::{Session, SessionAttributes};
+use flame_client::{Session, SessionAttributes, TaskInput};
 
 #[derive(Parser)]
 #[command(name = "pi")]
@@ -48,7 +48,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = cli.app.unwrap_or(DEFAULT_APP.to_string());
     let slots = cli.slots.unwrap_or(DEFAULT_SLOTS);
     let task_input_str = cli.task_input.unwrap_or(DEFAULT_TASK_INPUT).to_string();
-    let task_input = task_input_str.parse::<i32>().unwrap_or(DEFAULT_TASK_INPUT);
+    let task_input = task_input_str
+        .clone()
+        .parse::<i32>()
+        .unwrap_or(DEFAULT_TASK_INPUT);
     let task_num = cli.task_num.unwrap_or(DEFAULT_TASK_NUM);
 
     flame::connect("http://127.0.0.1:8080").await?;
@@ -60,7 +63,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut task_ids = vec![];
     for _ in 0..task_num {
-        let task = ssn.create_task(&task_input_str).await?;
+        let task_input = task_input_str.as_bytes().to_vec();
+        let task = ssn.create_task(TaskInput::from(task_input)).await?;
         task_ids.push(task.id.clone());
     }
 
@@ -73,7 +77,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             if task.is_completed() {
                 succeed += 1;
                 if let Some(output) = task.output {
-                    area += output.trim().parse::<i64>().unwrap();
+                    let output_str = String::from_utf8(output.to_vec())?;
+                    area += output_str.trim().parse::<i64>().unwrap();
                 }
             }
         }

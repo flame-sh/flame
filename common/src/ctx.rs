@@ -53,8 +53,8 @@ impl FlameContext {
     pub fn from_file(fp: Option<String>) -> Result<Self, FlameError> {
         let fp = fp.unwrap_or(DEFAULT_FLAME_CONF.to_string());
 
-        let ctx: FlameContext =
-            confy::load_path(fp.clone()).map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
+        let ctx: FlameContext = confy::load_path(fp.clone())
+            .map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
 
         log::debug!("Load FrameContext from <{}>: {}", &fp, ctx.clone());
 

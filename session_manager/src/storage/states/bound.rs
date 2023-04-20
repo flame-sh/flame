@@ -16,7 +16,9 @@ use futures::future::BoxFuture;
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
 use crate::storage::states::States;
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr, TaskState};
+use common::apis::{
+    ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskOutput, TaskPtr, TaskState,
+};
 
 pub struct BoundState {
     pub executor: ExecutorPtr,
@@ -92,7 +94,7 @@ impl States for BoundState {
         &self,
         ssn_ptr: SessionPtr,
         task_ptr: TaskPtr,
-        task_output: Option<String>,
+        task_output: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
         trace_fn!("BoundState::complete_task");
 

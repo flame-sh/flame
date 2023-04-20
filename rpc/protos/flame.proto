@@ -52,8 +52,8 @@ message TaskStatus {
 message TaskSpec {
   string session_id = 2;
 
-  optional string input = 3;
-  optional string output = 4;
+  optional bytes input = 3;
+  optional bytes output = 4;
 }
 
 message Task {
@@ -220,6 +220,5 @@ message LaunchTaskResponse {
 
 message CompleteTaskRequest {
   string executor_id = 1;
-
-  optional string task_output = 4;
+  optional bytes task_output = 2;
 }

@@ -16,6 +16,7 @@ async-trait = { workspace = true }
 clap = { workspace = true }
 prost = { workspace = true }
 
+bytes = "1"
 thiserror = "1.0"
 chrono = "0.4"
 lazy_static = "1.4"

@@ -14,6 +14,7 @@ limitations under the License.
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
+use bytes::Bytes;
 use lazy_static::lazy_static;
 use prost::Enumeration;
 use thiserror::Error;
@@ -32,8 +33,9 @@ type FlameClient = FlameFrontendClient<Channel>;
 type TaskID = String;
 type SessionID = String;
 
-pub type TaskInput = String;
-pub type TaskOutput = String;
+type Message = Bytes;
+pub type TaskInput = Message;
+pub type TaskOutput = Message;
 
 const FLAME_CLIENT_NAME: &str = "flame";
 
@@ -148,12 +150,12 @@ impl Session {
         Ok(Session::from(&ssn))
     }
 
-    pub async fn create_task(&self, input: &TaskInput) -> Result<Task, FlameError> {
+    pub async fn create_task(&self, input: TaskInput) -> Result<Task, FlameError> {
         let mut client = get_client()?;
         let create_task_req = CreateTaskRequest {
             task: Some(TaskSpec {
                 session_id: self.id.clone(),
-                input: Some(input.to_string()),
+                input: Some(input.to_vec()),
                 output: None,
             }),
         };
@@ -201,8 +203,8 @@ impl From<&rpc::Task> for Task {
         Task {
             id: metadata.id.clone(),
             ssn_id: spec.session_id.clone(),
-            input: spec.input,
-            output: spec.output,
+            input: spec.input.map(TaskInput::from),
+            output: spec.output.map(TaskOutput::from),
             state: TaskState::from_i32(status.state).unwrap_or(TaskState::default()),
         }
     }
