@@ -13,9 +13,10 @@ limitations under the License.
 
 use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
 use std::io::{Read, Write};
+use std::path::{Path, MAIN_SEPARATOR};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{env, thread};
 
 // use crate::executor::{Application, SessionContext, TaskContext};
 use crate::shims::{Shim, ShimPtr};
@@ -44,7 +45,29 @@ impl Shim for StdioShim {
     }
 
     fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<TaskOutput>, FlameError> {
-        let mut child = Command::new(&self.application.command)
+        let mut cmd = self.application.command.clone();
+        let path = Path::new(&cmd);
+        if !path.has_root() {
+            match env::current_dir() {
+                Ok(cwd) => match cwd.to_str() {
+                    None => {
+                        log::warn!("Failed to get current directory path string.");
+                    }
+                    Some(cwd) => {
+                        cmd = format!("{}{}{}", cwd, MAIN_SEPARATOR, cmd);
+                    }
+                },
+                Err(e) => {
+                    log::warn!(
+                        "Failed to get current directory for application <{}>: {}",
+                        &cmd,
+                        e
+                    );
+                }
+            }
+        }
+
+        let mut child = Command::new(&cmd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .current_dir(&self.application.working_directory)
