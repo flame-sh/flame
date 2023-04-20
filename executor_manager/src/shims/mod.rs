@@ -32,6 +32,6 @@ pub fn from(app: &Application) -> Result<ShimPtr, FlameError> {
 
 pub trait Shim: Send + Sync + 'static {
     fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError>;
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError>;
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<String>, FlameError>;
     fn on_session_leave(&mut self) -> Result<(), FlameError>;
 }

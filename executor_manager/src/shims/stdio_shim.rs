@@ -42,7 +42,7 @@ impl Shim for StdioShim {
         Ok(())
     }
 
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError> {
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<String>, FlameError> {
         let mut child = Command::new(&self.application.command)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -69,9 +69,9 @@ impl Shim for StdioShim {
             .read_to_string(&mut data)
             .map_err(|_| FlameError::Internal("failed to read task output".to_string()))?;
 
-        log::debug!("The output is <{}>", data);
+        log::debug!("The output is <{}>", data.clone());
 
-        Ok(())
+        Ok(Some(data))
     }
 
     fn on_session_leave(&mut self) -> Result<(), FlameError> {

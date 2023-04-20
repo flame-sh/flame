@@ -43,13 +43,13 @@ impl Shim for LogShim {
         Ok(())
     }
 
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<(), FlameError> {
+    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<String>, FlameError> {
         log::info!(
             "on_task_invoke: Task: <{}>, Session: <{}>",
             ctx.id,
             ctx.ssn_id
         );
-        Ok(())
+        Ok(None)
     }
 
     fn on_session_leave(&mut self) -> Result<(), FlameError> {

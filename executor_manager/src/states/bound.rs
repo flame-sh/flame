@@ -38,7 +38,10 @@ impl State for BoundState {
                 ))?;
                 {
                     let mut shim = lock_ptr!(shim_ptr)?;
-                    shim.on_task_invoke(&task_ctx)?;
+                    let output = shim.on_task_invoke(&task_ctx)?;
+                    if let Some(task_ctx) = &mut self.executor.task {
+                        task_ctx.output = output;
+                    }
                 };
 
                 client::complete_task(ctx, &self.executor.clone()).await?;
