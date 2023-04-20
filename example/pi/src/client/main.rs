@@ -51,9 +51,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let task_input = task_input_str.parse::<i32>().unwrap_or(DEFAULT_TASK_INPUT);
     let task_num = cli.task_num.unwrap_or(DEFAULT_TASK_NUM);
 
-    let flame_server = String::from("http://127.0.0.1:8080");
-    flame::connect(&flame_server).await?;
-
+    flame::connect("http://127.0.0.1:8080").await?;
     let ssn = Session::new(&SessionAttributes {
         application: app,
         slots,

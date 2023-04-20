@@ -56,8 +56,8 @@ pub struct FrontendClient {
     client_pool: Arc<Mutex<HashMap<String, FlameClient>>>,
 }
 
-pub async fn connect(addr: &String) -> Result<(), FlameError> {
-    let client = FlameFrontendClient::connect(addr.clone())
+pub async fn connect(addr: &str) -> Result<(), FlameError> {
+    let client = FlameFrontendClient::connect(addr.to_string())
         .await
         .map_err(|_e| FlameError::Network("tonic connection".to_string()))?;
 
