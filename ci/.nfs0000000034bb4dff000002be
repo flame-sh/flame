@@ -1,0 +1,162 @@
+2023-04-20 08:05:00,824 INFO supervisord started with pid 208375
+2023-04-20 08:05:01,826 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:01,826 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:01,826 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:01,826 INFO spawnerr: can't find command './target/debug/flame-session-manager'
+2023-04-20 08:05:02,827 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:02,827 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:02,827 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:02,827 INFO spawnerr: can't find command './target/debug/flame-session-manager'
+2023-04-20 08:05:04,829 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:04,829 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:04,829 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:04,830 INFO spawnerr: can't find command './target/debug/flame-session-manager'
+2023-04-20 08:05:07,833 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:07,833 INFO gave up: fem-0 entered FATAL state, too many start retries too quickly
+2023-04-20 08:05:07,833 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:07,833 INFO gave up: fem-1 entered FATAL state, too many start retries too quickly
+2023-04-20 08:05:07,833 INFO spawnerr: can't find command './target/debug/flame-executor-manager'
+2023-04-20 08:05:07,833 INFO gave up: fem-2 entered FATAL state, too many start retries too quickly
+2023-04-20 08:05:07,833 INFO spawnerr: can't find command './target/debug/flame-session-manager'
+2023-04-20 08:05:07,833 INFO gave up: flame-session-manager entered FATAL state, too many start retries too quickly
+2023-04-20 08:05:09,834 WARN received SIGINT indicating exit request
+2023-04-20 08:07:13,636 INFO supervisord started with pid 213114
+2023-04-20 08:07:14,640 INFO spawned: 'fem-0' with pid 213117
+2023-04-20 08:07:14,642 INFO spawned: 'fem-1' with pid 213118
+2023-04-20 08:07:14,645 INFO spawned: 'fem-2' with pid 213119
+2023-04-20 08:07:14,648 INFO spawned: 'flame-session-manager' with pid 213120
+2023-04-20 08:07:14,648 INFO exited: fem-0 (exit status 127; not expected)
+2023-04-20 08:07:14,649 INFO exited: fem-1 (exit status 127; not expected)
+2023-04-20 08:07:14,650 INFO exited: fem-2 (exit status 127; not expected)
+2023-04-20 08:07:14,651 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:07:15,654 INFO spawned: 'fem-0' with pid 213122
+2023-04-20 08:07:15,656 INFO spawned: 'fem-1' with pid 213123
+2023-04-20 08:07:15,660 INFO spawned: 'fem-2' with pid 213124
+2023-04-20 08:07:15,662 INFO spawned: 'flame-session-manager' with pid 213125
+2023-04-20 08:07:15,662 INFO exited: fem-0 (exit status 127; not expected)
+2023-04-20 08:07:15,663 INFO exited: fem-1 (exit status 127; not expected)
+2023-04-20 08:07:15,664 INFO exited: fem-2 (exit status 127; not expected)
+2023-04-20 08:07:15,665 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:07:17,667 INFO spawned: 'fem-0' with pid 213127
+2023-04-20 08:07:17,669 INFO spawned: 'fem-1' with pid 213128
+2023-04-20 08:07:17,670 INFO spawned: 'fem-2' with pid 213129
+2023-04-20 08:07:17,672 INFO spawned: 'flame-session-manager' with pid 213130
+2023-04-20 08:07:17,672 INFO exited: fem-0 (exit status 127; not expected)
+2023-04-20 08:07:17,672 INFO exited: fem-1 (exit status 127; not expected)
+2023-04-20 08:07:17,673 INFO exited: fem-2 (exit status 127; not expected)
+2023-04-20 08:07:17,675 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:07:20,678 INFO spawned: 'fem-0' with pid 213132
+2023-04-20 08:07:20,679 INFO spawned: 'fem-1' with pid 213133
+2023-04-20 08:07:20,681 INFO spawned: 'fem-2' with pid 213134
+2023-04-20 08:07:20,682 INFO spawned: 'flame-session-manager' with pid 213135
+2023-04-20 08:07:20,683 INFO exited: fem-0 (exit status 127; not expected)
+2023-04-20 08:07:20,683 INFO exited: fem-1 (exit status 127; not expected)
+2023-04-20 08:07:20,686 INFO exited: fem-2 (exit status 127; not expected)
+2023-04-20 08:07:20,687 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:07:21,689 INFO gave up: fem-0 entered FATAL state, too many start retries too quickly
+2023-04-20 08:07:21,689 INFO gave up: fem-1 entered FATAL state, too many start retries too quickly
+2023-04-20 08:07:21,689 INFO gave up: fem-2 entered FATAL state, too many start retries too quickly
+2023-04-20 08:07:21,689 INFO gave up: flame-session-manager entered FATAL state, too many start retries too quickly
+2023-04-20 08:07:49,717 WARN received SIGINT indicating exit request
+2023-04-20 08:18:42,884 INFO supervisord started with pid 213682
+2023-04-20 08:18:43,889 INFO spawned: 'flame-executor-manager' with pid 213686
+2023-04-20 08:18:43,891 INFO spawned: 'flame-session-manager' with pid 213687
+2023-04-20 08:18:43,892 INFO exited: flame-executor-manager (exit status 127; not expected)
+2023-04-20 08:18:43,894 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:18:44,897 INFO spawned: 'flame-executor-manager' with pid 213688
+2023-04-20 08:18:44,900 INFO spawned: 'flame-session-manager' with pid 213689
+2023-04-20 08:18:44,900 INFO exited: flame-executor-manager (exit status 127; not expected)
+2023-04-20 08:18:44,902 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:18:46,906 INFO spawned: 'flame-executor-manager' with pid 213692
+2023-04-20 08:18:46,907 INFO spawned: 'flame-session-manager' with pid 213693
+2023-04-20 08:18:46,908 INFO exited: flame-executor-manager (exit status 127; not expected)
+2023-04-20 08:18:46,910 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:18:49,915 INFO spawned: 'flame-executor-manager' with pid 213695
+2023-04-20 08:18:49,917 INFO spawned: 'flame-session-manager' with pid 213696
+2023-04-20 08:18:49,918 INFO exited: flame-executor-manager (exit status 127; not expected)
+2023-04-20 08:18:49,920 INFO gave up: flame-executor-manager entered FATAL state, too many start retries too quickly
+2023-04-20 08:18:49,920 INFO exited: flame-session-manager (exit status 127; not expected)
+2023-04-20 08:18:50,921 INFO gave up: flame-session-manager entered FATAL state, too many start retries too quickly
+2023-04-20 08:18:52,923 WARN received SIGINT indicating exit request
+2023-04-20 08:22:10,968 INFO supervisord started with pid 213898
+2023-04-20 08:22:11,973 INFO spawned: 'flame-executor-manager-0' with pid 213900
+2023-04-20 08:22:11,973 INFO spawnerr: can't find command '/hpc/mtr_scrap/users/klausm/workspace/src/xflops.cn/flame/ci/target/debug/flame-session-manager'
+2023-04-20 08:22:11,976 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:22:12,979 INFO spawned: 'flame-executor-manager-0' with pid 213902
+2023-04-20 08:22:12,979 INFO spawnerr: can't find command '/hpc/mtr_scrap/users/klausm/workspace/src/xflops.cn/flame/ci/target/debug/flame-session-manager'
+2023-04-20 08:22:12,981 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:22:14,985 INFO spawned: 'flame-executor-manager-0' with pid 213904
+2023-04-20 08:22:14,986 INFO spawnerr: can't find command '/hpc/mtr_scrap/users/klausm/workspace/src/xflops.cn/flame/ci/target/debug/flame-session-manager'
+2023-04-20 08:22:14,988 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:22:17,992 INFO spawned: 'flame-executor-manager-0' with pid 213907
+2023-04-20 08:22:17,993 INFO spawnerr: can't find command '/hpc/mtr_scrap/users/klausm/workspace/src/xflops.cn/flame/ci/target/debug/flame-session-manager'
+2023-04-20 08:22:17,994 INFO gave up: flame-session-manager entered FATAL state, too many start retries too quickly
+2023-04-20 08:22:17,995 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:22:18,996 INFO gave up: flame-executor-manager-0 entered FATAL state, too many start retries too quickly
+2023-04-20 08:22:21,999 WARN received SIGINT indicating exit request
+2023-04-20 08:22:53,747 INFO supervisord started with pid 213924
+2023-04-20 08:22:54,752 INFO spawned: 'flame-executor-manager-0' with pid 213926
+2023-04-20 08:22:54,757 INFO spawned: 'flame-session-manager' with pid 213927
+2023-04-20 08:22:54,757 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:22:56,012 INFO spawned: 'flame-executor-manager-0' with pid 214123
+2023-04-20 08:22:56,016 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:22:58,511 INFO spawned: 'flame-executor-manager-0' with pid 214124
+2023-04-20 08:22:58,514 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:23:02,012 INFO spawned: 'flame-executor-manager-0' with pid 214127
+2023-04-20 08:23:02,014 INFO exited: flame-executor-manager-0 (exit status 127; not expected)
+2023-04-20 08:23:02,511 INFO gave up: flame-executor-manager-0 entered FATAL state, too many start retries too quickly
+2023-04-20 08:23:05,011 INFO success: flame-session-manager entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:23:05,011 WARN received SIGINT indicating exit request
+2023-04-20 08:23:05,012 INFO waiting for flame-session-manager to die
+2023-04-20 08:23:05,013 INFO stopped: flame-session-manager (terminated by SIGTERM)
+2023-04-20 08:23:28,714 INFO supervisord started with pid 214140
+2023-04-20 08:23:29,722 INFO spawned: 'flame-executor-manager-0' with pid 214143
+2023-04-20 08:23:29,729 INFO spawned: 'flame-session-manager' with pid 214144
+2023-04-20 08:23:39,743 INFO success: flame-executor-manager-0 entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:23:39,743 INFO success: flame-session-manager entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:25:47,318 WARN received SIGINT indicating exit request
+2023-04-20 08:25:47,319 INFO waiting for flame-executor-manager-0, flame-session-manager to die
+2023-04-20 08:25:47,321 INFO stopped: flame-session-manager (terminated by SIGTERM)
+2023-04-20 08:25:47,334 INFO stopped: flame-executor-manager-0 (terminated by SIGTERM)
+2023-04-20 08:27:32,303 INFO supervisord started with pid 323267
+2023-04-20 08:27:33,306 INFO spawned: 'flame-executor-manager-0' with pid 323269
+2023-04-20 08:27:33,307 INFO spawned: 'flame-executor-manager-1' with pid 323270
+2023-04-20 08:27:33,309 INFO spawned: 'flame-executor-manager-2' with pid 323271
+2023-04-20 08:27:33,311 INFO spawned: 'flame-session-manager' with pid 323272
+2023-04-20 08:27:33,318 INFO exited: flame-executor-manager-0 (exit status 1; not expected)
+2023-04-20 08:27:33,319 INFO exited: flame-executor-manager-1 (exit status 1; not expected)
+2023-04-20 08:27:33,320 INFO exited: flame-executor-manager-2 (exit status 1; not expected)
+2023-04-20 08:27:34,321 INFO spawned: 'flame-executor-manager-0' with pid 323756
+2023-04-20 08:27:34,324 INFO spawned: 'flame-executor-manager-1' with pid 323757
+2023-04-20 08:27:34,325 INFO spawned: 'flame-executor-manager-2' with pid 323758
+2023-04-20 08:27:43,321 INFO success: flame-session-manager entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:27:44,321 INFO success: flame-executor-manager-0 entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:27:44,322 INFO success: flame-executor-manager-1 entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:27:44,822 INFO success: flame-executor-manager-2 entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:28:39,833 WARN received SIGINT indicating exit request
+2023-04-20 08:28:39,834 INFO waiting for flame-executor-manager-0, flame-executor-manager-1, flame-executor-manager-2, flame-session-manager to die
+2023-04-20 08:28:39,836 INFO stopped: flame-session-manager (terminated by SIGTERM)
+2023-04-20 08:28:39,841 INFO stopped: flame-executor-manager-2 (terminated by SIGTERM)
+2023-04-20 08:28:39,841 INFO stopped: flame-executor-manager-1 (terminated by SIGTERM)
+2023-04-20 08:28:39,843 INFO stopped: flame-executor-manager-0 (terminated by SIGTERM)
+2023-04-20 08:29:02,452 INFO supervisord started with pid 324731
+2023-04-20 08:29:03,456 INFO spawned: 'flame-executor-manager-0' with pid 324734
+2023-04-20 08:29:03,457 INFO spawned: 'flame-executor-manager-1' with pid 324735
+2023-04-20 08:29:03,459 INFO spawned: 'flame-executor-manager-2' with pid 324736
+2023-04-20 08:29:03,461 INFO spawned: 'flame-session-manager' with pid 324749
+2023-04-20 08:29:03,466 INFO exited: flame-executor-manager-0 (exit status 1; not expected)
+2023-04-20 08:29:03,469 INFO exited: flame-executor-manager-1 (exit status 1; not expected)
+2023-04-20 08:29:03,471 INFO exited: flame-executor-manager-2 (exit status 1; not expected)
+2023-04-20 08:29:04,471 INFO spawned: 'flame-executor-manager-0' with pid 325220
+2023-04-20 08:29:04,473 INFO spawned: 'flame-executor-manager-1' with pid 325221
+2023-04-20 08:29:04,474 INFO spawned: 'flame-executor-manager-2' with pid 325222
+2023-04-20 08:29:13,471 INFO success: flame-session-manager entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:29:14,471 INFO success: flame-executor-manager-0 entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:29:14,471 INFO success: flame-executor-manager-1 entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:29:14,971 INFO success: flame-executor-manager-2 entered RUNNING state, process has stayed up for > than 10 seconds (startsecs)
+2023-04-20 08:30:14,487 WARN received SIGINT indicating exit request
+2023-04-20 08:30:14,487 INFO waiting for flame-executor-manager-0, flame-executor-manager-1, flame-executor-manager-2, flame-session-manager to die
+2023-04-20 08:30:14,490 INFO stopped: flame-session-manager (terminated by SIGTERM)
+2023-04-20 08:30:14,492 INFO stopped: flame-executor-manager-2 (terminated by SIGTERM)
+2023-04-20 08:30:14,492 INFO stopped: flame-executor-manager-1 (terminated by SIGTERM)
+2023-04-20 08:30:14,492 INFO stopped: flame-executor-manager-0 (terminated by SIGTERM)

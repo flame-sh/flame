@@ -5,6 +5,7 @@ services:
     network_mode: host
     volumes:
     - ./flame-conf.yaml:/opt/flame-conf.yaml
+    - ./target/debug/pi-server:/opt/pi-server
     command: [ "--flame-conf", "/opt/flame-conf.yaml" ]
     environment:
     - RUST_LOG=debug
@@ -14,6 +15,7 @@ services:
     network_mode: host
     volumes:
     - ./flame-conf.yaml:/opt/flame-conf.yaml
+    - ./target/debug/pi-server:/opt/pi-server
     depends_on:
     - fsm
     environment:
@@ -25,6 +27,7 @@ services:
     network_mode: host
     volumes:
     - ./flame-conf.yaml:/opt/flame-conf.yaml
+    - ./target/debug/pi-server:/opt/pi-server
     depends_on:
     - fsm
     environment:
@@ -36,6 +39,7 @@ services:
     network_mode: host
     volumes:
     - ./flame-conf.yaml:/opt/flame-conf.yaml
+    - ./target/debug/pi-server:/opt/pi-server
     depends_on:
     - fsm
     environment:
