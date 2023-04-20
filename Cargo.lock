@@ -272,12 +272,16 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 name = "common"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "confy",
  "env_logger",
  "log",
  "prost",
+ "rpc",
  "serde",
  "serde_derive",
+ "strum",
+ "strum_macros",
  "thiserror",
  "tonic",
 ]

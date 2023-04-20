@@ -13,7 +13,7 @@ limitations under the License.
 
 use futures::future::BoxFuture;
 
-use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
+use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use crate::storage::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };

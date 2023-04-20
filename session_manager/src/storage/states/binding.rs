@@ -13,7 +13,7 @@ limitations under the License.
 
 use futures::future::BoxFuture;
 
-use crate::model::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
+use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use crate::storage::states::States;
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 

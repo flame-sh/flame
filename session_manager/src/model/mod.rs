@@ -11,164 +11,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use chrono::{DateTime, Utc};
 
-use common::ptr::CondPtr;
-use common::{lock_cond_ptr, FlameError};
+use common::apis::{
+    Application, Executor, ExecutorID, ExecutorState, Session, SessionID, SessionState, Task,
+    TaskID, TaskState,
+};
 
-pub use crate::model::snapshot::{ExecutorInfo, SessionInfo, SnapShot, TaskInfo};
-
-mod snapshot;
-
-pub type SessionID = i64;
-pub type TaskID = i64;
-pub type ExecutorID = String;
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
-pub enum SessionState {
-    #[default]
-    Open = 0,
-    Closed = 1,
+pub struct SnapShot {
+    pub sessions: Vec<Rc<SessionInfo>>,
+    pub ssn_index: HashMap<SessionID, Rc<SessionInfo>>,
+    pub ssn_state_index: HashMap<SessionState, Vec<Rc<SessionInfo>>>,
+    pub executors: Vec<Rc<ExecutorInfo>>,
+    pub exec_index: HashMap<ExecutorID, Rc<ExecutorInfo>>,
+    pub exec_state_index: HashMap<ExecutorState, Vec<Rc<ExecutorInfo>>>,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct SessionStatus {
-    pub state: SessionState,
-    // pub total: f64,
-    // pub desired: f64,
-    // pub allocated: f64,
-}
-
-pub type TaskPtr = CondPtr<Task>;
-pub type SessionPtr = CondPtr<Session>;
-pub type ExecutorPtr = CondPtr<Executor>;
-
-#[derive(Debug, Default)]
-pub struct Session {
-    pub id: SessionID,
-    pub application: String,
-    pub slots: i32,
-    pub tasks: HashMap<TaskID, TaskPtr>,
-    pub tasks_index: HashMap<TaskState, HashMap<TaskID, TaskPtr>>,
-    pub creation_time: DateTime<Utc>,
-    pub completion_time: Option<DateTime<Utc>>,
-
-    pub status: SessionStatus,
-}
-
-impl Session {
-    pub fn is_closed(&self) -> bool {
-        return self.status.state == SessionState::Closed;
-    }
-
-    pub fn add_task(&mut self, task: &Task) {
-        let task_ptr = TaskPtr::new(task.clone());
-
-        self.tasks.insert(task.id, task_ptr.clone());
-        if !self.tasks_index.contains_key(&task.state) {
-            self.tasks_index.insert(task.state.clone(), HashMap::new());
-        }
-        self.tasks_index
-            .get_mut(&task.state)
-            .unwrap()
-            .insert(task.id, task_ptr.clone());
-    }
-
-    pub fn pop_pending_task(&mut self) -> Option<TaskPtr> {
-        let pending_tasks = self.tasks_index.get_mut(&TaskState::Pending);
-        if let Some(tasks) = pending_tasks {
-            for (_, task) in tasks {
-                return Some(task.clone());
-            }
-        }
-
-        None
-    }
-
-    pub fn update_task_state(
-        &mut self,
-        task_ptr: TaskPtr,
-        state: TaskState,
-    ) -> Result<(), FlameError> {
-        let mut task = lock_cond_ptr!(task_ptr)?;
-        match self.tasks_index.get_mut(&task.state) {
-            None => {
-                log::error!(
-                    "Failed to find task <{}> in state map <{}>.",
-                    task.id,
-                    task.state.to_string()
-                );
-
-                return Err(FlameError::NotFound(format!(
-                    "task <{}> in state map <{}>",
-                    task.id,
-                    task.state.to_string()
-                )));
-            }
-
-            Some(index) => {
-                index.remove(&task.id);
-            }
-        }
-
-        self.tasks.remove(&task.id);
-
-        task.state = state;
-        // Also set completion time.
-        if state == TaskState::Succeed || state == TaskState::Failed {
-            task.completion_time = Some(Utc::now());
-        }
-        self.add_task(&*task);
-
-        Ok(())
-    }
-}
-
-impl Clone for Session {
-    fn clone(&self) -> Self {
-        let mut ssn = Session {
-            id: self.id,
-            application: self.application.clone(),
-            slots: self.slots,
-            tasks: HashMap::new(),
-            tasks_index: HashMap::new(),
-            creation_time: self.creation_time.clone(),
-            completion_time: self.completion_time.clone(),
-            status: self.status.clone(),
-        };
-
-        for (id, t) in &self.tasks {
-            match t.ptr.lock() {
-                Ok(t) => {
-                    ssn.add_task(&*t);
-                }
-                Err(_) => {
-                    log::error!("Failed to lock task: <{}>, ignore it during clone.", id);
-                }
-            }
-        }
-
-        ssn
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
-pub enum TaskState {
-    #[default]
-    Pending = 0,
-    Running = 1,
-    Succeed = 2,
-    Failed = 3,
-}
-
-#[derive(Clone, Debug)]
-pub struct Task {
+#[derive(Debug, Default, Clone)]
+pub struct TaskInfo {
     pub id: TaskID,
     pub ssn_id: SessionID,
-    pub input: Option<String>,
-    pub output: Option<String>,
 
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
@@ -176,41 +42,104 @@ pub struct Task {
     pub state: TaskState,
 }
 
-#[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Hash, strum_macros::Display)]
-pub enum ExecutorState {
-    #[default]
-    Idle = 0,
-    Binding = 1,
-    Bound = 2,
-    Unbinding = 3,
-}
-
-#[derive(Clone, Debug, ::prost::Enumeration)]
-pub enum Shim {
-    Log = 0,
-    Stdio = 1,
-    Rpc = 2,
-    Rest = 3,
-}
-
-#[derive(Clone, Debug)]
-pub struct Application {
-    pub name: String,
-    pub shim: Shim,
-    pub command: String,
-    pub arguments: Vec<String>,
-    pub environments: Vec<String>,
-    pub working_directory: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct Executor {
-    pub id: ExecutorID,
+#[derive(Debug, Default, Clone)]
+pub struct SessionInfo {
+    pub id: SessionID,
+    pub application: String,
     pub slots: i32,
-    pub applications: Vec<Application>,
+
+    pub tasks_status: HashMap<TaskState, i32>,
+    pub executors: HashMap<ExecutorID, Rc<ExecutorInfo>>,
+
+    pub creation_time: DateTime<Utc>,
+    pub completion_time: Option<DateTime<Utc>>,
+
+    pub state: SessionState,
+
+    pub total: f64,
+    pub desired: f64,
+    pub allocated: f64,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ExecutorInfo {
+    pub id: ExecutorID,
+    pub applications: Vec<AppInfo>,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
     pub creation_time: DateTime<Utc>,
     pub state: ExecutorState,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct AppInfo {
+    pub name: String,
+}
+
+impl From<Application> for AppInfo {
+    fn from(app: Application) -> Self {
+        AppInfo::from(&app)
+    }
+}
+
+impl From<&Application> for AppInfo {
+    fn from(app: &Application) -> Self {
+        AppInfo {
+            name: app.name.to_string(),
+        }
+    }
+}
+
+impl From<&Executor> for ExecutorInfo {
+    fn from(exec: &Executor) -> Self {
+        let applications = exec.applications.iter().map(AppInfo::from).collect();
+
+        ExecutorInfo {
+            id: exec.id.clone(),
+            applications,
+            task_id: exec.task_id.clone(),
+            ssn_id: exec.ssn_id.clone(),
+            creation_time: exec.creation_time.clone(),
+            state: exec.state,
+        }
+    }
+}
+
+impl From<&Task> for TaskInfo {
+    fn from(task: &Task) -> Self {
+        TaskInfo {
+            id: task.id,
+            ssn_id: task.ssn_id,
+            creation_time: task.creation_time.clone(),
+            completion_time: task.completion_time.clone(),
+            state: task.state,
+        }
+    }
+}
+
+impl From<&Session> for SessionInfo {
+    fn from(ssn: &Session) -> Self {
+        // let mut tasks = vec![];
+        let mut tasks_status = HashMap::new();
+        for (k, v) in &ssn.tasks_index {
+            tasks_status.insert((*k).clone(), v.len() as i32);
+        }
+
+        SessionInfo {
+            id: ssn.id,
+            application: ssn.application.clone(),
+            slots: ssn.slots,
+            // tasks,
+            tasks_status,
+            executors: HashMap::new(),
+            creation_time: ssn.creation_time.clone(),
+            completion_time: ssn.completion_time.clone(),
+            state: ssn.status.state,
+
+            total: 0.0,
+            desired: 0.0,
+            allocated: 0.0,
+        }
+    }
 }

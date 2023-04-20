@@ -13,7 +13,7 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::model::{Executor, ExecutorID, Session, SessionID, Task, TaskID};
+use common::apis::{Executor, ExecutorID, Session, SessionID, Task, TaskID};
 use crate::FlameError;
 
 #[async_trait]

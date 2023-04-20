@@ -20,13 +20,15 @@ use chrono::Utc;
 use lazy_static::lazy_static;
 
 use crate::model;
-use crate::model::{
-    Executor, ExecutorID, ExecutorInfo, ExecutorPtr, Session, SessionID, SessionInfo, SessionPtr,
+
+use common::apis::{
+    Executor, ExecutorID,  ExecutorPtr, Session, SessionID,  SessionPtr,
     SessionState, Task, TaskID, TaskPtr, TaskState,
 };
-
 use common::{lock_cond_ptr, lock_ptr};
 use common::{trace::TraceFn, trace_fn, FlameError};
+
+use crate::model::{ExecutorInfo, SessionInfo, SnapShot};
 
 mod engine;
 mod states;
@@ -74,8 +76,8 @@ impl Storage {
         Ok(*id.deref())
     }
 
-    pub fn snapshot(&self) -> Result<model::SnapShot, FlameError> {
-        let mut res = model::SnapShot {
+    pub fn snapshot(&self) -> Result<SnapShot, FlameError> {
+        let mut res = SnapShot {
             sessions: vec![],
             ssn_index: HashMap::new(),
             ssn_state_index: HashMap::new(),

@@ -25,7 +25,7 @@ use rpc::flame::{
 use rpc::flame::{Session, SessionList, Task};
 
 use crate::apiserver::Flame;
-use crate::model;
+use common::apis;
 
 #[async_trait]
 impl Frontend for Flame {
@@ -54,7 +54,7 @@ impl Frontend for Flame {
         let ssn_id = req
             .into_inner()
             .session_id
-            .parse::<model::SessionID>()
+            .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         self.storage.delete_session(ssn_id)?;
@@ -80,7 +80,7 @@ impl Frontend for Flame {
         let ssn_id = req
             .into_inner()
             .session_id
-            .parse::<model::SessionID>()
+            .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         self.storage.close_session(ssn_id).map_err(Status::from)?;
@@ -99,7 +99,7 @@ impl Frontend for Flame {
         let ssn_id = req
             .into_inner()
             .session_id
-            .parse::<model::SessionID>()
+            .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         let ssn = self.storage.get_session(ssn_id).map_err(Status::from)?;
@@ -129,7 +129,7 @@ impl Frontend for Flame {
             .ok_or(Status::invalid_argument("session spec"))?;
         let ssn_id = task_spec
             .session_id
-            .parse::<model::SessionID>()
+            .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         let task = self
@@ -150,12 +150,12 @@ impl Frontend for Flame {
         let req = req.into_inner();
         let ssn_id = req
             .session_id
-            .parse::<model::SessionID>()
+            .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         let task_id = req
             .task_id
-            .parse::<model::SessionID>()
+            .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid task id"))?;
 
         let task = self

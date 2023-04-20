@@ -25,7 +25,7 @@ use self::rpc::{
 use ::rpc::flame as rpc;
 
 use crate::apiserver::Flame;
-use crate::model;
+use common::apis;
 
 #[async_trait]
 impl Backend for Flame {
@@ -42,16 +42,16 @@ impl Backend for Flame {
         let applications = spec
             .applications
             .iter()
-            .map(model::Application::from)
+            .map(apis::Application::from)
             .collect();
-        let e = model::Executor {
+        let e = apis::Executor {
             id: req.executor_id.to_string(),
             slots: spec.slots,
             applications,
             task_id: None,
             ssn_id: None,
             creation_time: Utc::now(),
-            state: model::ExecutorState::Idle,
+            state: apis::ExecutorState::Idle,
         };
 
         self.storage.register_executor(&e).map_err(Status::from)?;
