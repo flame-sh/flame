@@ -16,7 +16,8 @@ use async_trait::async_trait;
 use crate::executor::Executor;
 use crate::states::State;
 
-use common::{trace::TraceFn, trace_fn, FlameContext, FlameError};
+use common::ctx::FlameContext;
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
 pub struct UnknownState {

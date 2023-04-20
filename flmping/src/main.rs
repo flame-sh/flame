@@ -16,7 +16,7 @@ use std::{thread, time};
 
 use chrono::Local;
 use clap::Parser;
-use common::FlameContext;
+use common::ctx::FlameContext;
 use tonic::Status;
 
 use rpc::flame::frontend_client::FrontendClient;

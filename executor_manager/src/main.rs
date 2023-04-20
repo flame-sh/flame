@@ -15,7 +15,7 @@ use std::error::Error;
 
 use crate::executor::Executor;
 use clap::Parser;
-use common::FlameContext;
+use common::ctx::FlameContext;
 
 mod client;
 mod executor;

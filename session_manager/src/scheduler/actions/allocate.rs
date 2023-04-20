@@ -16,11 +16,11 @@ use std::collections::BinaryHeap;
 
 use std::sync::Arc;
 
-use common::apis::{ExecutorState, SessionID, SessionState, TaskState};
+use crate::model::SnapShot;
 use crate::scheduler::actions::Action;
 use crate::storage::Storage;
 use crate::FlameError;
-use crate::model::SnapShot;
+use common::apis::{ExecutorState, SessionID, SessionState, TaskState};
 
 pub struct AllocateAction {
     pub storage: Arc<Storage>,

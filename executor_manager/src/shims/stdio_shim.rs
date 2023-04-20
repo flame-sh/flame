@@ -11,12 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use common::apis::{Application, SessionContext, TaskContext};
 use std::io::{Read, Write};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use crate::executor::{Application, SessionContext, TaskContext};
+// use crate::executor::{Application, SessionContext, TaskContext};
 use crate::shims::{Shim, ShimPtr};
 use common::FlameError;
 

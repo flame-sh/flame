@@ -16,8 +16,8 @@ use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use crate::storage::states::States;
+use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct IdleState {

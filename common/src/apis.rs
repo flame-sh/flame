@@ -11,15 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
+use serde_derive::{Deserialize, Serialize};
 
 use ::rpc::flame as rpc;
 
-use crate::{FlameError, lock_cond_ptr};
 use crate::ptr::CondPtr;
+use crate::{lock_cond_ptr, FlameError};
 
 pub type SessionID = i64;
 pub type TaskID = i64;
@@ -40,7 +40,6 @@ pub struct SessionStatus {
     pub state: SessionState,
 }
 
-
 #[derive(Debug, Default)]
 pub struct Session {
     pub id: SessionID,
@@ -54,6 +53,81 @@ pub struct Session {
     pub status: SessionStatus,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
+pub enum TaskState {
+    #[default]
+    Pending = 0,
+    Running = 1,
+    Succeed = 2,
+    Failed = 3,
+}
+
+#[derive(Clone, Debug)]
+pub struct Task {
+    pub id: TaskID,
+    pub ssn_id: SessionID,
+    pub input: Option<String>,
+    pub output: Option<String>,
+
+    pub creation_time: DateTime<Utc>,
+    pub completion_time: Option<DateTime<Utc>>,
+
+    pub state: TaskState,
+}
+
+#[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Hash, strum_macros::Display)]
+pub enum ExecutorState {
+    #[default]
+    Idle = 0,
+    Binding = 1,
+    Bound = 2,
+    Unbinding = 3,
+}
+
+#[derive(Clone, Debug, ::prost::Enumeration, Deserialize, Serialize)]
+pub enum Shim {
+    Log = 0,
+    Stdio = 1,
+    Rpc = 2,
+    Rest = 3,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Application {
+    pub name: String,
+    pub shim: Shim,
+    pub command: String,
+    pub arguments: Vec<String>,
+    pub environments: Vec<String>,
+    pub working_directory: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct Executor {
+    pub id: ExecutorID,
+    pub slots: i32,
+    pub applications: Vec<Application>,
+    pub task_id: Option<TaskID>,
+    pub ssn_id: Option<SessionID>,
+
+    pub creation_time: DateTime<Utc>,
+    pub state: ExecutorState,
+}
+
+#[derive(Clone, Debug)]
+pub struct TaskContext {
+    pub id: String,
+    pub ssn_id: String,
+    pub input: Option<String>,
+    pub output: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SessionContext {
+    pub ssn_id: String,
+    pub application: String,
+    pub slots: i32,
+}
 
 impl Session {
     pub fn is_closed(&self) -> bool {
@@ -151,68 +225,44 @@ impl Clone for Session {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
-pub enum TaskState {
-    #[default]
-    Pending = 0,
-    Running = 1,
-    Succeed = 2,
-    Failed = 3,
+impl TryFrom<rpc::Task> for TaskContext {
+    type Error = FlameError;
+
+    fn try_from(task: rpc::Task) -> Result<Self, Self::Error> {
+        let metadata = task
+            .metadata
+            .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
+        let spec = task
+            .spec
+            .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
+
+        Ok(TaskContext {
+            id: metadata.id.to_string(),
+            ssn_id: spec.session_id.to_string(),
+            input: spec.input.clone(),
+            output: spec.output.clone(),
+        })
+    }
 }
 
-#[derive(Clone, Debug)]
-pub struct Task {
-    pub id: TaskID,
-    pub ssn_id: SessionID,
-    pub input: Option<String>,
-    pub output: Option<String>,
+impl TryFrom<rpc::Session> for SessionContext {
+    type Error = FlameError;
 
-    pub creation_time: DateTime<Utc>,
-    pub completion_time: Option<DateTime<Utc>>,
+    fn try_from(ssn: rpc::Session) -> Result<Self, Self::Error> {
+        let metadata = ssn
+            .metadata
+            .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
+        let spec = ssn
+            .spec
+            .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
 
-    pub state: TaskState,
+        Ok(SessionContext {
+            ssn_id: metadata.id.clone(),
+            application: spec.application.clone(),
+            slots: spec.slots,
+        })
+    }
 }
-
-#[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Hash, strum_macros::Display)]
-pub enum ExecutorState {
-    #[default]
-    Idle = 0,
-    Binding = 1,
-    Bound = 2,
-    Unbinding = 3,
-}
-
-#[derive(Clone, Debug, ::prost::Enumeration)]
-pub enum Shim {
-    Log = 0,
-    Stdio = 1,
-    Rpc = 2,
-    Rest = 3,
-}
-
-#[derive(Clone, Debug)]
-pub struct Application {
-    pub name: String,
-    pub shim: Shim,
-    pub command: String,
-    pub arguments: Vec<String>,
-    pub environments: Vec<String>,
-    pub working_directory: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct Executor {
-    pub id: ExecutorID,
-    pub slots: i32,
-    pub applications: Vec<Application>,
-    pub task_id: Option<TaskID>,
-    pub ssn_id: Option<SessionID>,
-
-    pub creation_time: DateTime<Utc>,
-    pub state: ExecutorState,
-}
-
-
 
 impl From<TaskState> for rpc::TaskState {
     fn from(state: TaskState) -> Self {
@@ -306,6 +356,25 @@ impl From<&rpc::Application> for Application {
         Application {
             name: app.name.to_string(),
             shim: Shim::from_i32(app.shim).unwrap_or(Shim::default()),
+            command: app.command.to_string(),
+            arguments: app.arguments.to_vec(),
+            environments: app.environments.to_vec(),
+            working_directory: app.working_directory.to_string(),
+        }
+    }
+}
+
+impl From<Application> for rpc::Application {
+    fn from(app: Application) -> Self {
+        rpc::Application::from(&app)
+    }
+}
+
+impl From<&Application> for rpc::Application {
+    fn from(app: &Application) -> Self {
+        rpc::Application {
+            name: app.name.to_string(),
+            shim: app.shim.clone() as i32,
             command: app.command.to_string(),
             arguments: app.arguments.to_vec(),
             environments: app.environments.to_vec(),

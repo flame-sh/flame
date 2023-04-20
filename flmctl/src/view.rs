@@ -13,7 +13,7 @@ limitations under the License.
 
 use std::error::Error;
 
-use common::FlameContext;
+use common::ctx::FlameContext;
 
 pub async fn run(_: &FlameContext, _: &String) -> Result<(), Box<dyn Error>> {
     todo!()

@@ -15,7 +15,8 @@ use async_trait::async_trait;
 
 use crate::executor::{Executor, ExecutorState};
 
-use common::{FlameContext, FlameError};
+use common::ctx::FlameContext;
+use common::FlameError;
 
 mod bound;
 mod idle;

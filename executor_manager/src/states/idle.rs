@@ -13,10 +13,12 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::executor::{Application, Executor, ExecutorState};
+use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use crate::{client, shims};
-use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
+use common::ctx::FlameContext;
+use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
+// use common::apis::Application;
 
 #[derive(Clone)]
 pub struct IdleState {
@@ -40,7 +42,7 @@ impl State for IdleState {
                 )))
             }
             Some(app) => {
-                let app = Application::from(&app);
+                // let app = Application::from(&app);
                 let shim_ptr = shims::from(&app)?;
 
                 {

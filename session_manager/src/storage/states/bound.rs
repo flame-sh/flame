@@ -15,8 +15,8 @@ use futures::future::BoxFuture;
 
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr, TaskState};
 use crate::storage::states::States;
+use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr, TaskState};
 
 pub struct BoundState {
     pub executor: ExecutorPtr,

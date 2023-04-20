@@ -16,16 +16,12 @@ use std::sync::Arc;
 use tokio::runtime::Runtime;
 use tonic::transport::Server;
 
-use common::FlameContext;
+use common::ctx::FlameContext;
 use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
-use rpc::flame::{
-    Application, Metadata, Session, SessionSpec, SessionState, SessionStatus, Task, TaskSpec,
-    TaskState, TaskStatus,
-};
 
 use crate::storage::Storage;
-use crate::{model, storage, FlameError, FlameThread};
+use crate::{storage, FlameError, FlameThread};
 
 mod backend;
 mod frontend;
@@ -89,4 +85,3 @@ impl FlameThread for ApiserverRunner {
         Ok(())
     }
 }
-

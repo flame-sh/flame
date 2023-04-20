@@ -15,7 +15,8 @@ use std::{thread, time};
 
 use crate::scheduler::actions::{Action, AllocateAction};
 use crate::{storage, FlameThread};
-use common::{FlameContext, FlameError};
+use common::ctx::FlameContext;
+use common::FlameError;
 
 mod actions;
 

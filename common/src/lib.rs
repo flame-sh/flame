@@ -16,7 +16,6 @@ pub mod ctx;
 pub mod ptr;
 pub mod trace;
 
-use serde_derive::{Deserialize, Serialize};
 use thiserror::Error;
 use tonic::Status;
 
@@ -75,83 +74,30 @@ macro_rules! lock_cond_ptr {
             .map_err(|_| FlameError::Internal("cond ptr".to_string()))
     };
 }
-
-#[derive(Clone, Debug, Copy, ::prost::Enumeration, Serialize, Deserialize)]
-pub enum Shim {
-    Log = 0,
-    Stdio = 1,
-    Rpc = 2,
-    Rest = 3,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Application {
-    pub name: String,
-    pub shim: Shim,
-    pub command_line: String,
-    pub working_directory: String,
-}
-
-impl Default for Application {
-    fn default() -> Self {
-        Application {
-            name: "flmexec".to_string(),
-            shim: Shim::Log,
-            command_line: "/usr/bin/flmexec".to_string(),
-            working_directory: "/tmp".to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FlameContext {
-    pub name: String,
-    pub endpoint: String,
-    pub slot: String,
-    pub policy: String,
-    pub storage: String,
-    pub applications: Vec<Application>,
-}
-
-impl Default for FlameContext {
-    fn default() -> Self {
-        FlameContext {
-            name: "flame".to_string(),
-            endpoint: "http://127.0.0.1:8080".to_string(),
-            slot: "cpu=1,mem=1g".to_string(),
-            policy: "priority".to_string(),
-            storage: "mem".to_string(),
-            applications: vec![Application::default()],
-        }
-    }
-}
-
-const DEFAULT_FLAME_CONF: &str = "flame-conf.yaml";
-
-impl FlameContext {
-    pub fn from_file(fp: Option<String>) -> Result<Self, FlameError> {
-        let fp = fp.unwrap_or(DEFAULT_FLAME_CONF.to_string());
-
-        let ctx: FlameContext =
-            confy::load_path(fp).map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
-
-        if ctx.applications.is_empty() {
-            return Err(FlameError::InvalidConfig("no application".to_string()));
-        }
-
-        Ok(ctx)
-    }
-
-    pub fn get_application(&self, n: &String) -> Option<Application> {
-        let mut application = None;
-
-        for app in &self.applications {
-            if n == &app.name {
-                application = Some(app.clone());
-                break;
-            }
-        }
-
-        application
-    }
-}
+//
+// #[derive(Clone, Debug, Copy, ::prost::Enumeration, Serialize, Deserialize)]
+// pub enum Shim {
+//     Log = 0,
+//     Stdio = 1,
+//     Rpc = 2,
+//     Rest = 3,
+// }
+//
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct Application {
+//     pub name: String,
+//     pub shim: Shim,
+//     pub command_line: String,
+//     pub working_directory: String,
+// }
+//
+// impl Default for Application {
+//     fn default() -> Self {
+//         Application {
+//             name: "flmexec".to_string(),
+//             shim: Shim::Log,
+//             command_line: "/usr/bin/flmexec".to_string(),
+//             working_directory: "/tmp".to_string(),
+//         }
+//     }
+// }

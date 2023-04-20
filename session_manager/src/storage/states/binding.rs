@@ -13,8 +13,8 @@ limitations under the License.
 
 use futures::future::BoxFuture;
 
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use crate::storage::states::States;
+use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct BindingState {

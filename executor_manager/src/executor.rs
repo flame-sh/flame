@@ -17,10 +17,10 @@ use uuid::Uuid;
 
 use crate::shims::ShimPtr;
 use ::rpc::flame as rpc;
-// use common::ptr::CondPtr;
-use common::{FlameContext, FlameError};
 
-// pub type ExecutorPtr = CondPtr<Executor>;
+use common::apis::{Application, SessionContext, TaskContext};
+use common::ctx::FlameContext;
+use common::FlameError;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ExecutorState {
@@ -39,104 +39,6 @@ impl From<ExecutorState> for rpc::ExecutorState {
             ExecutorState::Unbound => rpc::ExecutorState::ExecutorRunning,
             ExecutorState::Unknown => rpc::ExecutorState::ExecutorUnknown,
         }
-    }
-}
-
-#[derive(Clone, Debug, Copy, ::prost::Enumeration)]
-pub enum Shim {
-    Log = 0,
-    Stdio = 1,
-    Rpc = 2,
-    Rest = 3,
-}
-
-#[derive(Clone, Debug)]
-pub struct Application {
-    pub name: String,
-    pub shim: Shim,
-    pub command: String,
-    pub arguments: Vec<String>,
-    pub environments: Vec<String>,
-    pub working_directory: String,
-}
-
-impl From<&Application> for rpc::Application {
-    fn from(app: &Application) -> Self {
-        rpc::Application {
-            name: app.name.clone(),
-            shim: app.shim as i32,
-            command: app.command.clone(),
-            arguments: app.arguments.to_vec(),
-            environments: app.environments.to_vec(),
-            working_directory: app.working_directory.clone(),
-        }
-    }
-}
-
-impl From<&common::Application> for Application {
-    fn from(app: &common::Application) -> Self {
-        Application {
-            name: app.name.to_string(),
-            shim: Shim::from_i32(app.shim as i32).unwrap_or(Shim::default()),
-            command: app.command_line.to_string(),
-            arguments: vec![],
-            environments: vec![],
-            working_directory: app.working_directory.to_string(),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct TaskContext {
-    pub id: String,
-    pub ssn_id: String,
-    pub input: Option<String>,
-    pub output: Option<String>,
-}
-
-impl TryFrom<rpc::Task> for TaskContext {
-    type Error = FlameError;
-
-    fn try_from(task: rpc::Task) -> Result<Self, Self::Error> {
-        let metadata = task
-            .metadata
-            .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
-        let spec = task
-            .spec
-            .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
-
-        Ok(TaskContext {
-            id: metadata.id.to_string(),
-            ssn_id: spec.session_id.to_string(),
-            input: spec.input.clone(),
-            output: spec.output.clone(),
-        })
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct SessionContext {
-    pub ssn_id: String,
-    pub application: String,
-    pub slots: i32,
-}
-
-impl TryFrom<rpc::Session> for SessionContext {
-    type Error = FlameError;
-
-    fn try_from(ssn: rpc::Session) -> Result<Self, Self::Error> {
-        let metadata = ssn
-            .metadata
-            .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
-        let spec = ssn
-            .spec
-            .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
-
-        Ok(SessionContext {
-            ssn_id: metadata.id.clone(),
-            application: spec.application.clone(),
-            slots: spec.slots,
-        })
     }
 }
 
@@ -195,12 +97,12 @@ impl Executor {
     }
 
     pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
-        let applications = ctx.applications.iter().map(Application::from).collect();
+        // let applications = ctx.applications.iter().map(Application::from).collect();
 
         let exec = Executor {
             id: Uuid::new_v4().to_string(),
             slots: slots.unwrap_or(1),
-            applications,
+            applications: ctx.applications.clone(),
             session: None,
             task: None,
             shim: None,

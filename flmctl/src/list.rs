@@ -16,7 +16,7 @@ use std::error::Error;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use tonic::Status;
 
-use common::FlameContext;
+use common::ctx::FlameContext;
 use rpc::flame::frontend_client::FrontendClient;
 use rpc::flame::{ListSessionRequest, SessionState};
 

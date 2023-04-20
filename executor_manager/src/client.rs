@@ -24,8 +24,10 @@ use self::rpc::{
 };
 use ::rpc::flame as rpc;
 
-use crate::executor::{Executor, SessionContext, TaskContext};
-use common::{lock_ptr, FlameContext, FlameError};
+use crate::executor::Executor;
+use common::apis::{SessionContext, TaskContext};
+use common::ctx::FlameContext;
+use common::{lock_ptr, FlameError};
 
 type FlameClient = FlameBackendClient<Channel>;
 

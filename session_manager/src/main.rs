@@ -16,7 +16,8 @@ use std::thread;
 
 use clap::Parser;
 
-use common::{FlameContext, FlameError};
+use common::ctx::FlameContext;
+use common::FlameError;
 
 mod apiserver;
 mod model;

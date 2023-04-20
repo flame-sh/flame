@@ -13,10 +13,10 @@ limitations under the License.
 
 use futures::future::BoxFuture;
 
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use crate::storage::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };
+use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskPtr};
 use common::{lock_cond_ptr, FlameError};
 
 mod binding;

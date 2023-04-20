@@ -16,7 +16,8 @@ use async_trait::async_trait;
 use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
-use common::{lock_ptr, trace::TraceFn, trace_fn, FlameContext, FlameError};
+use common::ctx::FlameContext;
+use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
 pub struct BoundState {

@@ -16,8 +16,8 @@ mod stdio_shim;
 
 use self::log_shim::LogShim;
 use self::stdio_shim::StdioShim;
-use crate::executor::Shim as ShimType;
-use crate::executor::{Application, SessionContext, TaskContext};
+
+use common::apis::{Application, SessionContext, Shim as ShimType, TaskContext};
 use common::ptr::MutexPtr;
 use common::FlameError;
 

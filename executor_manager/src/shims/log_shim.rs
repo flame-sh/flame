@@ -11,9 +11,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use common::apis::{Application, SessionContext, TaskContext};
 use std::sync::{Arc, Mutex};
 
-use crate::executor::{Application, SessionContext, TaskContext};
 use crate::shims::{Shim, ShimPtr};
 use common::FlameError;
 

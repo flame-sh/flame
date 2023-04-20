@@ -19,11 +19,9 @@ use std::sync::{Arc, Mutex};
 use chrono::Utc;
 use lazy_static::lazy_static;
 
-use crate::model;
-
 use common::apis::{
-    Executor, ExecutorID,  ExecutorPtr, Session, SessionID,  SessionPtr,
-    SessionState, Task, TaskID, TaskPtr, TaskState,
+    Executor, ExecutorID, ExecutorPtr, Session, SessionID, SessionPtr, SessionState, Task, TaskID,
+    TaskPtr, TaskState,
 };
 use common::{lock_cond_ptr, lock_ptr};
 use common::{trace::TraceFn, trace_fn, FlameError};
