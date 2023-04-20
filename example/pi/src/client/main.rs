@@ -66,23 +66,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
         task_ids.push(task.id.clone());
     }
 
-    let mut area = 0;
     loop {
         let mut succeed = 0;
+        let mut area: i64 = 0;
 
         for id in &task_ids {
             let task = ssn.get_task(id.to_string()).await?;
             if task.is_completed() {
                 succeed += 1;
                 if let Some(output) = task.output {
-                    area += output.parse::<i32>().unwrap();
+                    area += output.trim().parse::<i64>().unwrap();
                 }
             }
         }
 
         // If all tasks finished, exit.
         if task_ids.len() == succeed {
-            let pi = 4 * area / (task_num * task_input);
+            let pi = (4 as f64) * area as f64 / ((task_num as f64) * (task_input as f64));
             println!("pi = 4*({}/{}) = {}", area, task_num * task_input, pi);
             break;
         }
