@@ -20,6 +20,7 @@ use rpc::flame::frontend_server::Frontend;
 use rpc::flame::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest,
     DeleteTaskRequest, GetSessionRequest, GetTaskRequest, ListSessionRequest, OpenSessionRequest,
+    WatchTaskRequest,
 };
 
 use rpc::flame::{Session, SessionList, Task};
@@ -144,6 +145,10 @@ impl Frontend for Flame {
         &self,
         _: Request<DeleteTaskRequest>,
     ) -> Result<Response<rpc::flame::Result>, Status> {
+        todo!()
+    }
+
+    async fn watch_task(&self, _: Request<WatchTaskRequest>) -> Result<Response<Task>, Status> {
         todo!()
     }
 

@@ -127,6 +127,7 @@ service Frontend {
   rpc DeleteTask (DeleteTaskRequest) returns (Result) {}
 
   rpc GetTask (GetTaskRequest) returns (Task) {}
+  rpc WatchTask (WatchTaskRequest) returns (Task) {}
 }
 
 message CreateSessionRequest {
@@ -162,6 +163,11 @@ message DeleteTaskRequest {
 }
 
 message GetTaskRequest {
+  string task_id = 1;
+  string session_id = 2;
+}
+
+message WatchTaskRequest {
   string task_id = 1;
   string session_id = 2;
 }
