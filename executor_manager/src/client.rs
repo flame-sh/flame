@@ -87,7 +87,7 @@ pub async fn bind_executor(
     };
 
     let ssn = ins.bind_executor(req).await.map_err(FlameError::from)?;
-    Ok(SessionContext::try_from(ssn.into_inner())?)
+    SessionContext::try_from(ssn.into_inner())
 }
 
 pub async fn bind_executor_completed(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {

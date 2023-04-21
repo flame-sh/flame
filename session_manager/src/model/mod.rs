@@ -97,9 +97,9 @@ impl From<&Executor> for ExecutorInfo {
         ExecutorInfo {
             id: exec.id.clone(),
             applications,
-            task_id: exec.task_id.clone(),
-            ssn_id: exec.ssn_id.clone(),
-            creation_time: exec.creation_time.clone(),
+            task_id: exec.task_id,
+            ssn_id: exec.ssn_id,
+            creation_time: exec.creation_time,
             state: exec.state,
         }
     }
@@ -110,8 +110,8 @@ impl From<&Task> for TaskInfo {
         TaskInfo {
             id: task.id,
             ssn_id: task.ssn_id,
-            creation_time: task.creation_time.clone(),
-            completion_time: task.completion_time.clone(),
+            creation_time: task.creation_time,
+            completion_time: task.completion_time,
             state: task.state,
         }
     }
@@ -122,7 +122,7 @@ impl From<&Session> for SessionInfo {
         // let mut tasks = vec![];
         let mut tasks_status = HashMap::new();
         for (k, v) in &ssn.tasks_index {
-            tasks_status.insert((*k).clone(), v.len() as i32);
+            tasks_status.insert(*k, v.len() as i32);
         }
 
         SessionInfo {
@@ -132,8 +132,8 @@ impl From<&Session> for SessionInfo {
             // tasks,
             tasks_status,
             executors: HashMap::new(),
-            creation_time: ssn.creation_time.clone(),
-            completion_time: ssn.completion_time.clone(),
+            creation_time: ssn.creation_time,
+            completion_time: ssn.completion_time,
             state: ssn.status.state,
 
             total: 0.0,

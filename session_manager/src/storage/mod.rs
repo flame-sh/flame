@@ -56,7 +56,7 @@ pub struct Storage {
 impl Storage {
     fn next_ssn_id(&self) -> Result<i64, FlameError> {
         let mut id = lock_ptr!(self.max_ssn_id)?;
-        *id = *id + 1;
+        *id += 1;
 
         Ok(*id.deref())
     }
@@ -69,7 +69,7 @@ impl Storage {
 
         let id = id_list.get(ssn_id).unwrap();
         let mut id = lock_ptr!(id)?;
-        *id = *id + 1;
+        *id += 1;
 
         Ok(*id.deref())
     }
@@ -87,7 +87,7 @@ impl Storage {
 
         {
             let ssn_map = lock_ptr!(self.sessions)?;
-            for (_, ssn) in ssn_map.deref() {
+            for ssn in ssn_map.deref().values() {
                 let ssn = lock_cond_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
                 res.sessions.push(Rc::new(info));
@@ -96,7 +96,7 @@ impl Storage {
 
         {
             let exe_map = lock_ptr!(self.executors)?;
-            for (_, exe) in exe_map.deref() {
+            for exe in exe_map.deref().values() {
                 let exe = lock_cond_ptr!(exe)?;
                 let info = ExecutorInfo::from(&(*exe).clone());
                 res.executors.push(Rc::new(info));
@@ -105,10 +105,10 @@ impl Storage {
 
         // Build index without related locks.
         for ssn in &res.sessions {
-            res.ssn_index.insert(ssn.id.clone(), ssn.clone());
-            if !res.ssn_state_index.contains_key(&ssn.state) {
-                res.ssn_state_index.insert(ssn.state.clone(), Vec::new());
-            }
+            res.ssn_index.insert(ssn.id, ssn.clone());
+            res.ssn_state_index
+                .entry(ssn.state)
+                .or_insert_with(Vec::new);
 
             if let Some(si) = res.ssn_state_index.get_mut(&ssn.state) {
                 si.push(ssn.clone());
@@ -117,9 +117,9 @@ impl Storage {
 
         for exec in &res.executors {
             res.exec_index.insert(exec.id.clone(), exec.clone());
-            if !res.exec_state_index.contains_key(&exec.state) {
-                res.exec_state_index.insert(exec.state.clone(), Vec::new());
-            }
+            res.exec_state_index
+                .entry(exec.state)
+                .or_insert_with(Vec::new);
 
             if let Some(ei) = res.exec_state_index.get_mut(&exec.state) {
                 ei.push(exec.clone());
@@ -138,7 +138,7 @@ impl Storage {
                     }
                     Some(ssn) => {
                         if let Some(ssn) = Rc::get_mut(ssn) {
-                            (*ssn).executors.insert(exec.id.clone(), exec.clone());
+                            ssn.executors.insert(exec.id.clone(), exec.clone());
                         }
                     }
                 }
@@ -151,13 +151,15 @@ impl Storage {
     pub fn create_session(&self, app: String, slots: i32) -> Result<Session, FlameError> {
         let mut ssn_map = lock_ptr!(self.sessions)?;
 
-        let mut ssn = Session::default();
-        ssn.id = self.next_ssn_id()?;
-        ssn.slots = slots;
-        ssn.application = app;
-        ssn.creation_time = Utc::now();
+        let ssn = Session {
+            id: self.next_ssn_id()?,
+            slots,
+            application: app,
+            creation_time: Utc::now(),
+            ..Default::default()
+        };
 
-        if let Some(_) = &self.engine {
+        if self.engine.is_some() {
             // TODO(k82cn): persist session.
         }
 
@@ -170,7 +172,7 @@ impl Storage {
         let ssn_ptr = self.get_session_ptr(id)?;
         let mut ssn = lock_cond_ptr!(ssn_ptr)?;
         if let Some(running_task) = ssn.tasks_index.get(&TaskState::Running) {
-            if running_task.len() > 0 {
+            if !running_task.is_empty() {
                 return Err(FlameError::InvalidState(format!(
                     "can not close session with {} running tasks",
                     running_task.len()
@@ -234,7 +236,7 @@ impl Storage {
         let mut ssn_list = vec![];
         let ssn_map = lock_ptr!(self.sessions)?;
 
-        for (_, ssn) in ssn_map.deref() {
+        for ssn in ssn_map.deref().values() {
             let ssn = lock_cond_ptr!(ssn)?;
             ssn_list.push((*ssn).clone());
         }
@@ -264,7 +266,7 @@ impl Storage {
         let task = Task {
             id: task_id,
             ssn_id,
-            input: task_input.clone(),
+            input: task_input,
             output: None,
             creation_time: Utc::now(),
             completion_time: None,
@@ -379,7 +381,7 @@ impl Storage {
         let state = states::from(exe_ptr.clone())?;
         let (ssn_id, task_id) = {
             let exec = lock_cond_ptr!(exe_ptr)?;
-            (exec.ssn_id.clone(), exec.task_id.clone())
+            (exec.ssn_id, exec.task_id)
         };
         let ssn_id = ssn_id.ok_or(FlameError::InvalidState(
             "no session in bound executor".to_string(),
@@ -399,7 +401,7 @@ impl Storage {
         }
 
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
-        return Ok(state.launch_task(ssn_ptr)?);
+        state.launch_task(ssn_ptr)
     }
 
     pub fn complete_task(
@@ -412,11 +414,10 @@ impl Storage {
         let (ssn_id, task_id) = {
             let exe = lock_cond_ptr!(exe_ptr)?;
             (
-                exe.ssn_id.clone().ok_or(FlameError::InvalidState(
+                exe.ssn_id.ok_or(FlameError::InvalidState(
                     "no session in executor".to_string(),
                 ))?,
                 exe.task_id
-                    .clone()
                     .ok_or(FlameError::InvalidState("no task in executor".to_string()))?,
             )
         };
@@ -424,7 +425,7 @@ impl Storage {
         let task_ptr = self.get_task_ptr(ssn_id, task_id)?;
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
 
-        let state = states::from(exe_ptr.clone())?;
+        let state = states::from(exe_ptr)?;
         state.complete_task(ssn_ptr, task_ptr, task_output)?;
 
         Ok(())
@@ -432,7 +433,7 @@ impl Storage {
 
     pub fn unbind_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
         let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(exe_ptr.clone())?;
+        let state = states::from(exe_ptr)?;
         state.unbind_executor()?;
 
         Ok(())
@@ -440,7 +441,7 @@ impl Storage {
 
     pub fn unbind_executor_completed(&self, id: ExecutorID) -> Result<(), FlameError> {
         let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(exe_ptr.clone())?;
+        let state = states::from(exe_ptr)?;
 
         state.unbind_executor_completed()?;
 

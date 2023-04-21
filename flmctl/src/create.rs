@@ -19,12 +19,12 @@ use common::ctx::FlameContext;
 use rpc::flame::frontend_client::FrontendClient;
 use rpc::flame::{CreateSessionRequest, SessionSpec};
 
-pub async fn run(ctx: &FlameContext, app: &String, slots: &i32) -> Result<(), Box<dyn Error>> {
+pub async fn run(ctx: &FlameContext, app: &str, slots: &i32) -> Result<(), Box<dyn Error>> {
     let mut client = FrontendClient::connect(ctx.endpoint.clone()).await?;
 
     let req = CreateSessionRequest {
         session: Some(SessionSpec {
-            application: app.clone(),
+            application: app.to_owned(),
             slots: *slots,
         }),
     };

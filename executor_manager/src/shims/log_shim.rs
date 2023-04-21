@@ -24,9 +24,9 @@ pub struct LogShim {
 
 impl LogShim {
     pub fn new(_: &Application) -> ShimPtr {
-        return Arc::new(Mutex::new(LogShim {
+        Arc::new(Mutex::new(Self {
             session_context: None,
-        }));
+        }))
     }
 }
 

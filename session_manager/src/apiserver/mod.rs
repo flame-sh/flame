@@ -43,13 +43,10 @@ impl FlameThread for ApiserverRunner {
         let host = url
             .host_str()
             .ok_or(FlameError::InvalidConfig("no host in url".to_string()))?;
-        let port = match url.port() {
-            None => 8080,
-            Some(p) => p,
-        };
+        let port = url.port().unwrap_or(8080);
 
         let address_str = format!("{}:{}", host, port);
-        log::info!("Listening apiserver at {}", address_str.clone());
+        log::info!("Listening apiserver at {}", address_str);
         let address = address_str
             .parse()
             .map_err(|_| FlameError::InvalidConfig("failed to parse url".to_string()))?;

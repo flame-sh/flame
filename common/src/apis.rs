@@ -136,26 +136,26 @@ pub struct SessionContext {
 
 impl Session {
     pub fn is_closed(&self) -> bool {
-        return self.status.state == SessionState::Closed;
+        self.status.state == SessionState::Closed
     }
 
     pub fn add_task(&mut self, task: &Task) {
         let task_ptr = TaskPtr::new(task.clone());
 
         self.tasks.insert(task.id, task_ptr.clone());
-        if !self.tasks_index.contains_key(&task.state) {
-            self.tasks_index.insert(task.state.clone(), HashMap::new());
-        }
+        self.tasks_index
+            .entry(task.state)
+            .or_insert_with(|| HashMap::new());
         self.tasks_index
             .get_mut(&task.state)
             .unwrap()
-            .insert(task.id, task_ptr.clone());
+            .insert(task.id, task_ptr);
     }
 
     pub fn pop_pending_task(&mut self) -> Option<TaskPtr> {
         let pending_tasks = self.tasks_index.get_mut(&TaskState::Pending);
         if let Some(tasks) = pending_tasks {
-            for (_, task) in tasks {
+            if let Some((_, task)) = tasks.iter_mut().next() {
                 return Some(task.clone());
             }
         }
@@ -179,8 +179,7 @@ impl Session {
 
                 return Err(FlameError::NotFound(format!(
                     "task <{}> in state map <{}>",
-                    task.id,
-                    task.state.to_string()
+                    task.id, task.state
                 )));
             }
 
@@ -196,7 +195,7 @@ impl Session {
         if state == TaskState::Succeed || state == TaskState::Failed {
             task.completion_time = Some(Utc::now());
         }
-        self.add_task(&*task);
+        self.add_task(&task);
 
         Ok(())
     }
@@ -210,15 +209,15 @@ impl Clone for Session {
             slots: self.slots,
             tasks: HashMap::new(),
             tasks_index: HashMap::new(),
-            creation_time: self.creation_time.clone(),
-            completion_time: self.completion_time.clone(),
+            creation_time: self.creation_time,
+            completion_time: self.completion_time,
             status: self.status.clone(),
         };
 
         for (id, t) in &self.tasks {
             match t.ptr.lock() {
                 Ok(t) => {
-                    ssn.add_task(&*t);
+                    ssn.add_task(&t);
                 }
                 Err(_) => {
                     log::error!("Failed to lock task: <{}>, ignore it during clone.", id);
@@ -250,7 +249,7 @@ impl TryFrom<rpc::Task> for TaskContext {
             .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
 
         Ok(TaskContext {
-            id: metadata.id.to_string(),
+            id: metadata.id,
             ssn_id: spec.session_id.to_string(),
             input: spec.input.map(vec_to_message),
             output: spec.output.map(vec_to_message),
@@ -270,7 +269,7 @@ impl TryFrom<rpc::Session> for SessionContext {
             .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
 
         Ok(SessionContext {
-            ssn_id: metadata.id.clone(),
+            ssn_id: metadata.id,
             application: spec.application.clone(),
             slots: spec.slots,
         })
@@ -301,12 +300,9 @@ impl From<&Task> for rpc::Task {
                 output: task.output.clone().map(message_to_vec),
             }),
             status: Some(rpc::TaskStatus {
-                state: TaskState::from(task.state) as i32,
+                state: task.state as i32,
                 creation_time: task.creation_time.timestamp(),
-                completion_time: match task.completion_time {
-                    None => None,
-                    Some(s) => Some(s.timestamp()),
-                },
+                completion_time: task.completion_time.map(|s| s.timestamp()),
             }),
         }
     }
@@ -324,12 +320,9 @@ impl From<SessionState> for rpc::SessionState {
 impl From<&Session> for rpc::Session {
     fn from(ssn: &Session) -> Self {
         let mut status = rpc::SessionStatus {
-            state: SessionState::from(ssn.status.state) as i32,
+            state: ssn.status.state as i32,
             creation_time: ssn.creation_time.timestamp(),
-            completion_time: match ssn.completion_time {
-                None => None,
-                Some(s) => Some(s.timestamp()),
-            },
+            completion_time: ssn.completion_time.map(|s| s.timestamp()),
             failed: 0,
             pending: 0,
             running: 0,

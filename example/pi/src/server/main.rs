@@ -26,12 +26,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut sum = 0;
 
     for _ in 0..total {
-        let x = die.sample(&mut rng) as f64;
-        let y = die.sample(&mut rng) as f64;
+        let x: f64 = die.sample(&mut rng);
+        let y: f64 = die.sample(&mut rng);
         let dist = (x * x + y * y).sqrt();
 
         if dist <= 1.0 {
-            sum = sum + 1;
+            sum += 1;
         }
     }
 

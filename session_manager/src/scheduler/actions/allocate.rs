@@ -84,8 +84,8 @@ impl Action for AllocateAction {
         if let Some(ssn_list) = ss.ssn_state_index.get(&SessionState::Open) {
             for ssn in ssn_list {
                 let mut desired = 0.0;
-                for p in vec![TaskState::Pending, TaskState::Running] {
-                    if let Some(s) = ssn.tasks_status.get(&p) {
+                for p in &[TaskState::Pending, TaskState::Running] {
+                    if let Some(s) = ssn.tasks_status.get(p) {
                         desired += *s as f64 * (ssn.slots as f64);
                     }
                 }
@@ -100,7 +100,7 @@ impl Action for AllocateAction {
                 );
 
                 ssn_order_info.push(SsnOrderInfo {
-                    id: ssn.id.clone(),
+                    id: ssn.id,
                     appname: ssn.application.clone(),
                     slots: ssn.slots,
                     desired,
@@ -131,7 +131,7 @@ impl Action for AllocateAction {
                             continue;
                         }
 
-                        if let Err(e) = self.storage.bind_session(exec.id.clone(), ssn.id.clone()) {
+                        if let Err(e) = self.storage.bind_session(exec.id.clone(), ssn.id) {
                             log::error!(
                                 "Failed to bind Session <{}> to Executor <{}>: {}.",
                                 exec.id.clone(),

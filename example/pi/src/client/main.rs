@@ -85,7 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         // If all tasks finished, exit.
         if task_ids.len() == succeed {
-            let pi = (4 as f64) * area as f64 / ((task_num as f64) * (task_input as f64));
+            let pi = 4_f64 * area as f64 / ((task_num as f64) * (task_input as f64));
             println!("pi = 4*({}/{}) = {}", area, task_num * task_input, pi);
             break;
         }

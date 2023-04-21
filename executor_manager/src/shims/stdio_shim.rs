@@ -30,10 +30,10 @@ pub struct StdioShim {
 
 impl StdioShim {
     pub fn new(app: &Application) -> ShimPtr {
-        return Arc::new(Mutex::new(StdioShim {
+        Arc::new(Mutex::new(Self {
             application: app.clone(),
             session_context: None,
-        }));
+        }))
     }
 }
 
@@ -78,7 +78,7 @@ impl Shim for StdioShim {
         if let Some(input) = &ctx.input {
             let input = input.clone();
             let _handler = thread::spawn(move || {
-                match stdin.write_all(&input.to_vec()) {
+                match stdin.write_all(&input) {
                     Ok(_) => {}
                     Err(e) => {
                         log::error!("Failed to send input into shim instance: {}.", e);

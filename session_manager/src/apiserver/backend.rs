@@ -46,7 +46,7 @@ impl Backend for Flame {
             .map(apis::Application::from)
             .collect();
         let e = apis::Executor {
-            id: req.executor_id.to_string(),
+            id: req.executor_id,
             slots: spec.slots,
             applications,
             task_id: None,
@@ -88,8 +88,7 @@ impl Backend for Flame {
         trace_fn!("Backend::bind_executor_completed");
         let req = req.into_inner();
 
-        self.storage
-            .bind_session_completed(req.executor_id.to_string())?;
+        self.storage.bind_session_completed(req.executor_id)?;
 
         Ok(Response::new(rpc::Result {
             return_code: 0,
@@ -102,7 +101,7 @@ impl Backend for Flame {
         req: Request<UnbindExecutorRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
-        self.storage.unbind_executor(req.executor_id.clone())?;
+        self.storage.unbind_executor(req.executor_id)?;
 
         Ok(Response::new(rpc::Result {
             return_code: 0,
@@ -115,8 +114,7 @@ impl Backend for Flame {
         req: Request<UnbindExecutorCompletedRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
-        self.storage
-            .unbind_executor_completed(req.executor_id.clone())?;
+        self.storage.unbind_executor_completed(req.executor_id)?;
 
         Ok(Response::new(rpc::Result {
             return_code: 0,
@@ -129,7 +127,7 @@ impl Backend for Flame {
         req: Request<LaunchTaskRequest>,
     ) -> Result<Response<LaunchTaskResponse>, Status> {
         let req = req.into_inner();
-        let task = self.storage.launch_task(req.executor_id.clone())?;
+        let task = self.storage.launch_task(req.executor_id)?;
         if let Some(task) = task {
             return Ok(Response::new(LaunchTaskResponse {
                 task: Some(rpc::Task::from(&task)),

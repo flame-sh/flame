@@ -85,7 +85,7 @@ impl States for BoundState {
             e.ssn_id = Some(ssn_id);
         };
 
-        let task_ptr = task_ptr.clone().unwrap();
+        let task_ptr = task_ptr.unwrap();
         let task = lock_cond_ptr!(task_ptr)?;
         Ok(Some((*task).clone()))
     }
@@ -100,7 +100,7 @@ impl States for BoundState {
 
         {
             let mut e = lock_cond_ptr!(self.executor)?;
-            (*e).task_id = None;
+            e.task_id = None;
         };
 
         {

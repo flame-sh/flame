@@ -201,7 +201,7 @@ impl From<&rpc::Task> for Task {
         let spec = task.spec.clone().unwrap();
         let status = task.status.clone().unwrap();
         Task {
-            id: metadata.id.clone(),
+            id: metadata.id,
             ssn_id: spec.session_id.clone(),
             input: spec.input.map(TaskInput::from),
             output: spec.output.map(TaskOutput::from),
@@ -215,7 +215,7 @@ impl From<&rpc::Session> for Session {
         let metadata = ssn.metadata.clone().unwrap();
         let status = ssn.status.clone().unwrap();
         Session {
-            id: metadata.id.clone(),
+            id: metadata.id,
             state: SessionState::from_i32(status.state).unwrap_or(SessionState::default()),
         }
     }

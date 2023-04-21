@@ -71,7 +71,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let ssn_meta = ssn
         .into_inner()
         .metadata
-        .clone()
         .ok_or(Status::data_loss("no session meta"))?;
 
     let mut task_ids = vec![];
@@ -131,10 +130,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 TaskState::from_i32(task_status.state).ok_or(Status::data_loss("no task state"))?;
 
             match state {
-                TaskState::TaskPending => pending = pending + 1,
-                TaskState::TaskRunning => running = running + 1,
-                TaskState::TaskSucceed => succeed = succeed + 1,
-                TaskState::TaskFailed => failed = failed + 1,
+                TaskState::TaskPending => pending += 1,
+                TaskState::TaskRunning => running += 1,
+                TaskState::TaskSucceed => succeed += 1,
+                TaskState::TaskFailed => failed += 1,
             }
         }
 

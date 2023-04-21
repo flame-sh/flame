@@ -56,7 +56,7 @@ impl FlameContext {
         let ctx: FlameContext = confy::load_path(fp.clone())
             .map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
 
-        log::debug!("Load FrameContext from <{}>: {}", &fp, ctx.clone());
+        log::debug!("Load FrameContext from <{}>: {}", &fp, ctx);
 
         if ctx.applications.is_empty() {
             return Err(FlameError::InvalidConfig("no application".to_string()));

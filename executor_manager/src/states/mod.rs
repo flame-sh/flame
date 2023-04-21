@@ -26,21 +26,11 @@ mod unknown;
 
 pub fn from(e: Executor) -> Box<dyn State> {
     match e.state {
-        ExecutorState::Init => Box::new(init::InitState {
-            executor: e.clone(),
-        }),
-        ExecutorState::Idle => Box::new(idle::IdleState {
-            executor: e.clone(),
-        }),
-        ExecutorState::Bound => Box::new(bound::BoundState {
-            executor: e.clone(),
-        }),
-        ExecutorState::Unbound => Box::new(unbound::UnboundState {
-            executor: e.clone(),
-        }),
-        ExecutorState::Unknown => Box::new(unknown::UnknownState {
-            executor: e.clone(),
-        }),
+        ExecutorState::Init => Box::new(init::InitState { executor: e }),
+        ExecutorState::Idle => Box::new(idle::IdleState { executor: e }),
+        ExecutorState::Bound => Box::new(bound::BoundState { executor: e }),
+        ExecutorState::Unbound => Box::new(unbound::UnboundState { executor: e }),
+        ExecutorState::Unknown => Box::new(unknown::UnknownState { executor: e }),
     }
 }
 
