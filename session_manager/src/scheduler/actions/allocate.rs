@@ -28,6 +28,7 @@ pub struct AllocateAction {
 
 struct SsnOrderInfo {
     id: SessionID,
+    appname: String,
     slots: i32,
     desired: f64,
     allocated: f64,
@@ -70,13 +71,16 @@ impl Action for AllocateAction {
     fn execute(&self, ss: &mut SnapShot) -> Result<(), FlameError> {
         log::debug!(
             "Session: <{}>, Executor: <{}>",
-            ss.sessions.len(),
+            ss.ssn_state_index
+                .get(&SessionState::Open)
+                .unwrap_or(&vec![])
+                .len(),
             ss.executors.len()
         );
 
+        // TODO(k82cn): move this into SsnOrderFn plugin.
         let mut ssn_order_info = BinaryHeap::new();
 
-        // TODO(k82cn): move this into SsnOrderFn plugin.
         if let Some(ssn_list) = ss.ssn_state_index.get(&SessionState::Open) {
             for ssn in ssn_list {
                 let mut desired = 0.0;
@@ -97,6 +101,7 @@ impl Action for AllocateAction {
 
                 ssn_order_info.push(SsnOrderInfo {
                     id: ssn.id.clone(),
+                    appname: ssn.application.clone(),
                     slots: ssn.slots,
                     desired,
                     allocated,
@@ -118,6 +123,14 @@ impl Action for AllocateAction {
                     let mut pos = -1;
                     for (i, exec) in idle_execs.iter().enumerate() {
                         // TODO(k82cn): filter Executor by slots & applications.
+                        if !exec
+                            .applications
+                            .iter()
+                            .any(|app_info| app_info.name == ssn.appname)
+                        {
+                            continue;
+                        }
+
                         if let Err(e) = self.storage.bind_session(exec.id.clone(), ssn.id.clone()) {
                             log::error!(
                                 "Failed to bind Session <{}> to Executor <{}>: {}.",
