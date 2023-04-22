@@ -11,13 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-mod allocate;
+use std::sync::Arc;
+
+use crate::scheduler::Context;
+use crate::FlameError;
 
 pub use allocate::AllocateAction;
 
-use crate::model::SnapShot;
-use crate::FlameError;
+mod allocate;
+
+pub type ActionPtr = Arc<dyn Action>;
 
 pub trait Action {
-    fn execute(&self, snapshot: &mut SnapShot) -> Result<(), FlameError>;
+    fn execute(&self, ctx: &mut Context) -> Result<(), FlameError>;
 }

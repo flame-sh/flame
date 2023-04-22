@@ -13,35 +13,35 @@ limitations under the License.
 
 use std::{thread, time};
 
-use crate::scheduler::actions::{Action, AllocateAction};
-use crate::{storage, FlameThread};
+use crate::scheduler::ctx::Context;
+
+use crate::FlameThread;
 use common::ctx::FlameContext;
 use common::FlameError;
 
 mod actions;
+mod ctx;
+mod plugins;
 
 pub fn new() -> Box<dyn FlameThread> {
-    Box::new(SchedulerRunner {})
+    Box::new(ScheduleRunner {})
 }
 
-struct SchedulerRunner {}
+struct ScheduleRunner {}
 
-impl FlameThread for SchedulerRunner {
-    fn run(&self, _ctx: FlameContext) -> Result<(), FlameError> {
+impl FlameThread for ScheduleRunner {
+    fn run(&self, flame_ctx: FlameContext) -> Result<(), FlameError> {
         loop {
-            let mut snapshot = storage::instance().snapshot()?;
-            let actions: Vec<Box<dyn Action>> = vec![Box::new(AllocateAction {
-                storage: storage::instance(),
-            })];
+            let mut ctx = Context::try_from(&flame_ctx)?;
 
-            for action in actions {
-                if let Err(e) = action.execute(&mut snapshot) {
+            for action in ctx.actions.clone() {
+                if let Err(e) = action.execute(&mut ctx) {
                     log::error!("Failed to run scheduling: {}", e);
                     break;
                 };
             }
 
-            let delay = time::Duration::from_millis(500);
+            let delay = time::Duration::from_millis(ctx.schedule_interval);
             thread::sleep(delay);
         }
     }

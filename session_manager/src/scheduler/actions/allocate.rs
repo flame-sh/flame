@@ -11,147 +11,105 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use std::collections::{BinaryHeap, HashMap};
 
 use std::sync::Arc;
 
-use crate::model::SnapShot;
-use crate::scheduler::actions::Action;
-use crate::storage::Storage;
+use crate::scheduler::actions::{Action, ActionPtr};
+use crate::scheduler::Context;
+
 use crate::FlameError;
-use common::apis::{ExecutorState, SessionID, SessionState, TaskState};
+use common::apis::{ExecutorState, SessionState};
 
 pub struct AllocateAction {
-    pub storage: Arc<Storage>,
+    // pub storage: Arc<Storage>,
 }
 
-struct SsnOrderInfo {
-    id: SessionID,
-    appname: String,
-    slots: i32,
-    desired: f64,
-    allocated: f64,
-}
-
-impl Eq for SsnOrderInfo {}
-
-impl PartialEq<Self> for SsnOrderInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.cmp(other) == Ordering::Equal
-    }
-}
-
-impl PartialOrd<Self> for SsnOrderInfo {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for SsnOrderInfo {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let my_diff = self.desired - self.allocated;
-        let other_diff = other.desired - other.allocated;
-
-        let res = Ordering::Equal;
-
-        if other_diff > my_diff {
-            return Ordering::Greater;
-        }
-
-        if other_diff < my_diff {
-            return Ordering::Less;
-        }
-
-        res
+impl AllocateAction {
+    pub fn new_ptr() -> ActionPtr {
+        Arc::new(AllocateAction {})
     }
 }
 
 impl Action for AllocateAction {
-    fn execute(&self, ss: &mut SnapShot) -> Result<(), FlameError> {
+    fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
+        let ss = ctx.snapshot.clone();
+
         log::debug!(
             "Session: <{}>, Executor: <{}>",
-            ss.ssn_state_index
+            ss.ssn_index
                 .get(&SessionState::Open)
-                .unwrap_or(&vec![])
+                .unwrap_or(&HashMap::new())
                 .len(),
             ss.executors.len()
         );
 
-        // TODO(k82cn): move this into SsnOrderFn plugin.
-        let mut ssn_order_info = BinaryHeap::new();
+        let mut open_ssns = BinaryHeap::new();
+        let mut idle_execs = Vec::new();
 
-        if let Some(ssn_list) = ss.ssn_state_index.get(&SessionState::Open) {
-            for ssn in ssn_list {
-                let mut desired = 0.0;
-                for p in &[TaskState::Pending, TaskState::Running] {
-                    if let Some(s) = ssn.tasks_status.get(p) {
-                        desired += *s as f64 * (ssn.slots as f64);
-                    }
-                }
+        if let Some(ssn_list) = ss.ssn_index.get(&SessionState::Open) {
+            for ssn in ssn_list.values() {
+                open_ssns.push(ssn.clone());
+            }
+        }
 
-                let allocated = ssn.executors.len() as f64 * (ssn.slots as f64);
-
-                log::debug!(
-                    "Session <{}>: desired <{}>, allocated<{}>",
-                    ssn.id.clone(),
-                    desired.clone(),
-                    allocated.clone()
-                );
-
-                ssn_order_info.push(SsnOrderInfo {
-                    id: ssn.id,
-                    appname: ssn.application.clone(),
-                    slots: ssn.slots,
-                    desired,
-                    allocated,
-                })
+        if let Some(execs) = ss.exec_index.get(&ExecutorState::Idle) {
+            for exec in execs.values() {
+                idle_execs.push(exec.clone());
             }
         }
 
         loop {
-            if ssn_order_info.is_empty() {
+            if open_ssns.is_empty() {
                 break;
             }
 
-            if let Some(mut ssn) = ssn_order_info.pop() {
-                if ssn.allocated > ssn.desired {
+            let ssn = open_ssns.pop().unwrap();
+            log::debug!("Start resources allocation for session <{}>", &ssn.id);
+            if !ctx.is_underused(&ssn) {
+                continue;
+            }
+
+            log::debug!(
+                "Session <{}> is underused, start to allocate resources.",
+                &ssn.id
+            );
+
+            let mut pos = None;
+            for (i, exec) in idle_execs.iter_mut().enumerate() {
+                log::debug!(
+                    "Try to allocate executor <{}> for session <{}>",
+                    exec.id.clone(),
+                    ssn.id.clone()
+                );
+
+                if !ctx.filter_one(exec, &ssn) {
                     continue;
                 }
 
-                if let Some(idle_execs) = ss.exec_state_index.get_mut(&ExecutorState::Idle) {
-                    let mut pos = -1;
-                    for (i, exec) in idle_execs.iter().enumerate() {
-                        // TODO(k82cn): filter Executor by slots & applications.
-                        if !exec
-                            .applications
-                            .iter()
-                            .any(|app_info| app_info.name == ssn.appname)
-                        {
-                            continue;
-                        }
-
-                        if let Err(e) = self.storage.bind_session(exec.id.clone(), ssn.id) {
-                            log::error!(
-                                "Failed to bind Session <{}> to Executor <{}>: {}.",
-                                exec.id.clone(),
-                                ssn.id.clone(),
-                                e
-                            );
-                            continue;
-                        }
-
-                        pos = i as i32;
-                        ssn.allocated += ssn.slots as f64;
-                        ssn_order_info.push(ssn);
-                        break;
-                    }
-
-                    // TODO(k82cn): also remove it from ss.executors & ss.exec_index to keep data sync.
-                    if pos >= 0 {
-                        idle_execs.remove(pos as usize);
-                    }
+                if let Err(e) = ctx.bind_session(exec, &ssn) {
+                    log::error!(
+                        "Failed to bind Session <{}> to Executor <{}>: {}.",
+                        exec.id.clone(),
+                        ssn.id.clone(),
+                        e
+                    );
+                    continue;
                 }
+
+                pos = Some(i);
+
+                log::debug!(
+                    "Executor <{}> was allocated to session <{}>, remove it from idle list.",
+                    exec.id.clone(),
+                    ssn.id.clone()
+                );
+                open_ssns.push(ssn);
+                break;
+            }
+
+            if let Some(p) = pos {
+                idle_execs.remove(p);
             }
         }
 

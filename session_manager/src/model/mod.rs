@@ -21,13 +21,16 @@ use common::apis::{
     TaskID, TaskState,
 };
 
+pub type SessionInfoPtr = Rc<SessionInfo>;
+pub type ExecutorInfoPtr = Rc<ExecutorInfo>;
+
+#[derive(Clone)]
 pub struct SnapShot {
-    pub sessions: Vec<Rc<SessionInfo>>,
-    pub ssn_index: HashMap<SessionID, Rc<SessionInfo>>,
-    pub ssn_state_index: HashMap<SessionState, Vec<Rc<SessionInfo>>>,
-    pub executors: Vec<Rc<ExecutorInfo>>,
-    pub exec_index: HashMap<ExecutorID, Rc<ExecutorInfo>>,
-    pub exec_state_index: HashMap<ExecutorState, Vec<Rc<ExecutorInfo>>>,
+    pub sessions: HashMap<SessionID, SessionInfoPtr>,
+    pub ssn_index: HashMap<SessionState, HashMap<SessionID, SessionInfoPtr>>,
+
+    pub executors: HashMap<ExecutorID, ExecutorInfoPtr>,
+    pub exec_index: HashMap<ExecutorState, HashMap<ExecutorID, ExecutorInfoPtr>>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -48,21 +51,17 @@ pub struct SessionInfo {
     pub slots: i32,
 
     pub tasks_status: HashMap<TaskState, i32>,
-    pub executors: HashMap<ExecutorID, Rc<ExecutorInfo>>,
 
     pub creation_time: DateTime<Utc>,
     pub completion_time: Option<DateTime<Utc>>,
 
     pub state: SessionState,
-
-    pub total: f64,
-    pub desired: f64,
-    pub allocated: f64,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct ExecutorInfo {
     pub id: ExecutorID,
+    pub slots: i32,
     pub applications: Vec<AppInfo>,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
@@ -96,6 +95,7 @@ impl From<&Executor> for ExecutorInfo {
 
         ExecutorInfo {
             id: exec.id.clone(),
+            slots: exec.slots,
             applications,
             task_id: exec.task_id,
             ssn_id: exec.ssn_id,
@@ -131,14 +131,66 @@ impl From<&Session> for SessionInfo {
             slots: ssn.slots,
             // tasks,
             tasks_status,
-            executors: HashMap::new(),
             creation_time: ssn.creation_time,
             completion_time: ssn.completion_time,
             state: ssn.status.state,
-
-            total: 0.0,
-            desired: 0.0,
-            allocated: 0.0,
         }
+    }
+}
+
+impl SnapShot {
+    pub fn add_session(&mut self, ssn: SessionInfoPtr) {
+        self.sessions.insert(ssn.id, ssn.clone());
+        self.ssn_index.entry(ssn.state).or_insert_with(HashMap::new);
+
+        if let Some(ssn_list) = self.ssn_index.get_mut(&ssn.state) {
+            ssn_list.insert(ssn.id, ssn.clone());
+        }
+    }
+
+    pub fn delete_session(&mut self, ssn: SessionInfoPtr) {
+        self.sessions.remove(&ssn.id);
+
+        for ssn_list in &mut self.ssn_index.values_mut() {
+            ssn_list.remove(&ssn.id);
+        }
+    }
+
+    pub fn update_session(&mut self, ssn: SessionInfoPtr) {
+        self.delete_session(ssn.clone());
+        self.add_session(ssn);
+    }
+
+    pub fn add_executor(&mut self, exec: ExecutorInfoPtr) {
+        self.executors.insert(exec.id.clone(), exec.clone());
+        self.exec_index
+            .entry(exec.state)
+            .or_insert_with(HashMap::new);
+
+        if let Some(exec_list) = self.exec_index.get_mut(&exec.state.clone()) {
+            exec_list.insert(exec.id.clone(), exec.clone());
+        }
+    }
+
+    pub fn delete_executor(&mut self, exec: ExecutorInfoPtr) {
+        self.executors.remove(&exec.id);
+        for exec_list in &mut self.exec_index.values_mut() {
+            exec_list.remove(&exec.id);
+        }
+    }
+
+    pub fn update_executor_state(&mut self, exec: ExecutorInfoPtr, state: ExecutorState) {
+        let new_exec = Rc::new(ExecutorInfo {
+            id: exec.id.clone(),
+            slots: exec.slots,
+            applications: exec.applications.to_vec(),
+            task_id: exec.task_id,
+            ssn_id: exec.ssn_id,
+            creation_time: exec.creation_time,
+            state,
+        });
+
+        self.delete_executor(new_exec.clone());
+        self.add_executor(new_exec);
     }
 }

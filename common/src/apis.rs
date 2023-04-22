@@ -145,7 +145,7 @@ impl Session {
         self.tasks.insert(task.id, task_ptr.clone());
         self.tasks_index
             .entry(task.state)
-            .or_insert_with(|| HashMap::new());
+            .or_insert_with(HashMap::new);
         self.tasks_index
             .get_mut(&task.state)
             .unwrap()

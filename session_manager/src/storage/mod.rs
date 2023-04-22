@@ -41,9 +41,11 @@ lazy_static! {
     });
 }
 
-pub fn instance() -> Arc<Storage> {
+pub fn instance() -> StoragePtr {
     Arc::clone(&INSTANCE)
 }
+
+pub type StoragePtr = Arc<Storage>;
 
 pub struct Storage {
     max_ssn_id: Mutex<i64>,
@@ -76,13 +78,11 @@ impl Storage {
 
     pub fn snapshot(&self) -> Result<SnapShot, FlameError> {
         let mut res = SnapShot {
-            sessions: vec![],
+            sessions: HashMap::new(),
             ssn_index: HashMap::new(),
-            ssn_state_index: HashMap::new(),
 
-            executors: vec![],
+            executors: HashMap::new(),
             exec_index: HashMap::new(),
-            exec_state_index: HashMap::new(),
         };
 
         {
@@ -90,7 +90,7 @@ impl Storage {
             for ssn in ssn_map.deref().values() {
                 let ssn = lock_cond_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
-                res.sessions.push(Rc::new(info));
+                res.add_session(Rc::new(info));
             }
         }
 
@@ -99,49 +99,7 @@ impl Storage {
             for exe in exe_map.deref().values() {
                 let exe = lock_cond_ptr!(exe)?;
                 let info = ExecutorInfo::from(&(*exe).clone());
-                res.executors.push(Rc::new(info));
-            }
-        }
-
-        // Build index without related locks.
-        for ssn in &res.sessions {
-            res.ssn_index.insert(ssn.id, ssn.clone());
-            res.ssn_state_index
-                .entry(ssn.state)
-                .or_insert_with(Vec::new);
-
-            if let Some(si) = res.ssn_state_index.get_mut(&ssn.state) {
-                si.push(ssn.clone());
-            }
-        }
-
-        for exec in &res.executors {
-            res.exec_index.insert(exec.id.clone(), exec.clone());
-            res.exec_state_index
-                .entry(exec.state)
-                .or_insert_with(Vec::new);
-
-            if let Some(ei) = res.exec_state_index.get_mut(&exec.state) {
-                ei.push(exec.clone());
-            }
-
-            // Update session's status
-            if let Some(ssn_id) = &exec.ssn_id {
-                match res.ssn_index.get_mut(ssn_id) {
-                    // ssn.executors.insert(exec.id.clone, exec.clone());
-                    None => {
-                        log::warn!(
-                            "Failed to find Session <{}> for Executor <{}>",
-                            ssn_id,
-                            exec.id
-                        );
-                    }
-                    Some(ssn) => {
-                        if let Some(ssn) = Rc::get_mut(ssn) {
-                            ssn.executors.insert(exec.id.clone(), exec.clone());
-                        }
-                    }
-                }
+                res.add_executor(Rc::new(info));
             }
         }
 

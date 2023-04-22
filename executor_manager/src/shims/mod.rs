@@ -25,8 +25,8 @@ pub type ShimPtr = MutexPtr<dyn Shim>;
 
 pub fn from(app: &Application) -> Result<ShimPtr, FlameError> {
     match app.shim {
-        ShimType::Stdio => Ok(StdioShim::new(app)),
-        _ => Ok(LogShim::new(app)),
+        ShimType::Stdio => Ok(StdioShim::new_ptr(app)),
+        _ => Ok(LogShim::new_ptr(app)),
     }
 }
 

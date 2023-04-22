@@ -29,7 +29,7 @@ pub struct StdioShim {
 }
 
 impl StdioShim {
-    pub fn new(app: &Application) -> ShimPtr {
+    pub fn new_ptr(app: &Application) -> ShimPtr {
         Arc::new(Mutex::new(Self {
             application: app.clone(),
             session_context: None,
