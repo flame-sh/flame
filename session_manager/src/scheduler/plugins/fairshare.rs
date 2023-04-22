@@ -19,6 +19,7 @@ use std::collections::HashMap;
 
 #[derive(Default)]
 struct SSNInfo {
+    pub slots: i32,
     pub desired: f64,
     pub allocated: f64,
 }
@@ -52,6 +53,7 @@ impl Plugin for FairShare {
                 ssn.id,
                 SSNInfo {
                     desired,
+                    slots: ssn.slots,
                     ..SSNInfo::default()
                 },
             );
@@ -95,6 +97,12 @@ impl Plugin for FairShare {
         self.ssn_map
             .get(&ssn.id)
             .map(|ssn| ssn.allocated < ssn.desired)
+    }
+
+    fn is_preemptible(&self, ssn: &SessionInfoPtr) -> Option<bool> {
+        self.ssn_map
+            .get(&ssn.id)
+            .map(|ssn| ssn.allocated - ssn.slots as f64 >= ssn.desired)
     }
 
     fn filter(

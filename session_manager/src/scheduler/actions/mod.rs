@@ -17,8 +17,10 @@ use crate::scheduler::Context;
 use crate::FlameError;
 
 pub use allocate::AllocateAction;
+pub use shuffle::ShuffleAction;
 
 mod allocate;
+mod shuffle;
 
 pub type ActionPtr = Arc<dyn Action>;
 

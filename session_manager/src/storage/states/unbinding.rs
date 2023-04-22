@@ -14,7 +14,9 @@ limitations under the License.
 use futures::future::BoxFuture;
 
 use crate::storage::states::States;
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskOutput, TaskPtr};
+use common::apis::{
+    ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskOutput, TaskPtr, TaskState,
+};
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct UnbindingState {
@@ -60,10 +62,27 @@ impl States for UnbindingState {
 
     fn complete_task(
         &self,
-        _ssn: SessionPtr,
-        _task: TaskPtr,
-        _: Option<TaskOutput>,
+        ssn_ptr: SessionPtr,
+        task_ptr: TaskPtr,
+        task_output: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("UnbindingState::complete_task");
+
+        {
+            let mut e = lock_cond_ptr!(self.executor)?;
+            e.task_id = None;
+        };
+
+        {
+            let mut task = lock_cond_ptr!(task_ptr)?;
+            task.output = task_output;
+        }
+
+        {
+            let mut ssn = lock_cond_ptr!(ssn_ptr)?;
+            ssn.update_task_state(task_ptr, TaskState::Succeed)?;
+        }
+
+        Ok(())
     }
 }

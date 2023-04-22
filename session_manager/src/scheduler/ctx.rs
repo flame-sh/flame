@@ -12,7 +12,7 @@ limitations under the License.
 */
 
 use crate::model::{ExecutorInfoPtr, SessionInfoPtr, SnapShot};
-use crate::scheduler::actions::{ActionPtr, AllocateAction};
+use crate::scheduler::actions::{ActionPtr, AllocateAction, ShuffleAction};
 use crate::scheduler::plugins::{PluginManager, PluginManagerPtr};
 use crate::storage;
 use crate::storage::StoragePtr;
@@ -42,7 +42,8 @@ impl TryFrom<&FlameContext> for Context {
             snapshot,
             plugins,
             storage: storage::instance(),
-            actions: vec![AllocateAction::new_ptr()],
+            // TODO(k82cn): Add ActionManager for them.
+            actions: vec![AllocateAction::new_ptr(), ShuffleAction::new_ptr()],
             schedule_interval: DEFAULT_SCHEDULE_INTERVAL,
         })
     }
@@ -77,6 +78,16 @@ impl Context {
         }
     }
 
+    pub fn is_preemptible(&self, ssn: &SessionInfoPtr) -> bool {
+        match lock_ptr!(self.plugins) {
+            Ok(plugins) => plugins.is_preemptible(ssn),
+            Err(e) => {
+                log::error!("Failed to lock plugin manager: {}", e);
+                true
+            }
+        }
+    }
+
     pub fn bind_session(
         &mut self,
         exec: &ExecutorInfoPtr,
@@ -84,6 +95,22 @@ impl Context {
     ) -> Result<(), FlameError> {
         self.storage.bind_session(exec.id.clone(), ssn.id)?;
 
+        {
+            let mut plugins = lock_ptr!(self.plugins)?;
+            plugins.on_session_bind(ssn);
+        }
+
+        self.snapshot
+            .update_executor_state(exec.clone(), ExecutorState::Binding);
+
+        Ok(())
+    }
+
+    pub fn pipeline_session(
+        &mut self,
+        exec: &ExecutorInfoPtr,
+        ssn: &SessionInfoPtr,
+    ) -> Result<(), FlameError> {
         {
             let mut plugins = lock_ptr!(self.plugins)?;
             plugins.on_session_bind(ssn);

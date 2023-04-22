@@ -42,6 +42,8 @@ pub trait Plugin: Send + Sync + 'static {
 
     fn is_underused(&self, ssn: &SessionInfoPtr) -> Option<bool>;
 
+    fn is_preemptible(&self, ssn: &SessionInfoPtr) -> Option<bool>;
+
     fn filter(
         &self,
         exec: &[ExecutorInfoPtr],
@@ -71,6 +73,12 @@ impl PluginManager {
         self.plugins
             .values()
             .all(|plugin| plugin.is_underused(ssn).unwrap_or(false))
+    }
+
+    pub fn is_preemptible(&self, ssn: &SessionInfoPtr) -> bool {
+        self.plugins
+            .values()
+            .all(|plugin| plugin.is_preemptible(ssn).unwrap_or(false))
     }
 
     pub fn filter(

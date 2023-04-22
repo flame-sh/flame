@@ -20,10 +20,9 @@ use crate::scheduler::Context;
 
 use crate::FlameError;
 use common::apis::{ExecutorState, SessionState};
+use common::{trace::TraceFn, trace_fn};
 
-pub struct AllocateAction {
-    // pub storage: Arc<Storage>,
-}
+pub struct AllocateAction {}
 
 impl AllocateAction {
     pub fn new_ptr() -> ActionPtr {
@@ -33,6 +32,7 @@ impl AllocateAction {
 
 impl Action for AllocateAction {
     fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
+        trace_fn!("AllocateAction::execute");
         let ss = ctx.snapshot.clone();
 
         log::debug!(
