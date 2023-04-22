@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::collections::binary_heap::BinaryHeap;
+
 use crate::model::{ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot};
 use crate::scheduler::plugins::{Plugin, PluginPtr};
 use common::apis::{SessionID, SessionState, TaskState};
@@ -21,6 +23,7 @@ use std::collections::HashMap;
 struct SSNInfo {
     pub slots: i32,
     pub desired: f64,
+    pub deserved: f64,
     pub allocated: f64,
 }
 
@@ -59,11 +62,52 @@ impl Plugin for FairShare {
             );
         }
 
+        let mut remaining_slots = 0.0;
+
         for exe in ss.executors.values() {
+            remaining_slots += exe.slots as f64;
             if let Some(ssn_id) = exe.ssn_id {
                 if let Some(ssn) = self.ssn_map.get_mut(&ssn_id) {
-                    ssn.allocated += exe.slots as f64;
+                    ssn.allocated += ssn.slots as f64;
                 }
+            }
+        }
+
+        let mut underused = BinaryHeap::from_iter(open_ssns.values());
+        loop {
+            if remaining_slots < 0.001 {
+                break;
+            }
+
+            if underused.is_empty() {
+                break;
+            }
+
+            let ssn_ptr = underused.pop().unwrap();
+            let delta = remaining_slots / underused.len() as f64;
+
+            if let Some(ssn) = self.ssn_map.get_mut(&ssn_ptr.id) {
+                if ssn.deserved + delta < ssn.desired {
+                    ssn.deserved += delta;
+                    remaining_slots -= delta;
+                    underused.push(ssn_ptr);
+                } else {
+                    remaining_slots -= ssn.deserved + delta - ssn.desired;
+                    ssn.deserved = ssn.desired;
+                }
+            }
+        }
+
+        if log::log_enabled!(log::Level::Debug) {
+            for (id, ssn) in &self.ssn_map {
+                log::debug!(
+                    "Session <{}>: slots <{}>, desired <{}>, deserved <{}>, allocated <{}>.",
+                    id,
+                    ssn.slots,
+                    ssn.desired,
+                    ssn.deserved,
+                    ssn.allocated
+                )
             }
         }
     }
@@ -79,8 +123,8 @@ impl Plugin for FairShare {
         let ss1 = ss1.unwrap();
         let ss2 = ss2.unwrap();
 
-        let left = ss1.allocated * ss2.desired;
-        let right = ss2.allocated * ss1.desired;
+        let left = ss1.allocated * ss2.deserved;
+        let right = ss2.allocated * ss1.deserved;
 
         if left > right {
             return Some(Ordering::Greater);
@@ -96,13 +140,13 @@ impl Plugin for FairShare {
     fn is_underused(&self, ssn: &SessionInfoPtr) -> Option<bool> {
         self.ssn_map
             .get(&ssn.id)
-            .map(|ssn| ssn.allocated < ssn.desired)
+            .map(|ssn| ssn.allocated < ssn.deserved)
     }
 
     fn is_preemptible(&self, ssn: &SessionInfoPtr) -> Option<bool> {
         self.ssn_map
             .get(&ssn.id)
-            .map(|ssn| ssn.allocated - ssn.slots as f64 >= ssn.desired)
+            .map(|ssn| ssn.allocated - ssn.slots as f64 >= ssn.deserved)
     }
 
     fn filter(

@@ -12,7 +12,7 @@ limitations under the License.
 */
 
 use crate::model::{ExecutorInfoPtr, SessionInfoPtr, SnapShot};
-use crate::scheduler::actions::{ActionPtr, AllocateAction, ShuffleAction};
+use crate::scheduler::actions::{ActionPtr, AllocateAction, BackfillAction, ShuffleAction};
 use crate::scheduler::plugins::{PluginManager, PluginManagerPtr};
 use crate::storage;
 use crate::storage::StoragePtr;
@@ -43,7 +43,11 @@ impl TryFrom<&FlameContext> for Context {
             plugins,
             storage: storage::instance(),
             // TODO(k82cn): Add ActionManager for them.
-            actions: vec![AllocateAction::new_ptr(), ShuffleAction::new_ptr()],
+            actions: vec![
+                AllocateAction::new_ptr(),
+                ShuffleAction::new_ptr(),
+                BackfillAction::new_ptr(),
+            ],
             schedule_interval: DEFAULT_SCHEDULE_INTERVAL,
         })
     }
