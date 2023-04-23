@@ -31,12 +31,8 @@ jobs:
       - name: Install supervisord
         run: |
           sudo apt-get update && sudo apt-get install -y supervisor
-      - name: Start Flame
+      - name: Run CI Flow
         run: |
           mkdir -p ci/logs
           supervisord -c ci/supervisord.conf
-      - name: Run CI Flow
-        uses: actions-rs/cargo@v1
-        with:
-          command: make
-          args: ci-flow
+          cargo make ci-flow
