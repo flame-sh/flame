@@ -48,7 +48,36 @@ In the future, the `Session scheduler` will provide several features to improve 
 
 ## Quick Start Guide
 
-TBD
+Currently, the components of Flame are using gRPC to communicate with each other; so it's required to install gRPC to build the Flame.
+And supervisor makes it simple to start a Flame cluster with several executors.
+
+```shell
+$ sudo apt-get update
+$ sudo apt-get install -y protobuf-compiler supervisor
+```
+
+As Flame is written by Rust, it's easy to build the project by `cargo` as following command: 
+
+```shell
+$ cargo build
+```
+
+Supervisor is used to start the Flame cluster, refer to [ci/supervisord.conf](ci/supervisord.conf) for more detail.
+
+```shell
+$ supervisord -c ci/supervisord.conf
+```
+
+After start the Flame cluster, it's time to verify it with `flmping`. In addition, there are also more meaningful examples [here](example).
+
+```shell
+$ ./target/debug/flmping --flame-conf ci/flame-conf.yaml
+Create session in <10 ms>, and create <10> tasks in <8 ms>.
+
+Waiting for <10> tasks to complete:
+ Total: 10         Succeed: 0          Failed: 0          Pending: 10         Running: 0
+ Total: 10         Succeed: 10         Failed: 0          Pending: 0          Running: 0
+```
 
 ## Reference
 
