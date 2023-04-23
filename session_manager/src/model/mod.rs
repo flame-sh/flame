@@ -148,6 +148,7 @@ impl SnapShot {
         }
     }
 
+    #[allow(dead_code)]
     pub fn delete_session(&mut self, ssn: SessionInfoPtr) {
         self.sessions.remove(&ssn.id);
 
@@ -156,6 +157,7 @@ impl SnapShot {
         }
     }
 
+    #[allow(dead_code)]
     pub fn update_session(&mut self, ssn: SessionInfoPtr) {
         self.delete_session(ssn.clone());
         self.add_session(ssn);
