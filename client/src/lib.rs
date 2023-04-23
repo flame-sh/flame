@@ -54,8 +54,17 @@ lazy_static! {
 }
 
 #[derive(Clone, Debug)]
-pub struct FrontendClient {
+struct FrontendClient {
     client_pool: Arc<Mutex<HashMap<String, FlameClient>>>,
+}
+
+fn get_client() -> Result<FlameClient, FlameError> {
+    let cs = lock_ptr!(INSTANCE.client_pool)?;
+    let client = cs
+        .get(FLAME_CLIENT_NAME)
+        .ok_or(FlameError::Internal("no flame client".to_string()))?;
+
+    Ok(client.clone())
 }
 
 pub async fn connect(addr: &str) -> Result<(), FlameError> {
@@ -67,15 +76,6 @@ pub async fn connect(addr: &str) -> Result<(), FlameError> {
     cs.insert(FLAME_CLIENT_NAME.to_string(), client);
 
     Ok(())
-}
-
-fn get_client() -> Result<FlameClient, FlameError> {
-    let cs = lock_ptr!(INSTANCE.client_pool)?;
-    let client = cs
-        .get(FLAME_CLIENT_NAME)
-        .ok_or(FlameError::Internal("no flame client".to_string()))?;
-
-    Ok(client.clone())
 }
 
 #[derive(Error, Debug)]
