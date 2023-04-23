@@ -1,4 +1,4 @@
-name: CI
+name: Flame CI
 on: [push, pull_request]
 env:
   CLICOLOR_FORCE: 1
@@ -9,8 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [stable, beta, nightly, 1.65.0]
-        os: [ubuntu-latest, windows-latest, macOS-latest]
+        rust: [stable, 1.67.1]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -25,14 +25,7 @@ jobs:
         with:
           command: install
           args: --debug cargo-make
-      - name: Run CI
-        if: matrix.rust == 'stable' || matrix.rust == 'beta' || matrix.rust == 'nightly'
-        uses: actions-rs/cargo@v1
-        with:
-          command: run
-          args: --bin cargo-make --target-dir target/ci -- make ci-flow
-      - name: Run CI (Minimal Supported Rust Version)
-        if: matrix.rust != 'stable' && matrix.rust != 'beta' && matrix.rust != 'nightly' && matrix.os == 'ubuntu-latest'
+      - name: Run CI Flow
         uses: actions-rs/cargo@v1
         with:
           command: make
