@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [stable, 1.67.1]
+        rust: [stable]
         os: [ubuntu-latest]
     steps:
       - name: Checkout
@@ -27,7 +27,10 @@ jobs:
           args: --debug cargo-make
       - name: Install gRPC
         run: |
-          apt-get update && apt-get install -y protobuf-compiler
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
+      - name: Install supervisord
+        run: |
+          sudo apt-get update && sudo apt-get install -y supervisor
       - name: Run CI Flow
         uses: actions-rs/cargo@v1
         with:
