@@ -11,13 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::cmp::Ordering;
 use std::collections::binary_heap::BinaryHeap;
+use std::collections::HashMap;
 
 use crate::model::{ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot};
 use crate::scheduler::plugins::{Plugin, PluginPtr};
 use common::apis::{SessionID, SessionState, TaskState};
-use std::cmp::Ordering;
-use std::collections::HashMap;
 
 #[derive(Default, Clone)]
 struct SSNInfo {
@@ -44,14 +44,11 @@ impl PartialOrd<Self> for SSNInfo {
 
 impl Ord for SSNInfo {
     fn cmp(&self, other: &Self) -> Ordering {
-        let left = self.allocated * other.deserved;
-        let right = other.allocated * self.deserved;
-
-        if left < right {
+        if self.deserved < other.deserved {
             return Ordering::Greater;
         }
 
-        if left > right {
+        if self.deserved > other.deserved {
             return Ordering::Less;
         }
 
@@ -87,6 +84,7 @@ impl Plugin for FairShare {
             self.ssn_map.insert(
                 ssn.id,
                 SSNInfo {
+                    id: ssn.id,
                     desired,
                     slots: ssn.slots,
                     ..SSNInfo::default()
@@ -115,8 +113,9 @@ impl Plugin for FairShare {
                 break;
             }
 
-            let ssn = underused.pop().unwrap();
             let delta = remaining_slots / underused.len() as f64;
+            let mut ssn = underused.pop().unwrap();
+
             if ssn.deserved + delta < ssn.desired {
                 ssn.deserved += delta;
                 remaining_slots -= delta;
