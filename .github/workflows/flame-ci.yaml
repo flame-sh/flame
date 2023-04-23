@@ -25,6 +25,9 @@ jobs:
         with:
           command: install
           args: --debug cargo-make
+      - name: Install gRPC
+        run: |
+          apt-get update && apt-get install -y protobuf-compiler
       - name: Run CI Flow
         uses: actions-rs/cargo@v1
         with:
