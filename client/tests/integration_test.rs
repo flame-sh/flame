@@ -14,25 +14,26 @@ limitations under the License.
 extern crate core;
 
 use flame_client as flame;
-use flame_client::{Session, SessionAttributes, SessionState};
 
-use self::flame::FlameError;
+use self::flame::{FlameError, Session, SessionAttributes, SessionState};
 
 const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:8080";
 
 const FLAME_DEFAULT_APP: &str = "flmexec";
 
 #[tokio::test]
-async fn  test_create_session() -> Result<(), FlameError> {
+async fn test_create_session() -> Result<(), FlameError> {
     flame::connect(FLAME_DEFAULT_ADDR).await?;
 
-    let ssn_attr = SessionAttributes{
+    let ssn_attr = SessionAttributes {
         application: FLAME_DEFAULT_APP.to_string(),
         slots: 1,
     };
     let ssn = Session::new(&ssn_attr).await?;
 
     assert_eq!(ssn.state, SessionState::Open);
+
+    ssn.close().await?;
 
     Ok(())
 }
