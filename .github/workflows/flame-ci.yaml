@@ -28,11 +28,28 @@ jobs:
       - name: Install gRPC
         run: |
           sudo apt-get update && sudo apt-get install -y protobuf-compiler
+      - name: Cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: make
+          args: check-format-ci-flow
+      - name: Cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: make
+          args: clippy-ci-flow
+      - name: Cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: make
+          args: build
       - name: Install supervisord
         run: |
           sudo apt-get update && sudo apt-get install -y supervisor
-      - name: Run CI Flow
+      - name: Start supervisord
         run: |
           mkdir -p ci/logs
           supervisord -c ci/supervisord.conf
-          cargo make ci-flow
+      - name: Run E2E Test
+        run: |
+          cargo make test
