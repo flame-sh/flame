@@ -19,12 +19,44 @@ use common::apis::{SessionID, SessionState, TaskState};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 struct SSNInfo {
+    pub id: SessionID,
     pub slots: i32,
     pub desired: f64,
     pub deserved: f64,
     pub allocated: f64,
+}
+
+impl Eq for SSNInfo {}
+
+impl PartialEq<Self> for SSNInfo {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl PartialOrd<Self> for SSNInfo {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for SSNInfo {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let left = self.allocated * other.deserved;
+        let right = other.allocated * self.deserved;
+
+        if left < right {
+            return Ordering::Greater;
+        }
+
+        if left > right {
+            return Ordering::Less;
+        }
+
+        Ordering::Equal
+    }
 }
 
 pub struct FairShare {
@@ -73,7 +105,7 @@ impl Plugin for FairShare {
             }
         }
 
-        let mut underused = BinaryHeap::from_iter(open_ssns.values());
+        let mut underused = BinaryHeap::from_iter(self.ssn_map.values_mut());
         loop {
             if remaining_slots < 0.001 {
                 break;
@@ -83,26 +115,23 @@ impl Plugin for FairShare {
                 break;
             }
 
-            let ssn_ptr = underused.pop().unwrap();
+            let ssn = underused.pop().unwrap();
             let delta = remaining_slots / underused.len() as f64;
-
-            if let Some(ssn) = self.ssn_map.get_mut(&ssn_ptr.id) {
-                if ssn.deserved + delta < ssn.desired {
-                    ssn.deserved += delta;
-                    remaining_slots -= delta;
-                    underused.push(ssn_ptr);
-                } else {
-                    remaining_slots -= ssn.deserved + delta - ssn.desired;
-                    ssn.deserved = ssn.desired;
-                }
+            if ssn.deserved + delta < ssn.desired {
+                ssn.deserved += delta;
+                remaining_slots -= delta;
+                underused.push(ssn);
+            } else {
+                remaining_slots -= ssn.desired - ssn.deserved;
+                ssn.deserved = ssn.desired;
             }
         }
 
         if log::log_enabled!(log::Level::Debug) {
-            for (id, ssn) in &self.ssn_map {
+            for ssn in self.ssn_map.values() {
                 log::debug!(
                     "Session <{}>: slots <{}>, desired <{}>, deserved <{}>, allocated <{}>.",
-                    id,
+                    ssn.id,
                     ssn.slots,
                     ssn.desired,
                     ssn.deserved,
@@ -126,11 +155,11 @@ impl Plugin for FairShare {
         let left = ss1.allocated * ss2.deserved;
         let right = ss2.allocated * ss1.deserved;
 
-        if left > right {
+        if left < right {
             return Some(Ordering::Greater);
         }
 
-        if left < right {
+        if left > right {
             return Some(Ordering::Less);
         }
 
