@@ -439,6 +439,7 @@ dependencies = [
  "rpc",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tonic",
 ]
 
