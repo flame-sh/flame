@@ -11,24 +11,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use futures::future::BoxFuture;
-
 use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
 
 use crate::storage::states::States;
-use common::apis::{
-    ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskOutput, TaskPtr, TaskState,
-};
+use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
 
 pub struct BoundState {
     pub executor: ExecutorPtr,
 }
 
 impl States for BoundState {
-    fn wait_for_session(&self) -> BoxFuture<'static, Result<SessionID, FlameError>> {
-        todo!()
-    }
-
     fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         todo!()
     }

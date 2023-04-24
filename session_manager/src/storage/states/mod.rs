@@ -11,12 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use futures::future::BoxFuture;
-
 use crate::storage::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };
-use common::apis::{ExecutorPtr, ExecutorState, SessionID, SessionPtr, Task, TaskOutput, TaskPtr};
+use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
 use common::{lock_cond_ptr, FlameError};
 
 mod binding;
@@ -45,8 +43,6 @@ pub fn from(exe_ptr: ExecutorPtr) -> Result<Box<dyn States>, FlameError> {
 }
 
 pub trait States: Send + Sync + 'static {
-    fn wait_for_session(&self) -> BoxFuture<'static, Result<SessionID, FlameError>>;
-
     fn bind_session(&self, ssn: SessionPtr) -> Result<(), FlameError>;
     fn bind_session_completed(&self) -> Result<(), FlameError>;
 
