@@ -10,12 +10,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+use std::pin::Pin;
 
 use async_trait::async_trait;
-
-use common::{trace::TraceFn, trace_fn};
+use futures::Stream;
 use tonic::{Request, Response, Status};
 
+use common::{trace::TraceFn, trace_fn};
 use rpc::flame::frontend_server::Frontend;
 use rpc::flame::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest,
@@ -31,6 +32,8 @@ use common::apis::vec_to_message;
 
 #[async_trait]
 impl Frontend for Flame {
+    type WatchTaskStream = Pin<Box<dyn Stream<Item = Result<Task, Status>> + Send>>;
+
     async fn create_session(
         &self,
         req: Request<CreateSessionRequest>,
@@ -148,7 +151,12 @@ impl Frontend for Flame {
         todo!()
     }
 
-    async fn watch_task(&self, _: Request<WatchTaskRequest>) -> Result<Response<Task>, Status> {
+    async fn watch_task(
+        &self,
+        _: Request<WatchTaskRequest>,
+    ) -> Result<Response<Self::WatchTaskStream>, Status> {
+        // TODO(k82cn): watch task status by streaming, xref: https://github.com/hyperium/tonic/tree/master/examples/src/streaming
+
         todo!()
     }
 

@@ -127,7 +127,7 @@ service Frontend {
   rpc DeleteTask (DeleteTaskRequest) returns (Result) {}
 
   rpc GetTask (GetTaskRequest) returns (Task) {}
-  rpc WatchTask (WatchTaskRequest) returns (Task) {}
+  rpc WatchTask (WatchTaskRequest) returns (stream Task) {}
 }
 
 message CreateSessionRequest {
