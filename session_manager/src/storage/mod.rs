@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
+
 use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
@@ -255,6 +256,14 @@ impl Storage {
         Ok(task.clone())
     }
 
+    pub async fn watch_task(&self, ssn_id: SessionID, task_id: TaskID) -> Result<Task, FlameError> {
+        let task_ptr = self.get_task_ptr(ssn_id, task_id)?;
+        WatchTaskFuture::new(&task_ptr)?.await?;
+
+        let task = lock_cond_ptr!(task_ptr)?;
+        Ok((*task).clone())
+    }
+
     // pub fn update_task_state(&self, t: &Task) -> Result<Task, FlameError> {
     //     let ssn_map = lock_ptr!(self.sessions)?;
     //
@@ -435,5 +444,38 @@ impl Future for WaitForSsnFuture {
             }
             Some(ssn_id) => Poll::Ready(Ok(ssn_id)),
         }
+    }
+}
+
+struct WatchTaskFuture {
+    current_state: TaskState,
+    task: TaskPtr,
+}
+
+impl WatchTaskFuture {
+    pub fn new(task_ptr: &TaskPtr) -> Result<Self, FlameError> {
+        let task_ptr = task_ptr.clone();
+        let task = lock_cond_ptr!(task_ptr)?;
+
+        Ok(Self {
+            current_state: task.state,
+            task: task_ptr.clone(),
+        })
+    }
+}
+
+impl Future for WatchTaskFuture {
+    type Output = Result<(), FlameError>;
+
+    fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        let task = lock_cond_ptr!(self.task)?;
+
+        // If the state of task was updated, return ready.
+        if self.current_state != task.state || task.is_completed() {
+            return Poll::Ready(Ok(()));
+        }
+
+        ctx.waker().wake_by_ref();
+        return Poll::Pending;
     }
 }

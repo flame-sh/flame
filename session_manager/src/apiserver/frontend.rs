@@ -153,9 +153,27 @@ impl Frontend for Flame {
 
     async fn watch_task(
         &self,
-        _: Request<WatchTaskRequest>,
+        req: Request<WatchTaskRequest>,
     ) -> Result<Response<Self::WatchTaskStream>, Status> {
         // TODO(k82cn): watch task status by streaming, xref: https://github.com/hyperium/tonic/tree/master/examples/src/streaming
+        let req = req.into_inner();
+        let ssn_id = req
+            .session_id
+            .parse::<apis::SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid session id"))?;
+
+        let task_id = req
+            .task_id
+            .parse::<apis::SessionID>()
+            .map_err(|_| Status::invalid_argument("invalid task id"))?;
+
+        loop {
+            let task = self.storage.watch_task(ssn_id, task_id).await?;
+            log::debug!("Task <{}> state is <{}>", task.id, task.state as i32);
+            if task.is_completed() {
+                break;
+            }
+        }
 
         todo!()
     }

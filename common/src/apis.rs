@@ -134,6 +134,12 @@ pub struct SessionContext {
     pub slots: i32,
 }
 
+impl Task {
+    pub fn is_completed(&self) -> bool {
+        self.state == TaskState::Succeed || self.state == TaskState::Failed
+    }
+}
+
 impl Session {
     pub fn is_closed(&self) -> bool {
         self.status.state == SessionState::Closed
