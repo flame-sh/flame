@@ -12,9 +12,12 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::ops::Deref;
+use std::pin::Pin;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::task::{Context, Poll};
 
 use chrono::Utc;
 use lazy_static::lazy_static;
@@ -301,9 +304,8 @@ impl Storage {
 
     pub async fn wait_for_session(&self, id: ExecutorID) -> Result<Session, FlameError> {
         let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(exe_ptr)?;
+        let ssn_id = WaitForSsnFuture::new(&exe_ptr).await?;
 
-        let ssn_id = (*state).wait_for_session().await?;
         let ssn_ptr = self.get_session_ptr(ssn_id)?;
         let ssn = lock_cond_ptr!(ssn_ptr)?;
 
@@ -404,5 +406,34 @@ impl Storage {
         state.unbind_executor_completed()?;
 
         Ok(())
+    }
+}
+
+struct WaitForSsnFuture {
+    executor: ExecutorPtr,
+}
+
+impl WaitForSsnFuture {
+    pub fn new(exe_ptr: &ExecutorPtr) -> Self {
+        Self {
+            executor: exe_ptr.clone(),
+        }
+    }
+}
+
+impl Future for WaitForSsnFuture {
+    type Output = Result<SessionID, FlameError>;
+
+    fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        let exe = lock_cond_ptr!(self.executor)?;
+
+        match exe.ssn_id {
+            None => {
+                // No bound session, trigger waker.
+                ctx.waker().wake_by_ref();
+                Poll::Pending
+            }
+            Some(ssn_id) => Poll::Ready(Ok(ssn_id)),
+        }
     }
 }
