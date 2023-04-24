@@ -14,6 +14,8 @@ use std::pin::Pin;
 
 use async_trait::async_trait;
 use futures::Stream;
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
 use common::{trace::TraceFn, trace_fn};
@@ -27,6 +29,7 @@ use rpc::flame::{
 use rpc::flame::{Session, SessionList, Task};
 
 use crate::apiserver::Flame;
+use crate::storage;
 use common::apis;
 use common::apis::vec_to_message;
 
@@ -166,17 +169,34 @@ impl Frontend for Flame {
             .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid task id"))?;
 
-        loop {
-            let task = self.storage.watch_task(ssn_id, task_id).await?;
-            log::debug!("Task <{}> state is <{}>", task.id, task.state as i32);
-            // TODO(k82cn): send Task to client by streaming,
-            //              xref: https://github.com/hyperium/tonic/tree/master/examples/src/streaming
-            if task.is_completed() {
-                break;
+        let (tx, rx) = mpsc::channel(128);
+        tokio::spawn(async move {
+            let storage = storage::instance();
+            loop {
+                match storage.watch_task(ssn_id, task_id).await {
+                    Ok(task) => {
+                        log::debug!("Task <{}> state is <{}>", task.id, task.state as i32);
+                        if let Err(e) = tx.send(Result::<_, Status>::Ok(Task::from(&task))).await {
+                            log::debug!("Failed to send Task <{}/{}>: {}", ssn_id, task_id, e);
+                            break;
+                        }
+                        if task.is_completed() {
+                            log::debug!("Task <{}> is completed, exit.", task.id);
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        log::debug!("Failed to watch Task <{}/{}>: {}", ssn_id, task_id, e);
+                        break;
+                    }
+                }
             }
-        }
+        });
 
-        todo!()
+        let output_stream = ReceiverStream::new(rx);
+        Ok(Response::new(
+            Box::pin(output_stream) as Self::WatchTaskStream
+        ))
     }
 
     async fn get_task(&self, req: Request<GetTaskRequest>) -> Result<Response<Task>, Status> {
