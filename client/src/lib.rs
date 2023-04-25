@@ -12,10 +12,8 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
-use std::future::Future;
-use std::pin::Pin;
+
 use std::sync::{Arc, Mutex};
-use std::task::{Context, Poll};
 
 use bytes::Bytes;
 use futures::TryFutureExt;
@@ -241,31 +239,6 @@ impl Session {
         client.close_session(close_ssn_req).await?;
 
         Ok(())
-    }
-}
-
-struct WatchTaskFuture {
-    task_result: Arc<Mutex<Result<Task, FlameError>>>,
-}
-
-impl Future for WatchTaskFuture {
-    type Output = Result<(), FlameError>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let task = lock_ptr!(self.task_result)?;
-        match &*task {
-            Ok(t) => {
-                if t.is_completed() {
-                    return Poll::Ready(Ok(()));
-                }
-            }
-            Err(e) => {
-                return Poll::Ready(Err(e.clone()));
-            }
-        }
-
-        cx.waker().wake_by_ref();
-        Poll::Pending
     }
 }
 
