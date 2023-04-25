@@ -11,8 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-extern crate core;
+use std::sync::{Arc, Mutex};
 
+use futures::future::try_join_all;
+
+use self::flame::{lock_ptr, Task, TaskInformer, TaskInput, TaskState};
 use flame_client as flame;
 
 use self::flame::{FlameError, Session, SessionAttributes, SessionState};
@@ -20,6 +23,26 @@ use self::flame::{FlameError, Session, SessionAttributes, SessionState};
 const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:8080";
 
 const FLAME_DEFAULT_APP: &str = "flmexec";
+
+pub struct DefaultTaskInformer {
+    pub succeed: i32,
+    pub failed: i32,
+    pub error: i32,
+}
+
+impl TaskInformer for DefaultTaskInformer {
+    fn on_update(&mut self, task: Task) {
+        match task.state {
+            TaskState::Succeed => self.succeed += 1,
+            TaskState::Failed => self.failed += 1,
+            _ => {}
+        }
+    }
+
+    fn on_error(&mut self, _: FlameError) {
+        self.error += 1;
+    }
+}
 
 #[tokio::test]
 async fn test_create_session() -> Result<(), FlameError> {
@@ -32,6 +55,42 @@ async fn test_create_session() -> Result<(), FlameError> {
     let ssn = Session::new(&ssn_attr).await?;
 
     assert_eq!(ssn.state, SessionState::Open);
+
+    ssn.close().await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_create_session_with_tasks() -> Result<(), FlameError> {
+    flame::connect(FLAME_DEFAULT_ADDR).await?;
+
+    let ssn_attr = SessionAttributes {
+        application: FLAME_DEFAULT_APP.to_string(),
+        slots: 1,
+    };
+    let ssn = Session::new(&ssn_attr).await?;
+
+    assert_eq!(ssn.state, SessionState::Open);
+
+    let informer = Arc::new(Mutex::new(DefaultTaskInformer {
+        succeed: 0,
+        failed: 0,
+        error: 0,
+    }));
+
+    let task_num = 10;
+    let mut tasks = vec![];
+    for _ in 0..task_num {
+        let task_input = task_input_str.as_bytes().to_vec();
+        let task = ssn.run_task(TaskInput::from(task_input), informer.clone());
+        tasks.push(task);
+    }
+
+    try_join_all(tasks).await?;
+
+    let informer = lock_ptr!(informer)?;
+    assert_eq!(informer.succeed, task_num);
 
     ssn.close().await?;
 
