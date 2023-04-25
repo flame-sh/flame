@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 
 use futures::future::try_join_all;
 
-use self::flame::{lock_ptr, Task, TaskInformer, TaskInput, TaskState};
+use self::flame::{lock_ptr, Task, TaskInformer, TaskState};
 use flame_client as flame;
 
 use self::flame::{FlameError, Session, SessionAttributes, SessionState};
@@ -82,8 +82,7 @@ async fn test_create_session_with_tasks() -> Result<(), FlameError> {
     let task_num = 10;
     let mut tasks = vec![];
     for _ in 0..task_num {
-        let task_input = task_input_str.as_bytes().to_vec();
-        let task = ssn.run_task(TaskInput::from(task_input), informer.clone());
+        let task = ssn.run_task(None, informer.clone());
         tasks.push(task);
     }
 

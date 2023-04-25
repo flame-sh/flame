@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut tasks = vec![];
     for _ in 0..task_num {
         let task_input = task_input_str.as_bytes().to_vec();
-        let task = ssn.run_task(TaskInput::from(task_input), informer.clone());
+        let task = ssn.run_task(Some(TaskInput::from(task_input)), informer.clone());
         tasks.push(task);
     }
 

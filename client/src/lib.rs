@@ -167,12 +167,13 @@ impl Session {
         Ok(Session::from(&ssn))
     }
 
-    pub async fn create_task(&self, input: TaskInput) -> Result<Task, FlameError> {
+    pub async fn create_task(&self, input: Option<TaskInput>) -> Result<Task, FlameError> {
         let mut client = get_client()?;
+
         let create_task_req = CreateTaskRequest {
             task: Some(TaskSpec {
                 session_id: self.id.clone(),
-                input: Some(input.to_vec()),
+                input: input.map(|input| input.to_vec()),
                 output: None,
             }),
         };
@@ -196,7 +197,7 @@ impl Session {
 
     pub async fn run_task(
         &self,
-        input: TaskInput,
+        input: Option<TaskInput>,
         informer_ptr: TaskInformerPtr,
     ) -> Result<(), FlameError> {
         self.create_task(input)
