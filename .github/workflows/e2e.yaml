@@ -1,0 +1,45 @@
+name: Flame CI
+on: [push, pull_request]
+env:
+  CLICOLOR_FORCE: 1
+jobs:
+  ci:
+    name: E2E Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable]
+        os: [ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
+      - name: Install cargo-make
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --debug cargo-make
+      - name: Install gRPC
+        run: |
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
+      - name: Cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: make
+          args: build
+      - name: Install supervisord
+        run: |
+          sudo apt-get update && sudo apt-get install -y supervisor
+      - name: Start supervisord
+        run: |
+          mkdir -p ci/logs
+          supervisord -c ci/supervisord.conf
+      - name: Run E2E Test
+        run: |
+          cargo make test

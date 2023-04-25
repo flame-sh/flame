@@ -437,11 +437,11 @@ dependencies = [
  "lazy_static",
  "log",
  "prost",
- "rpc",
  "thiserror",
  "tokio",
  "tokio-stream",
  "tonic",
+ "tonic-build",
 ]
 
 [[package]]

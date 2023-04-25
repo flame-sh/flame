@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package flame;
+
+message Metadata {
+  string id = 1;
+  optional string owner = 2;
+}
+
+enum SessionState {
+  SessionOpen = 0;
+  SessionClosed = 1;
+}
+
+message SessionStatus {
+  SessionState state = 1;
+
+  int64 creation_time = 2;
+  optional int64 completion_time = 3;
+
+  int32 pending = 4;
+  int32 running = 5;
+  int32 succeed = 6;
+  int32 failed = 7;
+}
+
+message SessionSpec {
+  string application = 1;
+  int32 slots = 2;
+}
+
+message Session {
+  Metadata metadata = 1 ;
+  SessionSpec spec = 2;
+  SessionStatus status = 3;
+}
+
+enum TaskState {
+  TaskPending = 0;
+  TaskRunning = 1;
+  TaskSucceed = 2;
+  TaskFailed = 3;
+}
+
+message TaskStatus {
+  TaskState state = 1;
+
+  int64 creation_time = 2;
+  optional int64 completion_time = 3;
+}
+
+message TaskSpec {
+  string session_id = 2;
+
+  optional bytes input = 3;
+  optional bytes output = 4;
+}
+
+message Task {
+  Metadata metadata = 1;
+  TaskSpec spec = 2;
+  TaskStatus status = 3;
+}
+
+enum Shim {
+  LogShim = 0;
+  StdioShim = 1;
+  RpcShim = 2;
+  RestShim = 3;
+}
+
+message Application {
+  string name = 1;
+  Shim shim = 2;
+  string command = 3;
+  repeated string arguments = 4;
+  repeated string environments = 5;
+  string working_directory = 6;
+}
+
+message ExecutorSpec {
+  int32 slots = 1;
+  repeated Application applications = 2;
+}
+
+enum ExecutorState {
+  ExecutorIdle = 0;
+  ExecutorBound = 1;
+  ExecutorRunning = 2;
+  ExecutorUnknown = 3;
+}
+
+message ExecutorStatus {
+  ExecutorState state = 1;
+}
+
+message Executor {
+  Metadata metadata = 1;
+  ExecutorSpec spec = 2;
+  ExecutorStatus status = 3;
+}
+
+message Result {
+  int32 return_code = 1;
+  optional string message = 2;
+}
+
+message SessionList {
+  repeated Session sessions = 1;
+}
