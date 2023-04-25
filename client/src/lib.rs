@@ -18,12 +18,13 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll};
 
 use bytes::Bytes;
+use futures::TryFutureExt;
 use lazy_static::lazy_static;
 use prost::Enumeration;
 use thiserror::Error;
-use tokio::runtime::Runtime;
+
 use tokio_stream::StreamExt;
-use tonic::codegen::futures_core::future::BoxFuture;
+
 use tonic::transport::Channel;
 use tonic::Status;
 
@@ -194,71 +195,108 @@ impl Session {
         Ok(Task::from(&task))
     }
 
-    pub fn run_task(
+    pub async fn run_task(
         &self,
         input: TaskInput,
         informer_ptr: TaskInformerPtr,
-    ) -> BoxFuture<'static, Result<(), FlameError>> {
-        let rt_result = Runtime::new()
-            .map_err(|_| FlameError::Internal("failed to start tokio runtime".to_string()));
+    ) -> Result<(), FlameError> {
+        self.create_task(input)
+            .and_then(|task| self.watch_task(task.ssn_id, task.id, informer_ptr))
+            .await
+    }
 
-        if rt_result.is_err() {
-            return Box::pin(WatchTaskFuture {
-                task_result: Arc::new(Mutex::new(Err(rt_result.err().unwrap()))),
-            });
-        }
-        let rt = rt_result.unwrap();
-
-        // Execute the future, blocking the current thread until completion
-        let create_task_future = self.create_task(input);
-        let task_result = rt.block_on(create_task_future);
-
-        if task_result.is_err() {
-            return Box::pin(WatchTaskFuture {
-                task_result: Arc::new(Mutex::new(Err(task_result.err().unwrap()))),
-            });
-        }
-        let task = task_result.unwrap();
-
-        // let tasks_ptr = self.task_results.clone();
-        let task_id = task.id.clone();
-        let session_id = task.ssn_id.clone();
-
-        let task_result_ptr: TaskResultPtr = Arc::new(Mutex::new(Ok(task)));
-        let task_result_ptr_future = task_result_ptr.clone();
-
-        let watch_task_stream = async move {
-            let mut client = get_client()?;
-            let watch_task_req = WatchTaskRequest {
-                session_id,
-                task_id: task_id.clone(),
-            };
-            let mut task_stream = client.watch_task(watch_task_req).await?.into_inner();
-            while let Some(task_new) = task_stream.next().await {
-                let mut task = lock_ptr!(task_result_ptr)?;
-                match task_new {
-                    Ok(t) => {
-                        *task = Ok(Task::from(&t));
-                        let mut informer = lock_ptr!(informer_ptr)?;
-                        informer.on_task_updated(task.as_ref().unwrap().clone());
-                    }
-                    Err(e) => {
-                        *task = Err(FlameError::from(e.clone()));
-                        let mut informer = lock_ptr!(informer_ptr)?;
-                        informer.on_error(FlameError::from(e.clone()));
-                    }
+    pub async fn watch_task(
+        &self,
+        session_id: SessionID,
+        task_id: TaskID,
+        informer_ptr: TaskInformerPtr,
+    ) -> Result<(), FlameError> {
+        let mut client = get_client()?;
+        let watch_task_req = WatchTaskRequest {
+            session_id,
+            task_id,
+        };
+        let mut task_stream = client.watch_task(watch_task_req).await?.into_inner();
+        while let Some(task) = task_stream.next().await {
+            match task {
+                Ok(t) => {
+                    let mut informer = lock_ptr!(informer_ptr)?;
+                    informer.on_task_updated(Task::from(&t));
+                }
+                Err(e) => {
+                    let mut informer = lock_ptr!(informer_ptr)?;
+                    informer.on_error(FlameError::from(e.clone()));
                 }
             }
-
-            Ok::<(), FlameError>(())
-        };
-
-        tokio::spawn(watch_task_stream);
-
-        Box::pin(WatchTaskFuture {
-            task_result: task_result_ptr_future,
-        })
+        }
+        Ok(())
     }
+
+    // pub fn run_task(
+    //     &self,
+    //     input: TaskInput,
+    //     informer_ptr: TaskInformerPtr,
+    // ) -> BoxFuture<'static, Result<(), FlameError>> {
+    //     let rt_result = Runtime::new()
+    //         .map_err(|_| FlameError::Internal("failed to start tokio runtime".to_string()));
+    //
+    //     if rt_result.is_err() {
+    //         return Box::pin(WatchTaskFuture {
+    //             task_result: Arc::new(Mutex::new(Err(rt_result.err().unwrap()))),
+    //         });
+    //     }
+    //     let rt = rt_result.unwrap();
+    //
+    //     // Execute the future, blocking the current thread until completion
+    //     let create_task_future = self.create_task(input);
+    //     let task_result = rt.block_on(create_task_future);
+    //
+    //     if task_result.is_err() {
+    //         return Box::pin(WatchTaskFuture {
+    //             task_result: Arc::new(Mutex::new(Err(task_result.err().unwrap()))),
+    //         });
+    //     }
+    //     let task = task_result.unwrap();
+    //
+    //     // let tasks_ptr = self.task_results.clone();
+    //     let task_id = task.id.clone();
+    //     let session_id = task.ssn_id.clone();
+    //
+    //     let task_result_ptr: TaskResultPtr = Arc::new(Mutex::new(Ok(task)));
+    //     let task_result_ptr_future = task_result_ptr.clone();
+    //
+    //     let watch_task_stream = async move {
+    //         let mut client = get_client()?;
+    //         let watch_task_req = WatchTaskRequest {
+    //             session_id,
+    //             task_id: task_id.clone(),
+    //         };
+    //         let mut task_stream = client.watch_task(watch_task_req).await?.into_inner();
+    //         while let Some(task_new) = task_stream.next().await {
+    //             let mut task = lock_ptr!(task_result_ptr)?;
+    //             match task_new {
+    //                 Ok(t) => {
+    //                     *task = Ok(Task::from(&t));
+    //                     let mut informer = lock_ptr!(informer_ptr)?;
+    //                     informer.on_task_updated(task.as_ref().unwrap().clone());
+    //                 }
+    //                 Err(e) => {
+    //                     *task = Err(FlameError::from(e.clone()));
+    //                     let mut informer = lock_ptr!(informer_ptr)?;
+    //                     informer.on_error(FlameError::from(e.clone()));
+    //                 }
+    //             }
+    //         }
+    //
+    //         Ok::<(), FlameError>(())
+    //     };
+    //
+    //     tokio::spawn(watch_task_stream);
+    //
+    //     Box::pin(WatchTaskFuture {
+    //         task_result: task_result_ptr_future,
+    //     })
+    // }
 
     pub async fn close(&self) -> Result<(), FlameError> {
         let mut client = get_client()?;
