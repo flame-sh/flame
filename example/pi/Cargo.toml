@@ -16,6 +16,7 @@ tonic = { workspace = true }
 env_logger = { workspace = true }
 log = { workspace = true }
 
+futures = "0.3"
 clap = { version = "4.1", features = ["derive"] }
 chrono = "0.4"
 

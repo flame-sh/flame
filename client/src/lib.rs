@@ -23,7 +23,7 @@ use prost::Enumeration;
 use thiserror::Error;
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
-
+use tonic::codegen::futures_core::future::BoxFuture;
 use tonic::transport::Channel;
 use tonic::Status;
 
@@ -32,7 +32,6 @@ use self::rpc::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest, SessionSpec,
     TaskSpec, WatchTaskRequest,
 };
-use crate::TaskState::{Failed, Succeed};
 use ::rpc::flame as rpc;
 
 type FlameClient = FlameFrontendClient<Channel>;
@@ -84,7 +83,7 @@ pub async fn connect(addr: &str) -> Result<(), FlameError> {
     Ok(())
 }
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum FlameError {
     #[error("'{0}' not found")]
     NotFound(String),
@@ -122,9 +121,8 @@ pub struct SessionAttributes {
 #[derive(Clone)]
 pub struct Session {
     pub id: SessionID,
-
-    pub tasks: Arc<Mutex<HashMap<TaskID, Task>>>,
-
+    //
+    // pub task_results: Arc<Mutex<HashMap<TaskID, Result<Task, FlameError>>>>,
     pub state: SessionState,
 }
 
@@ -139,15 +137,17 @@ pub struct Task {
     pub output: Option<TaskOutput>,
 }
 
-pub type TaskInformerPtr = Arc<dyn TaskInformer>;
+pub type TaskInformerPtr = Arc<Mutex<dyn TaskInformer>>;
+pub type TaskResultPtr = Arc<Mutex<Result<Task, FlameError>>>;
 
 pub trait TaskInformer: Send + Sync + 'static {
-    fn on_update(&self, task: Task);
+    fn on_task_updated(&mut self, task: Task);
+    fn on_error(&mut self, e: FlameError);
 }
 
 impl Task {
     pub fn is_completed(&self) -> bool {
-        self.state == Succeed || self.state == Failed
+        self.state == TaskState::Succeed || self.state == TaskState::Failed
     }
 }
 
@@ -198,62 +198,66 @@ impl Session {
         &self,
         input: TaskInput,
         informer_ptr: TaskInformerPtr,
-    ) -> Result<(), FlameError> {
-        let mut task_id = "".to_string();
-        let mut ssn_id = "".to_string();
+    ) -> BoxFuture<'static, Result<(), FlameError>> {
+        let rt_result = Runtime::new()
+            .map_err(|_| FlameError::Internal("failed to start tokio runtime".to_string()));
 
-        let rt = Runtime::new()
-            .map_err(|_| FlameError::Internal("failed to start tokio runtime".to_string()))?;
+        if rt_result.is_err() {
+            return Box::pin(WatchTaskFuture {
+                task_result: Arc::new(Mutex::new(Err(rt_result.err().unwrap()))),
+            });
+        }
+        let rt = rt_result.unwrap();
+
         // Execute the future, blocking the current thread until completion
-        rt.block_on(async {
-            let mut client = get_client().unwrap();
+        let create_task_future = self.create_task(input);
+        let task_result = rt.block_on(create_task_future);
 
-            let create_task_req = CreateTaskRequest {
-                task: Some(TaskSpec {
-                    session_id: self.id.clone(),
-                    input: Some(input.to_vec()),
-                    output: None,
-                }),
-            };
-            if let Ok(task) = client.create_task(create_task_req).await {
-                let task = task.into_inner();
-                let metadata = task.metadata.unwrap().clone();
-                let spec = task.spec.unwrap().clone();
-                task_id = metadata.id.clone();
-                ssn_id = spec.session_id.clone();
-            }
-        });
+        if task_result.is_err() {
+            return Box::pin(WatchTaskFuture {
+                task_result: Arc::new(Mutex::new(Err(task_result.err().unwrap()))),
+            });
+        }
+        let task = task_result.unwrap();
 
-        let tasks_ptr = self.tasks.clone();
+        // let tasks_ptr = self.task_results.clone();
+        let task_id = task.id.clone();
+        let session_id = task.ssn_id.clone();
 
-        tokio::spawn(async move {
-            let mut client = get_client().unwrap();
+        let task_result_ptr: TaskResultPtr = Arc::new(Mutex::new(Ok(task)));
+        let task_result_ptr_future = task_result_ptr.clone();
+
+        let watch_task_stream = async move {
+            let mut client = get_client()?;
             let watch_task_req = WatchTaskRequest {
-                session_id: ssn_id,
-                task_id,
+                session_id,
+                task_id: task_id.clone(),
             };
-            let mut task_stream = client
-                .watch_task(watch_task_req)
-                .await
-                .unwrap()
-                .into_inner();
-            while let Some(task) = task_stream.next().await {
-                let mut tasks = lock_ptr!(tasks_ptr).unwrap();
-                if let Ok(task) = task {
-                    let task  = Task::from(&task);
-                    tasks.insert(task.id.clone(), task.clone());
-                    informer_ptr.on_update(task.clone());
+            let mut task_stream = client.watch_task(watch_task_req).await?.into_inner();
+            while let Some(task_new) = task_stream.next().await {
+                let mut task = lock_ptr!(task_result_ptr)?;
+                match task_new {
+                    Ok(t) => {
+                        *task = Ok(Task::from(&t));
+                        let mut informer = lock_ptr!(informer_ptr)?;
+                        informer.on_task_updated(task.as_ref().unwrap().clone());
+                    }
+                    Err(e) => {
+                        *task = Err(FlameError::from(e.clone()));
+                        let mut informer = lock_ptr!(informer_ptr)?;
+                        informer.on_error(FlameError::from(e.clone()));
+                    }
                 }
-
             }
-        });
 
-        // let res = WatchTaskFuture {
-        //     task_id: task_id.clone(),
-        //     tasks: tasks_ptr.clone(),
-        // };
+            Ok::<(), FlameError>(())
+        };
 
-        Ok(())
+        tokio::spawn(watch_task_stream);
+
+        Box::pin(WatchTaskFuture {
+            task_result: task_result_ptr_future,
+        })
     }
 
     pub async fn close(&self) -> Result<(), FlameError> {
@@ -265,6 +269,31 @@ impl Session {
         client.close_session(close_ssn_req).await?;
 
         Ok(())
+    }
+}
+
+struct WatchTaskFuture {
+    task_result: Arc<Mutex<Result<Task, FlameError>>>,
+}
+
+impl Future for WatchTaskFuture {
+    type Output = Result<(), FlameError>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let task = lock_ptr!(self.task_result)?;
+        match &*task {
+            Ok(t) => {
+                if t.is_completed() {
+                    return Poll::Ready(Ok(()));
+                }
+            }
+            Err(e) => {
+                return Poll::Ready(Err(e.clone()));
+            }
+        }
+
+        cx.waker().wake_by_ref();
+        Poll::Pending
     }
 }
 
@@ -295,29 +324,7 @@ impl From<&rpc::Session> for Session {
         let status = ssn.status.clone().unwrap();
         Session {
             id: metadata.id,
-            tasks: Arc::new(Mutex::new(HashMap::new())),
             state: SessionState::from_i32(status.state).unwrap_or(SessionState::default()),
         }
-    }
-}
-
-struct WatchTaskFuture {
-    task_id: TaskID,
-    tasks: Arc<Mutex<HashMap<TaskID, Task>>>,
-}
-
-impl Future for WatchTaskFuture {
-    type Output = Result<(), FlameError>;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let tasks = lock_ptr!(self.tasks)?;
-        if let Some(task) = tasks.get(&self.task_id) {
-            if task.is_completed() {
-                return Poll::Ready(Ok(()));
-            }
-        }
-
-        cx.waker().wake_by_ref();
-        Poll::Pending
     }
 }
