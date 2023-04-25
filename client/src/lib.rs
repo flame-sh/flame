@@ -45,6 +45,7 @@ pub type TaskOutput = Message;
 
 const FLAME_CLIENT_NAME: &str = "flame";
 
+#[macro_export]
 macro_rules! lock_ptr {
     ( $mutex_arc:expr ) => {
         $mutex_arc

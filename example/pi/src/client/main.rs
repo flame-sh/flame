@@ -12,14 +12,13 @@ limitations under the License.
 */
 
 use std::error::Error;
-// use std::{thread, time};
 use std::sync::{Arc, Mutex};
 
 use clap::Parser;
 use futures::future::try_join_all;
 
+use self::flame::{FlameError, Session, SessionAttributes, Task, TaskInformer, TaskInput};
 use flame_client as flame;
-use flame_client::{FlameError, Session, SessionAttributes, Task, TaskInformer, TaskInput};
 
 #[derive(Parser)]
 #[command(name = "pi")]
@@ -50,10 +49,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = cli.app.unwrap_or(DEFAULT_APP.to_string());
     let slots = cli.slots.unwrap_or(DEFAULT_SLOTS);
     let task_input_str = cli.task_input.unwrap_or(DEFAULT_TASK_INPUT).to_string();
-    // let task_input = task_input_str
-    //     .clone()
-    //     .parse::<i32>()
-    //     .unwrap_or(DEFAULT_TASK_INPUT);
+    let task_input = task_input_str
+        .clone()
+        .parse::<i32>()
+        .unwrap_or(DEFAULT_TASK_INPUT);
     let task_num = cli.task_num.unwrap_or(DEFAULT_TASK_NUM);
 
     flame::connect("http://127.0.0.1:8080").await?;
@@ -63,47 +62,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
     })
     .await?;
 
-    // let mut task_ids = vec![];
-    // for _ in 0..task_num {
-    //     let task_input = task_input_str.as_bytes().to_vec();
-    //     let task = ssn.create_task(TaskInput::from(task_input)).await?;
-    //     task_ids.push(task.id.clone());
-    // }
-    //
-    // loop {
-    //     let mut succeed = 0;
-    //     let mut area: i64 = 0;
-    //
-    //     for id in &task_ids {
-    //         let task = ssn.get_task(id.to_string()).await?;
-    //         if task.is_completed() {
-    //             succeed += 1;
-    //             if let Some(output) = task.output {
-    //                 let output_str = String::from_utf8(output.to_vec())?;
-    //                 area += output_str.trim().parse::<i64>().unwrap();
-    //             }
-    //         }
-    //     }
-    //
-    //     // If all tasks finished, exit.
-    //     if task_ids.len() == succeed {
-    //         let pi = 4_f64 * area as f64 / ((task_num as f64) * (task_input as f64));
-    //         println!("pi = 4*({}/{}) = {}", area, task_num * task_input, pi);
-    //         break;
-    //     }
-    //
-    //     thread::sleep(time::Duration::from_millis(300));
-    // }
-
-    let info = Arc::new(Mutex::new(PiInfo { area: 0.0 }));
+    let informer = Arc::new(Mutex::new(PiInfo { area: 0 }));
     let mut tasks = vec![];
     for _ in 0..task_num {
         let task_input = task_input_str.as_bytes().to_vec();
-        let task = ssn.run_task(TaskInput::from(task_input), info.clone());
+        let task = ssn.run_task(TaskInput::from(task_input), informer.clone());
         tasks.push(task);
     }
 
     try_join_all(tasks).await?;
+
+    {
+        // Get the number of points in the circle.
+        let informer = flame::lock_ptr!(informer)?;
+        let pi = 4_f64 * informer.area as f64 / ((task_num as f64) * (task_input as f64));
+
+        println!(
+            "pi = 4*({}/{}) = {}",
+            informer.area,
+            task_num * task_input,
+            pi
+        );
+    }
 
     ssn.close().await?;
 
@@ -111,13 +91,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 pub struct PiInfo {
-    pub area: f64,
+    pub area: i64,
 }
 
 impl TaskInformer for PiInfo {
     fn on_task_updated(&mut self, task: Task) {
-        println!("Task <{}> is back.", task.id);
-        self.area += 1.0;
+        if let Some(output) = task.output {
+            let output_str = String::from_utf8(output.to_vec()).unwrap();
+            self.area += output_str.trim().parse::<i64>().unwrap();
+        }
     }
 
     fn on_error(&mut self, _: FlameError) {
