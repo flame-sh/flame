@@ -31,7 +31,12 @@ use self::rpc::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest, SessionSpec,
     TaskSpec, WatchTaskRequest,
 };
-use ::rpc::flame as rpc;
+
+use crate::flame as rpc;
+
+mod flame {
+    tonic::include_proto!("flame");
+}
 
 type FlameClient = FlameFrontendClient<Channel>;
 type TaskID = String;
