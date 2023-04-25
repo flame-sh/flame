@@ -476,6 +476,6 @@ impl Future for WatchTaskFuture {
         }
 
         ctx.waker().wake_by_ref();
-        return Poll::Pending;
+        Poll::Pending
     }
 }

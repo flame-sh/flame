@@ -95,7 +95,7 @@ pub struct PiInfo {
 }
 
 impl TaskInformer for PiInfo {
-    fn on_task_updated(&mut self, task: Task) {
+    fn on_update(&mut self, task: Task) {
         if let Some(output) = task.output {
             let output_str = String::from_utf8(output.to_vec()).unwrap();
             self.area += output_str.trim().parse::<i64>().unwrap();
