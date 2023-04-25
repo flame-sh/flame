@@ -64,8 +64,6 @@ impl FlameThread for ApiserverRunner {
         // Execute the future, blocking the current thread until completion
         rt.block_on(async {
             let rc = Server::builder()
-                // TODO(k82cn): separate frontend & backend concurrent limit.
-                .concurrency_limit_per_connection(6000)
                 .add_service(FrontendServer::new(frontend_service))
                 .add_service(BackendServer::new(backend_service))
                 .serve(address)

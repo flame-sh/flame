@@ -62,6 +62,27 @@ async fn test_create_session() -> Result<(), FlameError> {
 }
 
 #[tokio::test]
+async fn test_create_multiple_sessions() -> Result<(), FlameError> {
+    flame::connect(FLAME_DEFAULT_ADDR).await?;
+
+    let ssn_num = 10;
+
+    for _ in 0..ssn_num {
+        let ssn_attr = SessionAttributes {
+            application: FLAME_DEFAULT_APP.to_string(),
+            slots: 1,
+        };
+        let ssn = Session::new(&ssn_attr).await?;
+
+        assert_eq!(ssn.state, SessionState::Open);
+
+        ssn.close().await?;
+    }
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_create_session_with_tasks() -> Result<(), FlameError> {
     flame::connect(FLAME_DEFAULT_ADDR).await?;
 
