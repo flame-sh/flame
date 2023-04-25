@@ -4,7 +4,7 @@ env:
   CLICOLOR_FORCE: 1
 jobs:
   ci:
-    name: CI
+    name: Code Verify
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -38,18 +38,3 @@ jobs:
         with:
           command: make
           args: clippy-ci-flow
-      - name: Cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          command: make
-          args: build
-      - name: Install supervisord
-        run: |
-          sudo apt-get update && sudo apt-get install -y supervisor
-      - name: Start supervisord
-        run: |
-          mkdir -p ci/logs
-          supervisord -c ci/supervisord.conf
-      - name: Run E2E Test
-        run: |
-          cargo make test
