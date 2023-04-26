@@ -78,12 +78,13 @@ fn get_client() -> Result<FlameClient, FlameError> {
 }
 
 pub async fn connect(addr: &str) -> Result<(), FlameError> {
-    let client = FlameFrontendClient::connect(addr.to_string())
-        .await
-        .map_err(|_e| FlameError::Network("tonic connection".to_string()))?;
-
     let mut cs = lock_ptr!(INSTANCE.client_pool)?;
-    cs.insert(FLAME_CLIENT_NAME.to_string(), client);
+    if !cs.contains_key(FLAME_CLIENT_NAME) {
+        let client = FlameFrontendClient::connect(addr.to_string())
+            .await
+            .map_err(|_e| FlameError::Network("tonic connection".to_string()))?;
+        cs.insert(FLAME_CLIENT_NAME.to_string(), client);
+    }
 
     Ok(())
 }
