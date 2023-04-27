@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use std::fmt::{Display, Formatter};
+use std::path::Path;
 
 use serde_derive::{Deserialize, Serialize};
 
@@ -51,7 +52,16 @@ const DEFAULT_FLAME_CONF: &str = "flame-conf.yaml";
 
 impl FlameContext {
     pub fn from_file(fp: Option<String>) -> Result<Self, FlameError> {
-        let fp = fp.unwrap_or(DEFAULT_FLAME_CONF.to_string());
+        let fp = match fp {
+            None => {
+                format!("{}/.flame/{}", env!("HOME", "."), DEFAULT_FLAME_CONF)
+            }
+            Some(path) => path,
+        };
+
+        if !Path::new(&fp).is_file() {
+            return Err(FlameError::InvalidConfig(format!("<{}> is not a file", fp)));
+        }
 
         let ctx: FlameContext = confy::load_path(fp.clone())
             .map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
