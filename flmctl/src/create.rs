@@ -13,29 +13,21 @@ limitations under the License.
 
 use std::error::Error;
 
-use tonic::Status;
-
 use common::ctx::FlameContext;
-use rpc::flame::frontend_client::FrontendClient;
-use rpc::flame::{CreateSessionRequest, SessionSpec};
+
+use self::flame::SessionAttributes;
+use flame_client as flame;
 
 pub async fn run(ctx: &FlameContext, app: &str, slots: &i32) -> Result<(), Box<dyn Error>> {
-    let mut client = FrontendClient::connect(ctx.endpoint.clone()).await?;
-
-    let req = CreateSessionRequest {
-        session: Some(SessionSpec {
-            application: app.to_owned(),
-            slots: *slots,
-        }),
+    let conn = flame::connect(&ctx.endpoint).await?;
+    let attr = SessionAttributes {
+        application: app.to_owned(),
+        slots: *slots,
     };
-    let ssn = client.create_session(req).await?;
 
-    let meta = ssn
-        .into_inner()
-        .metadata
-        .ok_or(Status::data_loss("no session id"))?;
+    let ssn = conn.create_session(&attr).await?;
 
-    println!("Session <{}> was created.", meta.id);
+    println!("Session <{}> was created.", ssn.id);
 
     Ok(())
 }
