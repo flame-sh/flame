@@ -109,10 +109,58 @@ async fn test_create_session_with_tasks() -> Result<(), FlameError> {
 
     try_join_all(tasks).await?;
 
-    let informer = lock_ptr!(informer)?;
-    assert_eq!(informer.succeed, task_num);
+    {
+        let informer = lock_ptr!(informer)?;
+        assert_eq!(informer.succeed, task_num);
+    }
 
     ssn.close().await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_create_multiple_sessions_with_tasks() -> Result<(), FlameError> {
+    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
+
+    let ssn_attr = SessionAttributes {
+        application: FLAME_DEFAULT_APP.to_string(),
+        slots: 1,
+    };
+    let ssn_1 = conn.create_session(&ssn_attr).await?;
+    assert_eq!(ssn_1.state, SessionState::Open);
+
+    let ssn_2 = conn.create_session(&ssn_attr).await?;
+    assert_eq!(ssn_2.state, SessionState::Open);
+
+    let informer = Arc::new(Mutex::new(DefaultTaskInformer {
+        succeed: 0,
+        failed: 0,
+        error: 0,
+    }));
+
+    let task_num = 10;
+    let mut tasks = vec![];
+
+    for _ in 0..task_num {
+        let task = ssn_1.run_task(None, informer.clone());
+        tasks.push(task);
+    }
+
+    for _ in 0..task_num {
+        let task = ssn_2.run_task(None, informer.clone());
+        tasks.push(task);
+    }
+
+    try_join_all(tasks).await?;
+
+    {
+        let informer = lock_ptr!(informer)?;
+        assert_eq!(informer.succeed, task_num * 2);
+    }
+
+    ssn_1.close().await?;
+    ssn_2.close().await?;
 
     Ok(())
 }
