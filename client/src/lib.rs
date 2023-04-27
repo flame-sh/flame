@@ -54,7 +54,7 @@ macro_rules! lock_ptr {
 }
 
 pub async fn connect(addr: &'static str) -> Result<Connection, FlameError> {
-    let channel = Endpoint::from_static(&addr)
+    let channel = Endpoint::from_static(addr)
         .connect()
         .await
         .map_err(|_| FlameError::InvalidConfig("invalid address".to_string()))?;
@@ -203,7 +203,7 @@ impl Session {
     ) -> Result<(), FlameError> {
         trace_fn!("Session::run_task");
         self.create_task(input)
-            .and_then(|task| self.watch_task(task.ssn_id.clone(), task.id.clone(), informer_ptr))
+            .and_then(|task| self.watch_task(task.ssn_id.clone(), task.id, informer_ptr))
             .await
     }
 
