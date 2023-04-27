@@ -19,6 +19,13 @@ use serde_derive::{Deserialize, Serialize};
 use crate::apis::Application;
 use crate::FlameError;
 
+const DEFAULT_FLAME_CONF: &str = "flame-conf.yaml";
+const DEFAULT_CONTEXT_NAME: &str = "flame";
+const DEFAULT_FLAME_ENDPOINT: &str = "http://127.0.0.1:8080";
+const DEFAULT_SLOT: &str = "cpu=1,mem=2g";
+const DEFAULT_POLICY: &str = "proportion";
+const DEFAULT_STORAGE: &str = "mem";
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FlameContext {
     pub name: String,
@@ -38,17 +45,15 @@ impl Display for FlameContext {
 impl Default for FlameContext {
     fn default() -> Self {
         FlameContext {
-            name: "flame".to_string(),
-            endpoint: "http://127.0.0.1:8080".to_string(),
-            slot: "cpu=1,mem=1g".to_string(),
-            policy: "priority".to_string(),
-            storage: "mem".to_string(),
+            name: DEFAULT_CONTEXT_NAME.to_string(),
+            endpoint: DEFAULT_FLAME_ENDPOINT.to_string(),
+            slot: DEFAULT_SLOT.to_string(),
+            policy: DEFAULT_POLICY.to_string(),
+            storage: DEFAULT_STORAGE.to_string(),
             applications: vec![Application::default()],
         }
     }
 }
-
-const DEFAULT_FLAME_CONF: &str = "flame-conf.yaml";
 
 impl FlameContext {
     pub fn from_file(fp: Option<String>) -> Result<Self, FlameError> {
