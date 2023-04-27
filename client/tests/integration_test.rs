@@ -18,7 +18,7 @@ use futures::future::try_join_all;
 use self::flame::{lock_ptr, Task, TaskInformer, TaskState};
 use flame_client as flame;
 
-use self::flame::{FlameError, Session, SessionAttributes, SessionState};
+use self::flame::{FlameError, SessionAttributes, SessionState};
 
 const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:8080";
 
@@ -46,13 +46,13 @@ impl TaskInformer for DefaultTaskInformer {
 
 #[tokio::test]
 async fn test_create_session() -> Result<(), FlameError> {
-    flame::connect(FLAME_DEFAULT_ADDR).await?;
+    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
 
     let ssn_attr = SessionAttributes {
         application: FLAME_DEFAULT_APP.to_string(),
         slots: 1,
     };
-    let ssn = Session::new(&ssn_attr).await?;
+    let ssn = conn.create_session(&ssn_attr).await?;
 
     assert_eq!(ssn.state, SessionState::Open);
 
@@ -63,7 +63,7 @@ async fn test_create_session() -> Result<(), FlameError> {
 
 #[tokio::test]
 async fn test_create_multiple_sessions() -> Result<(), FlameError> {
-    flame::connect(FLAME_DEFAULT_ADDR).await?;
+    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
 
     let ssn_num = 10;
 
@@ -72,7 +72,7 @@ async fn test_create_multiple_sessions() -> Result<(), FlameError> {
             application: FLAME_DEFAULT_APP.to_string(),
             slots: 1,
         };
-        let ssn = Session::new(&ssn_attr).await?;
+        let ssn = conn.create_session(&ssn_attr).await?;
 
         assert_eq!(ssn.state, SessionState::Open);
 
@@ -84,13 +84,13 @@ async fn test_create_multiple_sessions() -> Result<(), FlameError> {
 
 #[tokio::test]
 async fn test_create_session_with_tasks() -> Result<(), FlameError> {
-    flame::connect(FLAME_DEFAULT_ADDR).await?;
+    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
 
     let ssn_attr = SessionAttributes {
         application: FLAME_DEFAULT_APP.to_string(),
         slots: 1,
     };
-    let ssn = Session::new(&ssn_attr).await?;
+    let ssn = conn.create_session(&ssn_attr).await?;
 
     assert_eq!(ssn.state, SessionState::Open);
 

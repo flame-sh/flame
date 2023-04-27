@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 use clap::Parser;
 use futures::future::try_join_all;
 
-use self::flame::{FlameError, Session, SessionAttributes, Task, TaskInformer, TaskInput};
+use self::flame::{FlameError, SessionAttributes, Task, TaskInformer, TaskInput};
 use flame_client as flame;
 
 #[derive(Parser)]
@@ -55,12 +55,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(DEFAULT_TASK_INPUT);
     let task_num = cli.task_num.unwrap_or(DEFAULT_TASK_NUM);
 
-    flame::connect("http://127.0.0.1:8080").await?;
-    let ssn = Session::new(&SessionAttributes {
-        application: app,
-        slots,
-    })
-    .await?;
+    let conn = flame::connect("http://127.0.0.1:8080").await?;
+    let ssn = conn
+        .create_session(&SessionAttributes {
+            application: app,
+            slots,
+        })
+        .await?;
 
     let informer = Arc::new(Mutex::new(PiInfo { area: 0 }));
     let mut tasks = vec![];

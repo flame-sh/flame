@@ -11,19 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
-
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
 use futures::TryFutureExt;
-use lazy_static::lazy_static;
 use prost::Enumeration;
 use thiserror::Error;
-
 use tokio_stream::StreamExt;
-
 use tonic::transport::Channel;
+use tonic::transport::Endpoint;
 use tonic::Status;
 
 use self::rpc::frontend_client::FrontendClient as FlameFrontendClient;
@@ -31,8 +27,10 @@ use self::rpc::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest, SessionSpec,
     TaskSpec, WatchTaskRequest,
 };
-
 use crate::flame as rpc;
+use crate::trace::TraceFn;
+
+mod trace;
 
 mod flame {
     tonic::include_proto!("flame");
@@ -46,8 +44,6 @@ type Message = Bytes;
 pub type TaskInput = Message;
 pub type TaskOutput = Message;
 
-const FLAME_CLIENT_NAME: &str = "flame";
-
 #[macro_export]
 macro_rules! lock_ptr {
     ( $mutex_arc:expr ) => {
@@ -57,36 +53,13 @@ macro_rules! lock_ptr {
     };
 }
 
-lazy_static! {
-    static ref INSTANCE: Arc<FrontendClient> = Arc::new(FrontendClient {
-        client_pool: Arc::new(Mutex::new(HashMap::new()))
-    });
-}
+pub async fn connect(addr: &'static str) -> Result<Connection, FlameError> {
+    let channel = Endpoint::from_static(&addr)
+        .connect()
+        .await
+        .map_err(|_| FlameError::InvalidConfig("invalid address".to_string()))?;
 
-#[derive(Clone, Debug)]
-struct FrontendClient {
-    client_pool: Arc<Mutex<HashMap<String, FlameClient>>>,
-}
-
-fn get_client() -> Result<FlameClient, FlameError> {
-    let cs = lock_ptr!(INSTANCE.client_pool)?;
-    let client = cs
-        .get(FLAME_CLIENT_NAME)
-        .ok_or(FlameError::Internal("no flame client".to_string()))?;
-
-    Ok(client.clone())
-}
-
-pub async fn connect(addr: &str) -> Result<(), FlameError> {
-    let mut cs = lock_ptr!(INSTANCE.client_pool)?;
-    if !cs.contains_key(FLAME_CLIENT_NAME) {
-        let client = FlameFrontendClient::connect(addr.to_string())
-            .await
-            .map_err(|_e| FlameError::Network("tonic connection".to_string()))?;
-        cs.insert(FLAME_CLIENT_NAME.to_string(), client);
-    }
-
-    Ok(())
+    Ok(Connection { channel })
 }
 
 #[derive(Error, Debug, Clone)]
@@ -119,6 +92,11 @@ pub enum TaskState {
 }
 
 #[derive(Clone)]
+pub struct Connection {
+    pub(crate) channel: Channel,
+}
+
+#[derive(Clone)]
 pub struct SessionAttributes {
     pub application: String,
     pub slots: i32,
@@ -126,6 +104,8 @@ pub struct SessionAttributes {
 
 #[derive(Clone)]
 pub struct Session {
+    pub(crate) client: Option<FlameClient>,
+
     pub id: SessionID,
     pub state: SessionState,
 }
@@ -155,9 +135,10 @@ impl Task {
     }
 }
 
-impl Session {
-    pub async fn new(attrs: &SessionAttributes) -> Result<Self, FlameError> {
-        let mut client = get_client()?;
+impl Connection {
+    pub async fn create_session(&self, attrs: &SessionAttributes) -> Result<Session, FlameError> {
+        trace_fn!("Connection::create_session");
+
         let create_ssn_req = CreateSessionRequest {
             session: Some(SessionSpec {
                 application: attrs.application.clone(),
@@ -165,14 +146,24 @@ impl Session {
             }),
         };
 
+        let mut client = FlameClient::new(self.channel.clone());
         let ssn = client.create_session(create_ssn_req).await?;
         let ssn = ssn.into_inner();
 
-        Ok(Session::from(&ssn))
-    }
+        let mut ssn = Session::from(&ssn);
+        ssn.client = Some(client);
 
+        Ok(ssn)
+    }
+}
+
+impl Session {
     pub async fn create_task(&self, input: Option<TaskInput>) -> Result<Task, FlameError> {
-        let mut client = get_client()?;
+        trace_fn!("Session::create_task");
+        let mut client = self
+            .client
+            .clone()
+            .ok_or(FlameError::Internal("no flame client".to_string()))?;
 
         let create_task_req = CreateTaskRequest {
             task: Some(TaskSpec {
@@ -181,6 +172,7 @@ impl Session {
                 output: None,
             }),
         };
+
         let task = client.create_task(create_task_req).await?;
 
         let task = task.into_inner();
@@ -188,7 +180,12 @@ impl Session {
     }
 
     pub async fn get_task(&self, id: TaskID) -> Result<Task, FlameError> {
-        let mut client = get_client()?;
+        trace_fn!("Session::get_task");
+        let mut client = self
+            .client
+            .clone()
+            .ok_or(FlameError::Internal("no flame client".to_string()))?;
+
         let get_task_req = GetTaskRequest {
             session_id: self.id.clone(),
             task_id: id.clone(),
@@ -204,8 +201,9 @@ impl Session {
         input: Option<TaskInput>,
         informer_ptr: TaskInformerPtr,
     ) -> Result<(), FlameError> {
+        trace_fn!("Session::run_task");
         self.create_task(input)
-            .and_then(|task| self.watch_task(task.ssn_id, task.id, informer_ptr))
+            .and_then(|task| self.watch_task(task.ssn_id.clone(), task.id.clone(), informer_ptr))
             .await
     }
 
@@ -215,7 +213,12 @@ impl Session {
         task_id: TaskID,
         informer_ptr: TaskInformerPtr,
     ) -> Result<(), FlameError> {
-        let mut client = get_client()?;
+        trace_fn!("Session::watch_task");
+        let mut client = self
+            .client
+            .clone()
+            .ok_or(FlameError::Internal("no flame client".to_string()))?;
+
         let watch_task_req = WatchTaskRequest {
             session_id,
             task_id,
@@ -237,7 +240,12 @@ impl Session {
     }
 
     pub async fn close(&self) -> Result<(), FlameError> {
-        let mut client = get_client()?;
+        trace_fn!("Session::close");
+        let mut client = self
+            .client
+            .clone()
+            .ok_or(FlameError::Internal("no flame client".to_string()))?;
+
         let close_ssn_req = CloseSessionRequest {
             session_id: self.id.clone(),
         };
@@ -274,6 +282,7 @@ impl From<&rpc::Session> for Session {
         let metadata = ssn.metadata.clone().unwrap();
         let status = ssn.status.clone().unwrap();
         Session {
+            client: None,
             id: metadata.id,
             state: SessionState::from_i32(status.state).unwrap_or(SessionState::default()),
         }
