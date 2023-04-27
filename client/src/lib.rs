@@ -14,6 +14,7 @@ limitations under the License.
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
+use chrono::{DateTime, NaiveDateTime, Utc};
 use futures::TryFutureExt;
 use prost::Enumeration;
 use thiserror::Error;
@@ -24,8 +25,8 @@ use tonic::Status;
 
 use self::rpc::frontend_client::FrontendClient as FlameFrontendClient;
 use self::rpc::{
-    CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest, SessionSpec,
-    TaskSpec, WatchTaskRequest,
+    CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest,
+    ListSessionRequest, SessionSpec, TaskSpec, WatchTaskRequest,
 };
 use crate::flame as rpc;
 use crate::trace::TraceFn;
@@ -53,11 +54,14 @@ macro_rules! lock_ptr {
     };
 }
 
-pub async fn connect(addr: &'static str) -> Result<Connection, FlameError> {
-    let channel = Endpoint::from_static(addr)
+pub async fn connect(addr: &str) -> Result<Connection, FlameError> {
+    let endpoint = Endpoint::from_shared(addr.to_string())
+        .map_err(|_| FlameError::InvalidConfig("invalid address".to_string()))?;
+
+    let channel = endpoint
         .connect()
         .await
-        .map_err(|_| FlameError::InvalidConfig("invalid address".to_string()))?;
+        .map_err(|_| FlameError::InvalidConfig("failed to connect".to_string()))?;
 
     Ok(Connection { channel })
 }
@@ -77,13 +81,13 @@ pub enum FlameError {
     InvalidConfig(String),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
 pub enum SessionState {
     Open = 0,
     Closed = 1,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
 pub enum TaskState {
     Pending = 0,
     Running = 1,
@@ -107,7 +111,15 @@ pub struct Session {
     pub(crate) client: Option<FlameClient>,
 
     pub id: SessionID,
+    pub slots: i32,
+    pub application: String,
+    pub creation_time: DateTime<Utc>,
+
     pub state: SessionState,
+    pub pending: i32,
+    pub running: i32,
+    pub succeed: i32,
+    pub failed: i32,
 }
 
 #[derive(Clone)]
@@ -154,6 +166,18 @@ impl Connection {
         ssn.client = Some(client);
 
         Ok(ssn)
+    }
+
+    pub async fn list_session(&self) -> Result<Vec<Session>, FlameError> {
+        let mut client = FlameClient::new(self.channel.clone());
+        let ssn_list = client.list_session(ListSessionRequest {}).await?;
+
+        Ok(ssn_list
+            .into_inner()
+            .sessions
+            .iter()
+            .map(Session::from)
+            .collect())
     }
 }
 
@@ -281,10 +305,23 @@ impl From<&rpc::Session> for Session {
     fn from(ssn: &rpc::Session) -> Self {
         let metadata = ssn.metadata.clone().unwrap();
         let status = ssn.status.clone().unwrap();
+        let spec = ssn.spec.clone().unwrap();
+
+        let naivedatetime_utc =
+            NaiveDateTime::from_timestamp_millis(status.creation_time * 1000).unwrap();
+        let creation_time = DateTime::<Utc>::from_utc(naivedatetime_utc, Utc);
+
         Session {
             client: None,
             id: metadata.id,
+            slots: spec.slots,
+            application: spec.application,
+            creation_time,
             state: SessionState::from_i32(status.state).unwrap_or(SessionState::default()),
+            pending: status.pending,
+            running: status.running,
+            succeed: status.succeed,
+            failed: status.failed,
         }
     }
 }

@@ -11,51 +11,44 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::cmp::Ordering;
 use std::error::Error;
 
-use chrono::{DateTime, NaiveDateTime, Utc};
-use tonic::Status;
-
 use common::ctx::FlameContext;
-use rpc::flame::frontend_client::FrontendClient;
-use rpc::flame::{ListSessionRequest, SessionState};
+use flame_client as flame;
+use flame_client::SessionState;
 
 pub async fn run(ctx: &FlameContext) -> Result<(), Box<dyn Error>> {
-    let mut client = FrontendClient::connect(ctx.endpoint.clone()).await?;
-
-    let ssn_list = client.list_session(ListSessionRequest {}).await?;
+    let conn = flame::connect(&ctx.endpoint).await?;
+    let mut ssn_list = conn.list_session().await?;
 
     println!(
         "{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}",
         "ID", "State", "App", "Slots", "Pending", "Running", "Succeed", "Failed", "Created"
     );
 
-    for ssn in &(ssn_list.into_inner().sessions) {
-        let meta = ssn.metadata.clone().ok_or(Status::data_loss("no meta"))?;
-        let spec = ssn.spec.clone().ok_or(Status::data_loss("no spec"))?;
-        let status = ssn.status.clone().ok_or(Status::data_loss("no status"))?;
-        let state = SessionState::from_i32(status.state).ok_or(Status::data_loss("no state"))?;
+    ssn_list.sort_by(|l, r| {
+        if l.state == r.state {
+            l.creation_time.cmp(&r.creation_time)
+        } else if l.state == SessionState::Open {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
 
-        let state = match state {
-            SessionState::SessionOpen => "Open",
-            SessionState::SessionClosed => "Closed",
-        };
-
-        let naivedatetime_utc = NaiveDateTime::from_timestamp_millis(status.creation_time * 1000)
-            .ok_or(Status::data_loss("no creation_time"))?;
-        let created = DateTime::<Utc>::from_utc(naivedatetime_utc, Utc);
-
+    for ssn in &ssn_list {
         println!(
             "{:<10}{:<10}{:<15}{:<10}{:<10}{:<10}{:<10}{:<10}{:<10}",
-            meta.id,
-            state,
-            spec.application,
-            spec.slots,
-            status.pending,
-            status.running,
-            status.succeed,
-            status.failed,
-            created.format("%T")
+            ssn.id,
+            ssn.state,
+            ssn.application,
+            ssn.slots,
+            ssn.pending,
+            ssn.running,
+            ssn.succeed,
+            ssn.failed,
+            ssn.creation_time.format("%T")
         );
     }
 
