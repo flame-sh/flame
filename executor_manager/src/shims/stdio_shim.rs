@@ -18,7 +18,6 @@ use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::{env, thread};
 
-// use crate::executor::{Application, SessionContext, TaskContext};
 use crate::shims::{Shim, ShimPtr};
 use common::FlameError;
 
@@ -89,9 +88,22 @@ impl Shim for StdioShim {
 
         let mut stdout = child.stdout.take().unwrap();
         let mut data = vec![];
-        let _n = stdout
+        let n = stdout
             .read_to_end(&mut data)
             .map_err(|_| FlameError::Internal("failed to read task output".to_string()))?;
+
+        log::debug!("Read <{}> data from child process.", n);
+
+        match child.wait() {
+            Ok(es) => {
+                if !es.success() {
+                    log::info!("Child process exist with error: {}", es);
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to wait child process: {}", e)
+            }
+        };
 
         Ok(Some(TaskOutput::from(data)))
     }
