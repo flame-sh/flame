@@ -28,3 +28,7 @@ path = "src/server/main.rs"
 [[bin]]
 name = "pi"
 path = "src/client/main.rs"
+
+[[bin]]
+name = "pi-local"
+path = "src/local/main.rs"
