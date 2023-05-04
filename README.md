@@ -3,6 +3,7 @@
 [![license](https://img.shields.io/github/license/xflops/flame)](http://github.com/xflops/flame)
 [![RepoSize](https://img.shields.io/github/repo-size/xflops/flame)](http://github.com/xflops/flame)
 [![Release](https://img.shields.io/github/release/xflops/flame)](https://github.com/xflops/flame/releases)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/7299/badge)](https://bestpractices.coreinfrastructure.org/projects/7299)
 
 Flame is a distributed system for intelligent workloads; it provides a suite of mechanisms that are commonly required by many classes of intelligent workload, 
 including AI/ML, HPC, BigData and so on. Flame builds upon a decade and a half of experience running a wide variety of high performance workloads
