@@ -90,10 +90,7 @@ impl Backend for Flame {
 
         self.storage.bind_session_completed(req.executor_id)?;
 
-        Ok(Response::new(rpc::Result {
-            return_code: 0,
-            message: None,
-        }))
+        Ok(Response::new(rpc::Result::default()))
     }
 
     async fn unbind_executor(
@@ -103,10 +100,7 @@ impl Backend for Flame {
         let req = req.into_inner();
         self.storage.unbind_executor(req.executor_id)?;
 
-        Ok(Response::new(rpc::Result {
-            return_code: 0,
-            message: None,
-        }))
+        Ok(Response::new(rpc::Result::default()))
     }
 
     async fn unbind_executor_completed(
@@ -116,10 +110,7 @@ impl Backend for Flame {
         let req = req.into_inner();
         self.storage.unbind_executor_completed(req.executor_id)?;
 
-        Ok(Response::new(rpc::Result {
-            return_code: 0,
-            message: None,
-        }))
+        Ok(Response::new(rpc::Result::default()))
     }
 
     async fn launch_task(
@@ -148,9 +139,6 @@ impl Backend for Flame {
             req.task_output.map(TaskOutput::from),
         )?;
 
-        Ok(Response::new(rpc::Result {
-            return_code: 0,
-            message: None,
-        }))
+        Ok(Response::new(rpc::Result::default()))
     }
 }
