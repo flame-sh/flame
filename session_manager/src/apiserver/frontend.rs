@@ -18,15 +18,15 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
 
-use common::{trace::TraceFn, trace_fn};
-use rpc::flame::frontend_server::Frontend;
-use rpc::flame::{
+use self::rpc::frontend_server::Frontend;
+use self::rpc::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest,
     DeleteTaskRequest, GetSessionRequest, GetTaskRequest, ListSessionRequest, OpenSessionRequest,
     WatchTaskRequest,
 };
-
-use rpc::flame::{Session, SessionList, Task};
+use self::rpc::{Session, SessionList, Task};
+use common::{trace::TraceFn, trace_fn};
+use rpc::flame as rpc;
 
 use crate::apiserver::Flame;
 use crate::storage;
@@ -58,7 +58,7 @@ impl Frontend for Flame {
     async fn delete_session(
         &self,
         req: Request<DeleteSessionRequest>,
-    ) -> Result<Response<rpc::flame::Result>, Status> {
+    ) -> Result<Response<rpc::Result>, Status> {
         let ssn_id = req
             .into_inner()
             .session_id
@@ -67,23 +67,20 @@ impl Frontend for Flame {
 
         self.storage.delete_session(ssn_id)?;
 
-        Ok(Response::new(rpc::flame::Result {
-            return_code: 0,
-            message: None,
-        }))
+        Ok(Response::new(rpc::Result::default()))
     }
 
     async fn open_session(
         &self,
         _: Request<OpenSessionRequest>,
-    ) -> Result<Response<rpc::flame::Result>, Status> {
+    ) -> Result<Response<rpc::Result>, Status> {
         todo!()
     }
 
     async fn close_session(
         &self,
         req: Request<CloseSessionRequest>,
-    ) -> Result<Response<rpc::flame::Result>, Status> {
+    ) -> Result<Response<rpc::Result>, Status> {
         trace_fn!("Frontend::close_session");
         let ssn_id = req
             .into_inner()
@@ -93,10 +90,7 @@ impl Frontend for Flame {
 
         self.storage.close_session(ssn_id).map_err(Status::from)?;
 
-        Ok(Response::new(rpc::flame::Result {
-            return_code: 0,
-            message: None,
-        }))
+        Ok(Response::new(rpc::Result::default()))
     }
 
     async fn get_session(
@@ -150,7 +144,7 @@ impl Frontend for Flame {
     async fn delete_task(
         &self,
         _: Request<DeleteTaskRequest>,
-    ) -> Result<Response<rpc::flame::Result>, Status> {
+    ) -> Result<Response<rpc::Result>, Status> {
         todo!()
     }
 
