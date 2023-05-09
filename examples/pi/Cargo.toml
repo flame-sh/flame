@@ -9,7 +9,7 @@ edition = "2021"
 rand_distr = "*"
 rand="*"
 
-flame-client = { path = "../../client" }
+flame-client = { path = "../../client/rust" }
 
 tokio = { workspace = true }
 tonic = { workspace = true }
