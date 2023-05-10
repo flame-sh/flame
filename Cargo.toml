@@ -2,7 +2,7 @@
 
 members = [
     "common",
-    "client",
+    "client/rust",
     "flmctl",
     "flmping",
     "session_manager",
