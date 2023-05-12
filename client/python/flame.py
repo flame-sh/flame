@@ -58,6 +58,13 @@ class Session:
             if callback != None:
                 callback(task)
 
+    def run_all_tasks(self, *, task_inputs, callback):
+        tasks = []
+        for task_input in task_inputs:
+            tasks.append(self.create_task(task_input))
+        for task in tasks:
+            self.watch_task(task_id=task.id, callback=callback)
+
     def close(self):
         self.stub.CloseSession(frontend_pb2.CloseSessionRequest(session_id=self.id))
 
