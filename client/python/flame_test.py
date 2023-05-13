@@ -32,7 +32,7 @@ class FlameTestCase(unittest.TestCase):
         ssn = conn.create_session(application="flmexec", slots=1)
         self.assertIsNotNone(ssn)
         task = ssn.create_task(None)
-        ssn.watch_task(task_id = task.id, callback = None)
+        ssn.watch_task(task_id = task.id)
         ssn.close()
 
 

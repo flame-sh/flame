@@ -51,19 +51,20 @@ class Session:
         task = self.stub.GetTask(req)
         return Task(task)
 
-    def watch_task(self, *, task_id, callback):
+    def watch_task(self, *, task_id, on_completed=None, on_error=None):
         req = frontend_pb2.WatchTaskRequest(task_id=task_id, session_id=self.id)
         tasks = self.stub.WatchTask(req)
         for task in tasks:
-            if callback != None:
-                callback(task)
+            state = TaskState(task.status.state)
+            if state == TaskState.Succeed and on_completed != None:
+                on_completed(Task(task))
 
-    def run_all_tasks(self, *, task_inputs, callback):
+    def run_all_tasks(self, *, task_inputs, on_completed=None, on_error=None):
         tasks = []
         for task_input in task_inputs:
             tasks.append(self.create_task(task_input))
         for task in tasks:
-            self.watch_task(task_id=task.id, callback=callback)
+            self.watch_task(task_id=task.id, on_completed=on_completed, on_error=on_error)
 
     def close(self):
         self.stub.CloseSession(frontend_pb2.CloseSessionRequest(session_id=self.id))
