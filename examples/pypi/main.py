@@ -14,13 +14,13 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Flame Pi Python Example.')
 parser.add_argument('-n', '--task_num', type=int, help="The total number of tasks in the session.")
-parser.add_argument('-i', '--task_input', type=int, help="The input of each task to calcuate Pi.")
+parser.add_argument('-i', '--task_input', type=int, help="The input of each task to calculate Pi.")
 args = parser.parse_args()
 
 area = 0.0
 
 
-def get_summary(task):
+def get_circle_area(task):
     global area
     area += float(task.output)
 
@@ -33,7 +33,7 @@ task_input = str(args.task_input).encode()
 task_inputs = [task_input] * args.task_num
 
 # Submit all task inputs to Flame, and wait for the result.
-ssn.run_all_tasks(task_inputs=task_inputs, on_completed=get_summary)
+ssn.run_all_tasks(task_inputs=task_inputs, on_completed=get_circle_area)
 
 # Calculate the Pi.
 pi = 4 * area / (args.task_input * args.task_num)
