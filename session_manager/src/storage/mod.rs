@@ -84,7 +84,6 @@ impl Storage {
         let mut res = SnapShot {
             sessions: HashMap::new(),
             ssn_index: HashMap::new(),
-
             executors: HashMap::new(),
             exec_index: HashMap::new(),
         };
