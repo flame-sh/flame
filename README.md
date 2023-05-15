@@ -74,7 +74,7 @@ After start the Flame cluster, it's time to verify it with `flmping`. In additio
 $ ./target/debug/flmping -t 10000 --flame-conf ci/flame-conf.yaml
 Session <37> was created in <2 ms>, start to run <10,000> tasks in the session:
 
-[100%] =============================================   10000/10000                                                                                                                                         
+[100%] =============================================   10000/10000
 
 <10,000> tasks was completed in <4,389 ms>.
 ```
