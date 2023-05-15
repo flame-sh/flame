@@ -71,12 +71,12 @@ $ supervisord -c ci/supervisord.conf
 After start the Flame cluster, it's time to verify it with `flmping`. In addition, there are also more meaningful examples [here](example).
 
 ```shell
-$ ./target/debug/flmping --flame-conf ci/flame-conf.yaml
-Create session in <10 ms>, and create <10> tasks in <8 ms>.
+$ ./target/debug/flmping -t 10000 --flame-conf ci/flame-conf.yaml
+Session <37> was created in <2 ms>, start to run <10,000> tasks in the session:
 
-Waiting for <10> tasks to complete:
- Total: 10         Succeed: 0          Failed: 0          Pending: 10         Running: 0
- Total: 10         Succeed: 10         Failed: 0          Pending: 0          Running: 0
+[100%] =============================================   10000/10000                                                                                                                                         
+
+<10,000> tasks was completed in <4,389 ms>.
 ```
 
 ## Reference
