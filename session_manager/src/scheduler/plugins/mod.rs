@@ -26,7 +26,7 @@ mod fairshare;
 
 lazy_static! {
     static ref INSTANCE: MutexPtr<PluginManager> = Arc::new(Mutex::new(PluginManager {
-        plugins: HashMap::from([("fairshare".to_string(), FairShare::new_ptr())]),
+        plugins: HashMap::from([("fairshare".to_string(), FairShare::new_ptr())])
     }));
 }
 
