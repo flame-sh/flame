@@ -21,6 +21,9 @@ use std::{env, thread};
 use crate::shims::{Shim, ShimPtr};
 use common::FlameError;
 
+const FLAME_TASK_ID: &str = "FLAME_TASK_ID";
+const FLAME_SESSION_ID: &str = "FLAME_SESSION_ID";
+
 #[derive(Clone)]
 pub struct StdioShim {
     application: Application,
@@ -70,6 +73,8 @@ impl Shim for StdioShim {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .current_dir(&self.application.working_directory)
+            .env(FLAME_TASK_ID, &ctx.id)
+            .env(FLAME_SESSION_ID, &ctx.ssn_id)
             .spawn()
             .map_err(|_| FlameError::Internal("failed to start subprocess".to_string()))?;
 
