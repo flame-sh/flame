@@ -79,6 +79,11 @@ Session <37> was created in <2 ms>, start to run <10,000> tasks in the session:
 <10,000> tasks was completed in <4,389 ms>.
 ```
 
+## Blogs
+
+* [Estimating the value of Pi using Monte Carlo](docs/blogs/evaluating-pi-by-monte-carlo.md)
+* [Estimating the value of Pi by Flame Python Client](docs/blogs/evaluating-pi-by-flame-python.md)
+
 ## Reference
 
 * **API**: https://github.com/xflops/flame/blob/main/rpc/protos/flame.proto
