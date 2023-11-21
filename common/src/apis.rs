@@ -367,7 +367,7 @@ impl From<&rpc::Application> for Application {
     fn from(app: &rpc::Application) -> Self {
         Application {
             name: app.name.to_string(),
-            shim: Shim::from_i32(app.shim).unwrap_or(Shim::default()),
+            shim: Shim::try_from(app.shim).unwrap_or(Shim::default()),
             command: app.command.to_string(),
             arguments: app.arguments.to_vec(),
             environments: app.environments.to_vec(),

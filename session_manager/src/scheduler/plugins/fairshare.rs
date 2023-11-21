@@ -114,7 +114,7 @@ impl Plugin for FairShare {
             }
 
             let delta = remaining_slots / underused.len() as f64;
-            let mut ssn = underused.pop().unwrap();
+            let ssn = underused.pop().unwrap();
 
             if ssn.deserved + delta < ssn.desired {
                 ssn.deserved += delta;
