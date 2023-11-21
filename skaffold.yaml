@@ -1,0 +1,34 @@
+apiVersion: skaffold/v4beta2
+kind: Config
+metadata:
+  name: flame
+build:
+  tagPolicy:
+    sha256: {}
+  local:
+    useBuildkit: true
+    useDockerCLI: true
+  insecureRegistries:
+    - "registry.minikube"
+  artifacts:
+    - image: registry.minikube/flame-executor-manager
+      docker:
+        dockerfile: docker/Dockerfile.fem
+      sync:
+        infer:
+          - "executor_manager"
+    - image: registry.minikube/flame-session-manager
+      docker:
+        dockerfile: docker/Dockerfile.fsm
+      sync:
+        infer:
+          - "session_manager"
+
+manifests:
+  kustomize:
+    paths:
+      - installer
+
+deploy:
+  kubectl:
+    defaultNamespace: flame-system

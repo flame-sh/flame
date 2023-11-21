@@ -23,4 +23,4 @@ thiserror = "1.0"
 chrono = "0.4"
 
 [build-dependencies]
-tonic-build = "0.8"
+tonic-build = { workspace = true }

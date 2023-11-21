@@ -296,7 +296,7 @@ impl From<&rpc::Task> for Task {
             ssn_id: spec.session_id.clone(),
             input: spec.input.map(TaskInput::from),
             output: spec.output.map(TaskOutput::from),
-            state: TaskState::from_i32(status.state).unwrap_or(TaskState::default()),
+            state: TaskState::try_from(status.state).unwrap_or(TaskState::default()),
         }
     }
 }
@@ -317,7 +317,7 @@ impl From<&rpc::Session> for Session {
             slots: spec.slots,
             application: spec.application,
             creation_time,
-            state: SessionState::from_i32(status.state).unwrap_or(SessionState::default()),
+            state: SessionState::try_from(status.state).unwrap_or(SessionState::default()),
             pending: status.pending,
             running: status.running,
             succeed: status.succeed,
