@@ -37,5 +37,7 @@ manifests:
       - installer
 
 deploy:
+  statusCheckDeadlineSeconds: 300
+  tolerateFailuresUntilDeadline: true
   kubectl:
     defaultNamespace: flame-system
