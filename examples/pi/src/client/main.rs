@@ -55,7 +55,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(DEFAULT_TASK_INPUT);
     let task_num = cli.task_num.unwrap_or(DEFAULT_TASK_NUM);
 
-    let conn = flame::connect("http://127.0.0.1:8080").await?;
+    let host = match std::env::var("FLAME_SESSION_MANAGER_SERVICE_HOST") {
+        Ok(ip) => ip,
+        Err(_) => "127.0.0.1".to_string(),
+    };
+
+    let port = match std::env::var("FLAME_SESSION_MANAGER_SERVICE_PORT") {
+        Ok(p) => p,
+        Err(_) => "8080".to_string(),
+    };
+
+    let conn = flame::connect(format!("http://{}:{}", host, port).as_str()).await?;
     let ssn = conn
         .create_session(&SessionAttributes {
             application: app,

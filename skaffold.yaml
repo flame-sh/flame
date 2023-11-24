@@ -23,7 +23,14 @@ build:
       sync:
         infer:
           - "session_manager"
-
+    - image: registry.minikube/flame-console
+      docker:
+        dockerfile: docker/Dockerfile.console
+      sync:
+        infer:
+          - "example"
+          - "flmping"
+          - "flmctl"
 manifests:
   kustomize:
     paths:
