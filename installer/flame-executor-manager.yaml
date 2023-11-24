@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flame-executor-manager
+  labels:
+    app.kubernetes.io/name: flame-executor-manager
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flame-executor-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flame-executor-manager
+    spec:
+      containers:
+      - name: fem
+        image: registry.minikube/flame-executor-manager:latest
+        env:
+        - name: RUST_LOG
+          value: "info"
+        volumeMounts:
+        - name: flame-conf
+          mountPath: /root/.flame
+      volumes:
+      - name: flame-conf
+        configMap:
+          name: flame-conf

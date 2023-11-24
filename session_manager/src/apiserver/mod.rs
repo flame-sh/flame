@@ -11,6 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::env;
 use std::sync::Arc;
 
 use tokio::runtime::Runtime;
@@ -40,11 +41,14 @@ impl FlameThread for ApiserverRunner {
     fn run(&self, ctx: FlameContext) -> Result<(), FlameError> {
         let url = url::Url::parse(&ctx.endpoint)
             .map_err(|_| FlameError::InvalidConfig("invalid endpoint".to_string()))?;
-        let host = url
-            .host_str()
-            .ok_or(FlameError::InvalidConfig("no host in url".to_string()))?;
         let port = url.port().unwrap_or(8080);
 
+        let host = match env::var("FLM_SM_IP") {
+            Ok(ip) => ip,
+            Err(_) => url.host_str().unwrap_or("127.0.0.1").to_string(),
+        };
+
+        // The fsm will bind to localhost address directly.
         let address_str = format!("{}:{}", host, port);
         log::info!("Listening apiserver at {}", address_str);
         let address = address_str
