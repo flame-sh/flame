@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flame-session-manager
+spec:
+  selector:
+    app.kubernetes.io/name: flame-session-manager
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
