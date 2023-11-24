@@ -1,0 +1,18 @@
+FROM rust:1.71.1-slim-bookworm as builder
+
+WORKDIR /usr/src/flame
+COPY . .
+RUN apt-get update && apt-get install -y protobuf-compiler
+RUN cargo install --path ./examples/pi
+RUN cargo install --path ./flmctl
+RUN cargo install --path ./flmping
+
+FROM ubuntu:22.04
+RUN apt-get update && apt-get install -y wget vim iputils-ping ssh
+COPY --from=builder /usr/local/cargo/bin/flmping /usr/local/bin/flmping
+COPY --from=builder /usr/local/cargo/bin/flmctl /usr/local/bin/flmctl
+COPY --from=builder /usr/local/cargo/bin/pi /usr/local/bin/pi
+COPY --from=builder /usr/local/cargo/bin/pi-local /usr/local/bin/pi-local
+COPY --from=builder /usr/local/cargo/bin/pi-server /usr/local/bin/pi-server
+
+CMD ["service", "ssh", "start", "-D"]

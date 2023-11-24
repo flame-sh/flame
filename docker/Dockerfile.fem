@@ -4,7 +4,10 @@ WORKDIR /usr/src/flame
 COPY . .
 RUN apt-get update && apt-get install -y protobuf-compiler
 RUN cargo install --path ./executor_manager
+RUN cargo install --path ./examples/pi
 
 FROM ubuntu:22.04
 COPY --from=builder /usr/local/cargo/bin/flame-executor-manager /opt/flame-executor-manager
+COPY --from=builder /usr/local/cargo/bin/pi-server /opt/pi-server
+
 ENTRYPOINT ["/opt/flame-executor-manager"]
