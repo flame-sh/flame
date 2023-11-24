@@ -48,35 +48,42 @@ In the future, the `Session scheduler` will provide several features to improve 
 
 ## Quick Start Guide
 
-Currently, the components of Flame are using gRPC to communicate with each other; so it's required to install gRPC to build the Flame.
-And supervisor makes it simple to start a Flame cluster with several executors.
+In this guidance, [minikube](https://minikube.sigs.k8s.io/docs/) and [skaffold](https://skaffold.dev/) are used to start a local kuberentes
+with Flame. After installing minikube and skaffold, we can start a local Flame cluster by the following steps: 
 
 ```shell
-$ sudo apt-get update
-$ sudo apt-get install -y protobuf-compiler supervisor
+$ minikube start --driver=docker
+$ skaffold run
 ```
 
-As Flame is written by Rust, it's easy to build the project by `cargo` as following command: 
+After the Flame clsuter was launched, use the following steps to login into `flame-console` pod which is a debug tool for
+both developer and SRE.
 
 ```shell
-$ cargo build
+$ CONSOLE_POD=`kubectl get pod -n flame-system | grep flame-console | cut  -d" " -f 1`
+$ kubectl exec -it ${CONSOLE_POD} -n flame-system -- /bin/bash
 ```
 
-Supervisor is used to start the Flame cluster, refer to [ci/supervisord.conf](ci/supervisord.conf) for more detail.
+And then, let's verify it with `flmping` in the pod. In addition, there are also more meaningful examples [here](example).
 
-```shell
-$ supervisord -c ci/supervisord.conf
 ```
-
-After start the Flame cluster, it's time to verify it with `flmping`. In addition, there are also more meaningful examples [here](example).
-
-```shell
-$ ./target/debug/flmping -t 10000 --flame-conf ci/flame-conf.yaml
-Session <37> was created in <2 ms>, start to run <10,000> tasks in the session:
+# flmping -t 10000
+Session <4> was created in <0 ms>, start to run <10,000> tasks in the session:
 
 [100%] =============================================   10000/10000
 
-<10,000> tasks was completed in <4,389 ms>.
+<10,000> tasks was completed in <1,603 ms>.
+```
+
+We can check sessions' status by `flmctl` as follow, it also includes several sub-commands, e.g. `view`.
+
+```
+# flmctl list
+ID        State     App            Slots     Pending   Running   Succeed   Failed    Created
+1         Closed    pi             1         0         0         100       0         07:33:58
+2         Closed    flmexec        1         0         0         10        0         07:34:12
+3         Closed    flmexec        1         0         0         10000     0         07:34:17
+4         Closed    flmexec        1         0         0         10000     0         08:34:20
 ```
 
 ## Blogs
