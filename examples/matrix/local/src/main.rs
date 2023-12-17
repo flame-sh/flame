@@ -17,20 +17,22 @@ use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
 
 pub struct WasmShim {
     instance: Instance,
-    store: Store<()>,
+    store: Store<WasiCtx>,
 }
 
 impl WasmShim {
     pub fn new() -> Result<Self, FlameError> {
         let engine = Engine::default();
+        let mut linker = Linker::new(&engine);
+        wasmtime_wasi::add_to_linker(&mut linker, |s| s)
+            .map_err(|e| FlameError::Internal(e.to_string()))?;
 
-        let linker = Linker::new(&engine);
-        // let wasi = WasiCtxBuilder::new()
-        //     .inherit_stdio()
-        //     .inherit_args()
-        //     .expect("should always be able to inherit args")
-        //     .build();
-        let mut store = Store::new(&engine, ());
+        let wasi = WasiCtxBuilder::new()
+            .inherit_stdio()
+            .inherit_args()
+            .expect("should always be able to inherit args")
+            .build();
+        let mut store = Store::new(&engine, wasi);
         let module = Module::from_file(&engine, "target/wasm32-wasi/debug/matrix-server.wasm")
             .map_err(|e| FlameError::Internal(e.to_string()))?;
 
@@ -47,8 +49,8 @@ impl WasmShim {
     pub async fn on_session_enter(&mut self, ctx: SessionContext) -> Result<(), FlameError> {
         let answer = self
             .instance
-            .get_func(&mut self.store, "on_session_enter")
-            .expect("`on_session_enter` was not an exported function");
+            .get_func(&mut self.store, "main")
+            .expect("`main` was not an exported function");
 
         Ok(())
     }
