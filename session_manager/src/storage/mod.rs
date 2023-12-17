@@ -39,7 +39,7 @@ lazy_static! {
     static ref INSTANCE: Arc<Storage> = Arc::new(Storage {
         max_ssn_id: Mutex::new(0),
         max_task_ids: Arc::new(Mutex::new(HashMap::new())),
-        engine: None,
+        engine: Some(Engine::connect()?),
         sessions: Arc::new(Mutex::new(HashMap::new())),
         executors: Arc::new(Mutex::new(HashMap::new())),
     });

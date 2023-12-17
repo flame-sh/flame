@@ -10,11 +10,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 
 use crate::FlameError;
-use common::apis::{Session, SessionID, Task, TaskID};
+use common::apis::{Application, Session, SessionID, Task, TaskID};
+use common::ptr::MutexPtr;
+
+mod postgres;
+
+pub type EnginePtr = MutexPtr<dyn Engine>;
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
@@ -28,4 +34,11 @@ pub trait Engine: Send + Sync + 'static {
     async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
     async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
     async fn update_task(&self, t: &Task) -> Result<(), FlameError>;
+
+    async fn persist_application(&self, app: &Application) -> Result<(), FlameError>;
+    async fn delete_application(&self, name: &str) -> Result<(), FlameError>;
+}
+
+pub fn connect() -> Result<EnginePtr, FlameError> {
+    Ok(Arc::new(Mutex::new(PostgresEngine {})))
 }
