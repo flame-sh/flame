@@ -35,19 +35,24 @@ limitations under the License.
 //     }
 // }
 
-fn main() {
-    println!("Starting MatrixServer");
-    // flame_wasm::run(MatrixServer {})?;
+// fn main() {
+//     println!("Starting MatrixServer");
+//     // flame_wasm::run(MatrixServer {})?;
 
-    // Ok(())
-}
+//     // Ok(())
+// }
 
+#[no_mangle]
 pub fn on_session_enter() {
     println!("session enter");
 }
+
+#[no_mangle]
 pub fn on_task_invoke() {
     println!("task invoke");
 }
+
+#[no_mangle]
 pub fn on_session_leave() {
     println!("session leave");
 }

@@ -11,3 +11,6 @@ edition = "2021"
 # async-trait = { workspace = true }
 # env_logger = { workspace = true }
 # log = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]

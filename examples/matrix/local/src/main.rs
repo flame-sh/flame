@@ -33,7 +33,7 @@ impl WasmShim {
             .expect("should always be able to inherit args")
             .build();
         let mut store = Store::new(&engine, wasi);
-        let module = Module::from_file(&engine, "target/wasm32-wasi/debug/matrix-server.wasm")
+        let module = Module::from_file(&engine, "target/wasm32-wasi/debug/matrix_server.wasm")
             .map_err(|e| FlameError::Internal(e.to_string()))?;
 
         // let instance = Instance::new(&mut store, &module, &[])
@@ -47,19 +47,41 @@ impl WasmShim {
     }
 
     pub async fn on_session_enter(&mut self, ctx: SessionContext) -> Result<(), FlameError> {
-        let answer = self
+        let ssn_enter = self
             .instance
-            .get_func(&mut self.store, "main")
-            .expect("`main` was not an exported function");
+            .get_func(&mut self.store, "on_session_enter")
+            .expect("`on_session_enter` was not an exported function");
+
+        ssn_enter
+            .call(&mut self.store, &[], &mut [])
+            .map_err(|e| FlameError::NotFound(e.to_string()))?;
 
         Ok(())
     }
 
-    pub async fn on_session_leave(&self, ctx: SessionContext) -> Result<(), FlameError> {
+    pub async fn on_session_leave(&mut self, ctx: SessionContext) -> Result<(), FlameError> {
+        let ssn_leave = self
+            .instance
+            .get_func(&mut self.store, "on_session_leave")
+            .expect("`on_session_leave` was not an exported function");
+
+        ssn_leave
+            .call(&mut self.store, &[], &mut [])
+            .map_err(|e| FlameError::NotFound(e.to_string()))?;
+
         Ok(())
     }
 
-    pub async fn on_task_invoke(&self, ctx: TaskContext) -> Result<Option<TaskOutput>, FlameError> {
+    pub async fn on_task_invoke(&mut self, ctx: TaskContext) -> Result<Option<TaskOutput>, FlameError> {
+        let task_invoke = self
+            .instance
+            .get_func(&mut self.store, "on_task_invoke")
+            .expect("`on_session_leave` was not an exported function");
+
+        task_invoke
+            .call(&mut self.store, &[], &mut [])
+            .map_err(|e| FlameError::NotFound(e.to_string()))?;
+
         Ok(None)
     }
 }
@@ -76,7 +98,7 @@ async fn main() -> Result<(), FlameError> {
 
     shim.on_session_enter(ctx.clone()).await?;
 
-    for i in 1..3 {
+    for i in 0..3 {
         shim.on_task_invoke(TaskContext {
             id: i.to_string(),
             ssn_id: ctx.ssn_id.clone(),

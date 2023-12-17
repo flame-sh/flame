@@ -14,25 +14,24 @@ limitations under the License.
 // use std::sync::mpsc;
 // use std::sync::mpsc::{Receiver, Sender};
 // use std::sync::Mutex;
-// use thiserror::Error;
+use thiserror::Error;
 
-// use bytes::Bytes;
 // use lazy_static::lazy_static;
 
-// #[derive(Error, Debug, Clone)]
-// pub enum FlameError {
-//     #[error("'{0}' not found")]
-//     NotFound(String),
+#[derive(Error, Debug, Clone)]
+pub enum FlameError {
+    #[error("'{0}' not found")]
+    NotFound(String),
 
-//     #[error("'{0}'")]
-//     Internal(String),
+    #[error("'{0}'")]
+    Internal(String),
 
-//     #[error("'{0}'")]
-//     Network(String),
+    #[error("'{0}'")]
+    Network(String),
 
-//     #[error("'{0}'")]
-//     InvalidConfig(String),
-// }
+    #[error("'{0}'")]
+    InvalidConfig(String),
+}
 
 // #[macro_export]
 // macro_rules! lock_ptr {
@@ -43,29 +42,29 @@ limitations under the License.
 //     };
 // }
 
-// pub struct SessionContext {
-//     pub session_id: String,
-//     pub common_data: Option<Bytes>,
-// }
+pub struct SessionContext {
+    pub session_id: String,
+    pub common_data: Option<bytes::Bytes>,
+}
 
-// pub type TaskInput = bytes::Bytes;
-// pub type TaskOutput = bytes::Bytes;
+pub type TaskInput = bytes::Bytes;
+pub type TaskOutput = bytes::Bytes;
 
-// pub struct TaskContext {
-//     pub session_id: String,
-//     pub task_id: String,
-// }
+pub struct TaskContext {
+    pub session_id: String,
+    pub task_id: String,
+}
 
-// pub trait FlameService {
-//     fn on_session_enter(&self, ctx: SessionContext) -> Result<(), FlameError>;
-//     fn on_session_leave(&self, ctx: SessionContext) -> Result<(), FlameError>;
+pub trait FlameService {
+    fn on_session_enter(&self, ctx: SessionContext) -> Result<(), FlameError>;
+    fn on_session_leave(&self, ctx: SessionContext) -> Result<(), FlameError>;
 
-//     fn on_task_invoke(
-//         &self,
-//         ctx: TaskContext,
-//         input: Option<TaskInput>,
-//     ) -> Result<Option<TaskOutput>, FlameError>;
-// }
+    fn on_task_invoke(
+        &self,
+        ctx: TaskContext,
+        input: Option<TaskInput>,
+    ) -> Result<Option<TaskOutput>, FlameError>;
+}
 
 // pub fn run<S: FlameService>(svc: S) -> Result<(), FlameError> {
 //     loop {
@@ -127,12 +126,17 @@ limitations under the License.
 //     )> = Mutex::new(mpsc::channel());
 // }
 
+#[no_mangle]
 pub fn on_session_enter() {
     println!("session enter");
 }
+
+#[no_mangle]
 pub fn on_task_invoke() {
     println!("task invoke");
 }
+
+#[no_mangle]
 pub fn on_session_leave() {
     println!("session leave");
 }

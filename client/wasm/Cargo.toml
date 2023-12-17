@@ -11,3 +11,6 @@ async-trait = { workspace = true }
 thiserror = "1.0"
 bytes = { version = "1", features = ["serde"] }
 lazy_static = "1.4"
+
+[lib]
+crate-type = ["cdylib"]
