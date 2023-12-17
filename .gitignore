@@ -15,5 +15,5 @@
 # vendor/
 
 .idea/
+.vscode/
 target/
-Cargo.lock
