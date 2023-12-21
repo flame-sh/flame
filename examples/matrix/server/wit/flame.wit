@@ -1,4 +1,4 @@
-package component:matrix;
+package component:flame;
 
 interface service {
     enum flame-error {

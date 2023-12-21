@@ -9,8 +9,10 @@ members = [
     "executor_manager",
     "rpc",
     "examples/pi",
+    "examples/matrix/client",
 ]
 
+exclude = ["examples/matrix/server"]
 
 [workspace.dependencies]
 tokio = { version = "1", features = ["full"] }
