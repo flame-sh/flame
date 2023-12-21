@@ -1,17 +1,14 @@
 [workspace]
-
+resolver = "1"
 members = [
     "common",
     "client/rust",
-    "client/wasm",
     "flmctl",
     "flmping",
     "session_manager",
     "executor_manager",
     "rpc",
     "examples/pi",
-    "examples/matrix/server",
-    "examples/matrix/local"
 ]
 
 

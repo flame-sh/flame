@@ -9,6 +9,7 @@ edition = "2021"
 common = { path = "../../../common" }
 tokio = {workspace = true}
 
-wasmtime = "16"
-wasmtime-wasi = "16"
+wasmtime = "15"
+wasmtime-wasi = "15"
 anyhow = "1"
+async-std = { version = "1.12.0", features = ["attributes"] }

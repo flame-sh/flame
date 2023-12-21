@@ -14,7 +14,7 @@ limitations under the License.
 use async_trait::async_trait;
 
 use crate::FlameError;
-use common::apis::{Executor, ExecutorID, Session, SessionID, Task, TaskID};
+use common::apis::{Session, SessionID, Task, TaskID};
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
