@@ -6,11 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# flame-wasm = { path = "../../../client/wasm" }
-
-# async-trait = { workspace = true }
-# env_logger = { workspace = true }
-# log = { workspace = true }
+cargo-component-bindings = "0.5.0"
 
 [lib]
 crate-type = ["cdylib"]
+
+[package.metadata.component]
+package = "component:matrix"
+
+[package.metadata.component.dependencies]

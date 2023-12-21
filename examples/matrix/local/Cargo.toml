@@ -9,5 +9,6 @@ edition = "2021"
 common = { path = "../../../common" }
 tokio = {workspace = true}
 
-wasmtime = "15"
-wasmtime-wasi = "15"
+wasmtime = "16"
+wasmtime-wasi = "16"
+anyhow = "1"

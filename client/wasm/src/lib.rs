@@ -126,17 +126,17 @@ pub trait FlameService {
 //     )> = Mutex::new(mpsc::channel());
 // }
 
-#[no_mangle]
-pub fn on_session_enter() {
-    println!("session enter");
-}
+// #[no_mangle]
+// pub fn on_session_enter() {
+//     println!("session enter");
+// }
 
-#[no_mangle]
-pub fn on_task_invoke() {
-    println!("task invoke");
-}
+// #[no_mangle]
+// pub fn on_task_invoke() {
+//     println!("task invoke");
+// }
 
-#[no_mangle]
-pub fn on_session_leave() {
-    println!("session leave");
-}
+// #[no_mangle]
+// pub fn on_session_leave() {
+//     println!("session leave");
+// }

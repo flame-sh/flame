@@ -11,86 +11,149 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::{apis::*, *};
-use wasmtime::*;
-use wasmtime_wasi::{WasiCtx, WasiCtxBuilder};
+use common::{self, apis};
+
+use anyhow::Context;
+use wasmtime::component::*;
+use wasmtime::{Config, Engine, Store};
+use wasmtime_wasi::preview2::{command, Table, WasiCtx, WasiCtxBuilder, WasiView};
+
+use crate::exports::component::matrix::service;
+
+wasmtime::component::bindgen!({
+    path: "flame.wit",
+    world: "flame",
+    async: true
+});
 
 pub struct WasmShim {
-    instance: Instance,
-    store: Store<WasiCtx>,
+    instance: Flame,
+    store: Store<ServerWasiView>,
 }
 
 impl WasmShim {
-    pub fn new() -> Result<Self, FlameError> {
-        let engine = Engine::default();
+    pub async fn new() -> Result<Self, common::FlameError> {
+        let mut config = Config::default();
+
+        config.wasm_component_model(true);
+        config.async_support(true);
+        let engine =
+            Engine::new(&config).map_err(|e| common::FlameError::Internal(e.to_string()))?;
         let mut linker = Linker::new(&engine);
-        wasmtime_wasi::add_to_linker(&mut linker, |s| s)
-            .map_err(|e| FlameError::Internal(e.to_string()))?;
 
-        let wasi = WasiCtxBuilder::new()
-            .inherit_stdio()
-            .inherit_args()
-            .expect("should always be able to inherit args")
-            .build();
-        let mut store = Store::new(&engine, wasi);
-        let module = Module::from_file(&engine, "target/wasm32-wasi/debug/matrix_server.wasm")
-            .map_err(|e| FlameError::Internal(e.to_string()))?;
+        command::add_to_linker(&mut linker)
+            .map_err(|e| common::FlameError::Internal(e.to_string()))?;
+        let wasi_view = ServerWasiView::new();
+        let mut store = Store::new(&engine, wasi_view);
 
-        // let instance = Instance::new(&mut store, &module, &[])
-        //     .map_err(|e| FlameError::Internal(e.to_string()))?;
+        let component =
+            Component::from_file(&engine, "target/wasm32-wasi/debug/matrix_server.wasm")
+                .context("Component file not found")
+                .map_err(|e| common::FlameError::Internal(e.to_string()))?;
 
-        let instance = linker
-            .instantiate(&mut store, &module)
-            .map_err(|e| FlameError::NotFound(e.to_string()))?;
+        let (instance, _) = Flame::instantiate_async(&mut store, &component, &linker)
+            .await
+            .context("Failed to instantiate the flame world")
+            .map_err(|e| common::FlameError::Internal(e.to_string()))?;
 
         Ok(WasmShim { store, instance })
     }
 
-    pub async fn on_session_enter(&mut self, ctx: SessionContext) -> Result<(), FlameError> {
-        let ssn_enter = self
-            .instance
-            .get_func(&mut self.store, "on_session_enter")
-            .expect("`on_session_enter` was not an exported function");
+    pub async fn on_session_enter(
+        &mut self,
+        ctx: apis::SessionContext,
+    ) -> Result<(), common::FlameError> {
+        let ssn_ctx = service::SessionContext {
+            session_id: ctx.ssn_id.clone(),
+            common_data: None,
+        };
 
-        ssn_enter
-            .call(&mut self.store, &[], &mut [])
-            .map_err(|e| FlameError::NotFound(e.to_string()))?;
+        let _ = self
+            .instance
+            .interface0
+            .call_on_session_enter(&mut self.store, &ssn_ctx)
+            .await
+            .map_err(|e| common::FlameError::Internal(e.to_string()))?;
 
         Ok(())
     }
 
-    pub async fn on_session_leave(&mut self, ctx: SessionContext) -> Result<(), FlameError> {
-        let ssn_leave = self
-            .instance
-            .get_func(&mut self.store, "on_session_leave")
-            .expect("`on_session_leave` was not an exported function");
+    pub async fn on_session_leave(
+        &mut self,
+        ctx: apis::SessionContext,
+    ) -> Result<(), common::FlameError> {
+        let ssn_ctx = service::SessionContext {
+            session_id: ctx.ssn_id.clone(),
+            common_data: None,
+        };
 
-        ssn_leave
-            .call(&mut self.store, &[], &mut [])
-            .map_err(|e| FlameError::NotFound(e.to_string()))?;
+        let _ = self
+            .instance
+            .interface0
+            .call_on_session_leave(&mut self.store, &ssn_ctx)
+            .await
+            .map_err(|e| common::FlameError::Internal(e.to_string()))?;
 
         Ok(())
     }
 
-    pub async fn on_task_invoke(&mut self, ctx: TaskContext) -> Result<Option<TaskOutput>, FlameError> {
-        let task_invoke = self
-            .instance
-            .get_func(&mut self.store, "on_task_invoke")
-            .expect("`on_session_leave` was not an exported function");
+    pub async fn on_task_invoke(
+        &mut self,
+        ctx: apis::TaskContext,
+    ) -> Result<Option<apis::TaskOutput>, common::FlameError> {
+        let task_ctx = service::TaskContext {
+            session_id: ctx.ssn_id.clone(),
+            task_id: ctx.id.clone(),
+        };
 
-        task_invoke
-            .call(&mut self.store, &[], &mut [])
-            .map_err(|e| FlameError::NotFound(e.to_string()))?;
+        let _ = self
+            .instance
+            .interface0
+            .call_on_task_invoke(&mut self.store, &task_ctx, None)
+            .await
+            .map_err(|e| common::FlameError::Internal(e.to_string()))?;
 
         Ok(None)
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), FlameError> {
-    let mut shim = WasmShim::new()?;
+struct ServerWasiView {
+    table: Table,
+    ctx: WasiCtx,
+}
 
-    let ctx = SessionContext {
+impl ServerWasiView {
+    fn new() -> Self {
+        let table = Table::new();
+        let ctx = WasiCtxBuilder::new().inherit_stdio().build();
+
+        Self { table, ctx }
+    }
+}
+
+impl WasiView for ServerWasiView {
+    fn table(&self) -> &Table {
+        &self.table
+    }
+
+    fn table_mut(&mut self) -> &mut Table {
+        &mut self.table
+    }
+
+    fn ctx(&self) -> &WasiCtx {
+        &self.ctx
+    }
+
+    fn ctx_mut(&mut self) -> &mut WasiCtx {
+        &mut self.ctx
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), common::FlameError> {
+    let mut shim = WasmShim::new().await?;
+
+    let ctx = apis::SessionContext {
         ssn_id: "1".to_string(),
         slots: 1,
         application: "wasm".to_string(),
@@ -99,7 +162,7 @@ async fn main() -> Result<(), FlameError> {
     shim.on_session_enter(ctx.clone()).await?;
 
     for i in 0..3 {
-        shim.on_task_invoke(TaskContext {
+        shim.on_task_invoke(apis::TaskContext {
             id: i.to_string(),
             ssn_id: ctx.ssn_id.clone(),
             input: None,

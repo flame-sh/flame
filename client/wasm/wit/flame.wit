@@ -1,0 +1,30 @@
+    enum FlameError {
+        Internal,
+    }
+    type TaskInput = list<u8>
+    type TaskOutput = list<u8>
+    // request method
+    type method = string
+    // request object
+
+    record SessionContext {
+        session_id: string,
+        common_data: option<list<u8>>,
+    }
+
+    record TaskContext {
+        task_id: string,
+        session_id: string,
+    }
+    
+interface Service {
+    // handle request function
+    on_session_enter: func(ctx: SessionContext) -> result<_, FlameError>
+    on_session_leave: func(ctx: SessionContext) -> result<_, FlameError>
+    on_task_invoke: func(ctx: TaskContext, input: TaskInput) -> result<TaskOutput, FlameError>
+}
+
+// exports the interface
+world flame {
+  default export Service
+}
