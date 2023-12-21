@@ -17,7 +17,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 
-use ::rpc::flame as rpc;
+use rpc::flame as rpc;
 
 use crate::ptr::CondPtr;
 use crate::{lock_cond_ptr, FlameError};
@@ -93,8 +93,7 @@ pub enum ExecutorState {
 pub enum Shim {
     Log = 0,
     Stdio = 1,
-    Rpc = 2,
-    Rest = 3,
+    Wasm = 2,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -151,7 +150,7 @@ impl Session {
         self.tasks.insert(task.id, task_ptr.clone());
         self.tasks_index
             .entry(task.state)
-            .or_insert_with(HashMap::new);
+            .or_default();
         self.tasks_index
             .get_mut(&task.state)
             .unwrap()

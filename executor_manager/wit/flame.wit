@@ -1,0 +1,29 @@
+package component:flame;
+
+interface service {
+    enum flame-error {
+        internal,
+    }
+    type task-input = list<u8>;
+    type task-output = list<u8>;
+
+    record session-context {
+        session-id: string,
+        common-data: option<list<u8>>,
+    }
+
+    record task-context {
+        task-id: string,
+        session-id: string,
+    }
+    
+    // handle request function
+    on-session-enter: func(ctx: session-context) -> result<_, flame-error>;
+    on-session-leave: func(ctx: session-context) -> result<_, flame-error>;
+    on-task-invoke: func(ctx: task-context, input: option<task-input>) -> result<option<task-output>, flame-error>;
+}
+
+// exports the interface
+world flame {
+    export service;
+}

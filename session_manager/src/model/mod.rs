@@ -141,7 +141,7 @@ impl From<&Session> for SessionInfo {
 impl SnapShot {
     pub fn add_session(&mut self, ssn: SessionInfoPtr) {
         self.sessions.insert(ssn.id, ssn.clone());
-        self.ssn_index.entry(ssn.state).or_insert_with(HashMap::new);
+        self.ssn_index.entry(ssn.state).or_default();
 
         if let Some(ssn_list) = self.ssn_index.get_mut(&ssn.state) {
             ssn_list.insert(ssn.id, ssn.clone());
@@ -167,7 +167,7 @@ impl SnapShot {
         self.executors.insert(exec.id.clone(), exec.clone());
         self.exec_index
             .entry(exec.state)
-            .or_insert_with(HashMap::new);
+            .or_default();
 
         if let Some(exec_list) = self.exec_index.get_mut(&exec.state.clone()) {
             exec_list.insert(exec.id.clone(), exec.clone());

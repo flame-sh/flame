@@ -1,0 +1,15 @@
+[package]
+name = "matrix-local"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+common = { path = "../../../common" }
+tokio = {workspace = true}
+
+wasmtime = "15"
+wasmtime-wasi = "15"
+anyhow = "1"
+async-std = { version = "1.12.0", features = ["attributes"] }

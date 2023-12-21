@@ -14,7 +14,7 @@ limitations under the License.
 use async_trait::async_trait;
 
 use crate::FlameError;
-use common::apis::{Executor, ExecutorID, Session, SessionID, Task, TaskID};
+use common::apis::{Session, SessionID, Task, TaskID};
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
@@ -28,10 +28,4 @@ pub trait Engine: Send + Sync + 'static {
     async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
     async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
     async fn update_task(&self, t: &Task) -> Result<(), FlameError>;
-
-    async fn persist_executor(&self, e: &Executor) -> Result<(), FlameError>;
-    async fn get_executor(&self, id: ExecutorID) -> Result<Executor, FlameError>;
-    async fn delete_executor(&self, id: ExecutorID) -> Result<(), FlameError>;
-    async fn update_executor(&self, e: &Executor) -> Result<(), FlameError>;
-    async fn find_executor(&self) -> Result<Vec<Executor>, FlameError>;
 }

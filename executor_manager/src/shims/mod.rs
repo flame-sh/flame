@@ -13,9 +13,11 @@ limitations under the License.
 
 mod log_shim;
 mod stdio_shim;
+mod wasm_shim;
 
 use self::log_shim::LogShim;
 use self::stdio_shim::StdioShim;
+use self::wasm_shim::WasmShim;
 
 use common::apis::{Application, SessionContext, Shim as ShimType, TaskContext, TaskOutput};
 use common::ptr::MutexPtr;
@@ -26,6 +28,7 @@ pub type ShimPtr = MutexPtr<dyn Shim>;
 pub fn from(app: &Application) -> Result<ShimPtr, FlameError> {
     match app.shim {
         ShimType::Stdio => Ok(StdioShim::new_ptr(app)),
+        ShimType::Wasm => Ok(WasmShim::new_ptr(app)?),
         _ => Ok(LogShim::new_ptr(app)),
     }
 }

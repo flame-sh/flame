@@ -1,0 +1,16 @@
+[package]
+name = "matrix-server-v1"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# flame-wasm = { path = "../../../client/wasm" }
+
+# async-trait = { workspace = true }
+# env_logger = { workspace = true }
+# log = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]
