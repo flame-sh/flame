@@ -1,6 +1,6 @@
 cargo_component_bindings::generate!();
 
-use crate::bindings::exports::component::matrix::service::{
+use crate::bindings::exports::component::flame::service::{
     FlameError, Guest, SessionContext, TaskContext, TaskInput, TaskOutput,
 };
 
@@ -19,7 +19,7 @@ impl Guest for Component {
 
     fn on_task_invoke(
         ctx: TaskContext,
-        input: Option<TaskInput>,
+        _: Option<TaskInput>,
     ) -> Result<Option<TaskOutput>, FlameError> {
         println!("task <{}/{}> invoke", ctx.session_id, ctx.task_id);
         Ok(None)
