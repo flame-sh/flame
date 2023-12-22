@@ -13,7 +13,6 @@ limitations under the License.
 
 use std::collections::HashMap;
 
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 
@@ -32,6 +31,7 @@ pub type ExecutorPtr = CondPtr<Executor>;
 type Message = bytes::Bytes;
 pub type TaskInput = Message;
 pub type TaskOutput = Message;
+pub type CommonData = Message;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum SessionState {
@@ -50,6 +50,7 @@ pub struct Session {
     pub id: SessionID,
     pub application: String,
     pub slots: i32,
+    pub common_data: Option<CommonData>,
     pub tasks: HashMap<TaskID, TaskPtr>,
     pub tasks_index: HashMap<TaskState, HashMap<TaskID, TaskPtr>>,
     pub creation_time: DateTime<Utc>,
@@ -131,6 +132,7 @@ pub struct SessionContext {
     pub ssn_id: String,
     pub application: String,
     pub slots: i32,
+    pub common_data: Option<CommonData>,
 }
 
 impl Task {
@@ -210,6 +212,7 @@ impl Clone for Session {
             id: self.id,
             application: self.application.clone(),
             slots: self.slots,
+            common_data: self.common_data.clone(),
             tasks: HashMap::new(),
             tasks_index: HashMap::new(),
             creation_time: self.creation_time,
@@ -232,14 +235,6 @@ impl Clone for Session {
     }
 }
 
-pub fn message_to_vec(m: Message) -> Vec<u8> {
-    m.to_vec()
-}
-
-pub fn vec_to_message(v: Vec<u8>) -> Message {
-    Bytes::from(v)
-}
-
 impl TryFrom<rpc::Task> for TaskContext {
     type Error = FlameError;
 
@@ -254,8 +249,8 @@ impl TryFrom<rpc::Task> for TaskContext {
         Ok(TaskContext {
             id: metadata.id,
             ssn_id: spec.session_id.to_string(),
-            input: spec.input.map(vec_to_message),
-            output: spec.output.map(vec_to_message),
+            input: spec.input.map(TaskInput::from),
+            output: spec.output.map(TaskOutput::from),
         })
     }
 }
@@ -275,6 +270,7 @@ impl TryFrom<rpc::Session> for SessionContext {
             ssn_id: metadata.id,
             application: spec.application.clone(),
             slots: spec.slots,
+            common_data: spec.common_data.map(CommonData::from),
         })
     }
 }
@@ -299,8 +295,8 @@ impl From<&Task> for rpc::Task {
             }),
             spec: Some(rpc::TaskSpec {
                 session_id: task.ssn_id.to_string(),
-                input: task.input.clone().map(message_to_vec),
-                output: task.output.clone().map(message_to_vec),
+                input: task.input.clone().map(TaskInput::into),
+                output: task.output.clone().map(TaskOutput::into),
             }),
             status: Some(rpc::TaskStatus {
                 state: task.state as i32,
@@ -348,6 +344,7 @@ impl From<&Session> for rpc::Session {
             spec: Some(rpc::SessionSpec {
                 application: ssn.application.clone(),
                 slots: ssn.slots,
+                common_data: ssn.common_data.clone().map(CommonData::into),
             }),
             status: Some(status),
         }

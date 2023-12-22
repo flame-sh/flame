@@ -15,7 +15,6 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use async_trait::async_trait;
-use bytes::Bytes;
 use tokio::sync::Mutex;
 use wasmtime::component::*;
 use wasmtime::{Config, Engine, Store};
@@ -76,7 +75,7 @@ impl Shim for WasmShim {
     ) -> Result<(), common::FlameError> {
         let ssn_ctx = service::SessionContext {
             session_id: ctx.ssn_id.clone(),
-            common_data: None,
+            common_data: ctx.common_data.clone().map(apis::CommonData::into),
         };
 
         let _ = self
@@ -107,13 +106,13 @@ impl Shim for WasmShim {
             .call_on_task_invoke(
                 &mut self.store,
                 &task_ctx,
-                ctx.input.clone().map(Bytes::into).as_ref(),
+                ctx.input.clone().map(apis::TaskInput::into).as_ref(),
             )
             .await
             .map_err(|e| common::FlameError::Internal(e.to_string()))?
             .map_err(|e| common::FlameError::Internal(e.to_string()))?;
 
-        Ok(output.map(Bytes::from))
+        Ok(output.map(apis::TaskOutput::from))
     }
 
     async fn on_session_leave(&mut self) -> Result<(), common::FlameError> {
