@@ -31,7 +31,6 @@ use rpc::flame as rpc;
 use crate::apiserver::Flame;
 use crate::storage;
 use common::apis;
-use common::apis::vec_to_message;
 
 #[async_trait]
 impl Frontend for Flame {
@@ -136,7 +135,7 @@ impl Frontend for Flame {
 
         let task = self
             .storage
-            .create_task(ssn_id, task_spec.input.map(vec_to_message))
+            .create_task(ssn_id, task_spec.input.map(apis::TaskInput::from))
             .map_err(Status::from)?;
 
         Ok(Response::new(Task::from(&task)))
