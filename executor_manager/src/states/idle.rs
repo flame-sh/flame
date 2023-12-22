@@ -17,7 +17,7 @@ use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use crate::{client, shims};
 use common::ctx::FlameContext;
-use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
+use common::{trace::TraceFn, trace_fn, FlameError};
 // use common::apis::Application;
 
 #[derive(Clone)]
@@ -43,12 +43,12 @@ impl State for IdleState {
             }
             Some(app) => {
                 // let app = Application::from(&app);
-                let shim_ptr = shims::from(&app)?;
+                let shim_ptr = shims::from(&app).await?;
 
                 {
                     // TODO(k82cn): if on_session_enter failed, add retry limits.
-                    let mut shim = lock_ptr!(shim_ptr)?;
-                    shim.on_session_enter(&ssn)?;
+                    let mut shim = shim_ptr.lock().await;
+                    shim.on_session_enter(&ssn).await?;
                 };
 
                 client::bind_executor_completed(ctx, &self.executor.clone()).await?;

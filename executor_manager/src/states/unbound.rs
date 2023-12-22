@@ -17,7 +17,7 @@ use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::ctx::FlameContext;
-use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
 pub struct UnboundState {
@@ -35,8 +35,8 @@ impl State for UnboundState {
         ))?;
 
         {
-            let mut shim = lock_ptr!(shim_ptr)?;
-            shim.on_session_leave()?;
+            let mut shim = shim_ptr.lock().await;
+            shim.on_session_leave().await?;
         }
 
         client::unbind_executor_completed(ctx, &self.executor.clone()).await?;

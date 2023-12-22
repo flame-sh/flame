@@ -24,7 +24,7 @@ mod init;
 mod unbound;
 mod unknown;
 
-pub fn from(e: Executor) -> Box<dyn State> {
+pub async fn from(e: Executor) -> Box<dyn State> {
     match e.state {
         ExecutorState::Init => Box::new(init::InitState { executor: e }),
         ExecutorState::Idle => Box::new(idle::IdleState { executor: e }),

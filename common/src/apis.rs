@@ -148,9 +148,7 @@ impl Session {
         let task_ptr = TaskPtr::new(task.clone());
 
         self.tasks.insert(task.id, task_ptr.clone());
-        self.tasks_index
-            .entry(task.state)
-            .or_default();
+        self.tasks_index.entry(task.state).or_default();
         self.tasks_index
             .get_mut(&task.state)
             .unwrap()

@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // let mut exec_ptr = ExecutorPtr::new(exec);
 
     loop {
-        let mut state = states::from(exec.clone());
+        let mut state = states::from(exec.clone()).await;
         match state.execute(&ctx).await {
             Ok(next_state) => {
                 exec.update_state(&next_state);

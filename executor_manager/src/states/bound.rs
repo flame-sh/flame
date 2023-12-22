@@ -17,7 +17,7 @@ use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
 use common::ctx::FlameContext;
-use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
 pub struct BoundState {
@@ -38,8 +38,8 @@ impl State for BoundState {
                     "no shim in bound state".to_string(),
                 ))?;
                 {
-                    let mut shim = lock_ptr!(shim_ptr)?;
-                    let output = shim.on_task_invoke(&task_ctx)?;
+                    let mut shim = shim_ptr.lock().await;
+                    let output = shim.on_task_invoke(&task_ctx).await?;
                     if let Some(task_ctx) = &mut self.executor.task {
                         task_ctx.output = output;
                     }
