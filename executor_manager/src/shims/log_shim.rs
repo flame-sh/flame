@@ -11,10 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use tokio::sync::Mutex;
 
 use crate::shims::{Shim, ShimPtr};
+use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
 use common::FlameError;
 
 #[derive(Clone)]
@@ -30,8 +33,9 @@ impl LogShim {
     }
 }
 
+#[async_trait]
 impl Shim for LogShim {
-    fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
+    async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
         log::info!(
             "on_session_enter: Session: <{}>, Application: <{}>, Slots: <{}>",
             ctx.ssn_id,
@@ -43,7 +47,10 @@ impl Shim for LogShim {
         Ok(())
     }
 
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<TaskOutput>, FlameError> {
+    async fn on_task_invoke(
+        &mut self,
+        ctx: &TaskContext,
+    ) -> Result<Option<TaskOutput>, FlameError> {
         log::info!(
             "on_task_invoke: Task: <{}>, Session: <{}>",
             ctx.id,
@@ -52,7 +59,7 @@ impl Shim for LogShim {
         Ok(None)
     }
 
-    fn on_session_leave(&mut self) -> Result<(), FlameError> {
+    async fn on_session_leave(&mut self) -> Result<(), FlameError> {
         match &self.session_context {
             None => {
                 log::info!("on_session_leave")

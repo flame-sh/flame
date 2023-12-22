@@ -11,14 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
 use std::io::{Read, Write};
 use std::path::{Path, MAIN_SEPARATOR};
 use std::process::{Command, Stdio};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{env, thread};
 
+use async_trait::async_trait;
+use tokio::sync::Mutex;
+
 use crate::shims::{Shim, ShimPtr};
+use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
 use common::FlameError;
 
 const FLAME_TASK_ID: &str = "FLAME_TASK_ID";
@@ -39,14 +42,18 @@ impl StdioShim {
     }
 }
 
+#[async_trait]
 impl Shim for StdioShim {
-    fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
+    async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
         self.session_context = Some(ctx.clone());
 
         Ok(())
     }
 
-    fn on_task_invoke(&mut self, ctx: &TaskContext) -> Result<Option<TaskOutput>, FlameError> {
+    async fn on_task_invoke(
+        &mut self,
+        ctx: &TaskContext,
+    ) -> Result<Option<TaskOutput>, FlameError> {
         let mut cmd = self.application.command.clone();
         let path = Path::new(&cmd);
         if !path.has_root() {
@@ -113,7 +120,7 @@ impl Shim for StdioShim {
         Ok(Some(TaskOutput::from(data)))
     }
 
-    fn on_session_leave(&mut self) -> Result<(), FlameError> {
+    async fn on_session_leave(&mut self) -> Result<(), FlameError> {
         Ok(())
     }
 }

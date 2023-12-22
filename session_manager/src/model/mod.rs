@@ -165,9 +165,7 @@ impl SnapShot {
 
     pub fn add_executor(&mut self, exec: ExecutorInfoPtr) {
         self.executors.insert(exec.id.clone(), exec.clone());
-        self.exec_index
-            .entry(exec.state)
-            .or_default();
+        self.exec_index.entry(exec.state).or_default();
 
         if let Some(exec_list) = self.exec_index.get_mut(&exec.state.clone()) {
             exec_list.insert(exec.id.clone(), exec.clone());
