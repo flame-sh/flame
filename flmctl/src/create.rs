@@ -23,6 +23,7 @@ pub async fn run(ctx: &FlameContext, app: &str, slots: &i32) -> Result<(), Box<d
     let attr = SessionAttributes {
         application: app.to_owned(),
         slots: *slots,
+        common_data: None,
     };
 
     let ssn = conn.create_session(&attr).await?;

@@ -44,6 +44,7 @@ type SessionID = String;
 type Message = Bytes;
 pub type TaskInput = Message;
 pub type TaskOutput = Message;
+pub type CommonData = Message;
 
 #[macro_export]
 macro_rules! lock_ptr {
@@ -104,6 +105,7 @@ pub struct Connection {
 pub struct SessionAttributes {
     pub application: String,
     pub slots: i32,
+    pub common_data: Option<CommonData>,
 }
 
 #[derive(Clone)]
@@ -155,6 +157,7 @@ impl Connection {
             session: Some(SessionSpec {
                 application: attrs.application.clone(),
                 slots: attrs.slots,
+                common_data: attrs.common_data.clone().map(CommonData::into),
             }),
         };
 

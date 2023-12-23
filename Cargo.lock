@@ -1467,6 +1467,34 @@ checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
 [[package]]
 name = "matrix-client"
 version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "env_logger",
+ "flame-client",
+ "futures",
+ "log",
+ "rand",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
+name = "matrix-local"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "rand",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "wasmtime",
+ "wasmtime-wasi",
+]
 
 [[package]]
 name = "maybe-owned"

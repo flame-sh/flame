@@ -1,9 +1,15 @@
 package component:flame;
 
 interface service {
-    enum flame-error {
+    enum flame-error-code {
         internal,
     }
+
+    record flame-error {
+        code: flame-error-code,
+        message: string,
+    }
+ 
     type task-input = list<u8>;
     type task-output = list<u8>;
 
