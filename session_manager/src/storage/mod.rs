@@ -24,8 +24,8 @@ use chrono::Utc;
 use lazy_static::lazy_static;
 
 use common::apis::{
-    Executor, ExecutorID, ExecutorPtr, Session, SessionID, SessionPtr, SessionState, Task, TaskID,
-    TaskInput, TaskOutput, TaskPtr, TaskState,
+    CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID, SessionPtr, SessionState,
+    Task, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 use common::{lock_cond_ptr, lock_ptr};
 use common::{trace::TraceFn, trace_fn, FlameError};
@@ -109,13 +109,19 @@ impl Storage {
         Ok(res)
     }
 
-    pub fn create_session(&self, app: String, slots: i32) -> Result<Session, FlameError> {
+    pub fn create_session(
+        &self,
+        app: String,
+        slots: i32,
+        common_data: Option<CommonData>,
+    ) -> Result<Session, FlameError> {
         let mut ssn_map = lock_ptr!(self.sessions)?;
 
         let ssn = Session {
             id: self.next_ssn_id()?,
             slots,
             application: app,
+            common_data,
             creation_time: Utc::now(),
             ..Default::default()
         };

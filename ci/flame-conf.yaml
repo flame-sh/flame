@@ -17,3 +17,9 @@ applications:
     arguments: []
     environments: []
     working_directory: "/tmp"
+  - name: "matrix"
+    shim: Wasm
+    command: "examples/matrix/server/target/wasm32-wasi/debug/matrix_server.wasm"
+    arguments: []
+    environments: []
+    working_directory: "/tmp"

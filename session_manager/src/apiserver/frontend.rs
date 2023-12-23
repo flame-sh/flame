@@ -48,7 +48,11 @@ impl Frontend for Flame {
 
         let ssn = self
             .storage
-            .create_session(ssn_spec.application, ssn_spec.slots)
+            .create_session(
+                ssn_spec.application,
+                ssn_spec.slots,
+                ssn_spec.common_data.map(apis::CommonData::from),
+            )
             .map_err(Status::from)?;
 
         Ok(Response::new(Session::from(&ssn)))

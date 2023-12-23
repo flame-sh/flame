@@ -60,6 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let ssn_attr = flame::SessionAttributes {
         application: app.clone(),
         slots,
+        common_data: None,
     };
     let ssn = conn.create_session(&ssn_attr).await?;
     let ssn_creation_end_time = Local::now();

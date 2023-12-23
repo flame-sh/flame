@@ -10,6 +10,7 @@ members = [
     "rpc",
     "examples/pi",
     "examples/matrix/client",
+    "examples/matrix/local",
 ]
 
 exclude = ["examples/matrix/server"]

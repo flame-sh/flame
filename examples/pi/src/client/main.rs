@@ -70,6 +70,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .create_session(&SessionAttributes {
             application: app,
             slots,
+            common_data: None,
         })
         .await?;
 
