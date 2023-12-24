@@ -20,8 +20,8 @@ prost = { workspace = true }
 bytes = "1"
 chrono = "0.4"
 lazy_static = "1.4"
-wasmtime = "15"
-wasmtime-wasi = "15"
+wasmtime = "16"
+wasmtime-wasi = "16"
 anyhow = "1"
 
 [dependencies.uuid]
