@@ -31,17 +31,15 @@ pub struct Context {
     pub schedule_interval: u64,
 }
 
-impl TryFrom<&FlameContext> for Context {
-    type Error = FlameError;
-
-    fn try_from(_: &FlameContext) -> Result<Self, Self::Error> {
-        let snapshot = storage::instance().snapshot()?;
+impl Context {
+    pub fn new(storage: StoragePtr) -> Result<Self, FlameError> {
+        let snapshot = storage.snapshot()?;
         let plugins = PluginManager::setup(&snapshot)?;
 
         Ok(Context {
             snapshot,
             plugins,
-            storage: storage::instance(),
+            storage,
             // TODO(k82cn): Add ActionManager for them.
             actions: vec![
                 AllocateAction::new_ptr(),
@@ -51,9 +49,7 @@ impl TryFrom<&FlameContext> for Context {
             schedule_interval: DEFAULT_SCHEDULE_INTERVAL,
         })
     }
-}
 
-impl Context {
     pub fn filter(
         &self,
         execs: &Vec<ExecutorInfoPtr>,

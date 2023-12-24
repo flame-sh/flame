@@ -13,7 +13,7 @@ limitations under the License.
 
 use crate::storage::states::States;
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
-use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
+use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct BindingState {
     pub executor: ExecutorPtr,
@@ -24,11 +24,11 @@ impl States for BindingState {
         trace_fn!("BindingState::bind_session");
 
         let ssn_id = {
-            let ssn = lock_cond_ptr!(ssn_ptr)?;
+            let ssn = lock_ptr!(ssn_ptr)?;
             ssn.id
         };
 
-        let mut e = lock_cond_ptr!(self.executor)?;
+        let mut e = lock_ptr!(self.executor)?;
         e.ssn_id = Some(ssn_id);
         e.state = ExecutorState::Binding;
 
@@ -38,7 +38,7 @@ impl States for BindingState {
     fn bind_session_completed(&self) -> Result<(), FlameError> {
         trace_fn!("BindingState::bind_session");
 
-        let mut e = lock_cond_ptr!(self.executor)?;
+        let mut e = lock_ptr!(self.executor)?;
         e.state = ExecutorState::Bound;
 
         Ok(())

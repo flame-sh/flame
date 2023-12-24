@@ -15,6 +15,7 @@ use std::{thread, time};
 
 use crate::scheduler::ctx::Context;
 
+use crate::storage::StoragePtr;
 use crate::FlameThread;
 use common::ctx::FlameContext;
 use common::FlameError;
@@ -23,16 +24,18 @@ mod actions;
 mod ctx;
 mod plugins;
 
-pub fn new() -> Box<dyn FlameThread> {
-    Box::new(ScheduleRunner {})
+pub fn new(storage: StoragePtr) -> Box<dyn FlameThread> {
+    Box::new(ScheduleRunner { storage })
 }
 
-struct ScheduleRunner {}
+struct ScheduleRunner {
+    storage: StoragePtr,
+}
 
 impl FlameThread for ScheduleRunner {
     fn run(&self, flame_ctx: FlameContext) -> Result<(), FlameError> {
         loop {
-            let mut ctx = Context::try_from(&flame_ctx)?;
+            let mut ctx = Context::new(self.storage.clone())?;
 
             for action in ctx.actions.clone() {
                 if let Err(e) = action.execute(&mut ctx) {

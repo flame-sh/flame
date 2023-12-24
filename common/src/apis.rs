@@ -18,15 +18,15 @@ use serde_derive::{Deserialize, Serialize};
 
 use rpc::flame as rpc;
 
-use crate::ptr::CondPtr;
-use crate::{lock_cond_ptr, FlameError};
+use crate::ptr::MutexPtr;
+use crate::{lock_ptr, FlameError};
 
 pub type SessionID = i64;
 pub type TaskID = i64;
 pub type ExecutorID = String;
-pub type TaskPtr = CondPtr<Task>;
-pub type SessionPtr = CondPtr<Session>;
-pub type ExecutorPtr = CondPtr<Executor>;
+pub type TaskPtr = MutexPtr<Task>;
+pub type SessionPtr = MutexPtr<Session>;
+pub type ExecutorPtr = MutexPtr<Executor>;
 
 type Message = bytes::Bytes;
 pub type TaskInput = Message;
@@ -147,7 +147,7 @@ impl Session {
     }
 
     pub fn add_task(&mut self, task: &Task) {
-        let task_ptr = TaskPtr::new(task.clone());
+        let task_ptr = TaskPtr::new(task.clone().into());
 
         self.tasks.insert(task.id, task_ptr.clone());
         self.tasks_index.entry(task.state).or_default();
@@ -173,7 +173,7 @@ impl Session {
         task_ptr: TaskPtr,
         state: TaskState,
     ) -> Result<(), FlameError> {
-        let mut task = lock_cond_ptr!(task_ptr)?;
+        let mut task = lock_ptr!(task_ptr)?;
         match self.tasks_index.get_mut(&task.state) {
             None => {
                 log::error!(
@@ -221,7 +221,7 @@ impl Clone for Session {
         };
 
         for (id, t) in &self.tasks {
-            match t.ptr.lock() {
+            match t.lock() {
                 Ok(t) => {
                     ssn.add_task(&t);
                 }
