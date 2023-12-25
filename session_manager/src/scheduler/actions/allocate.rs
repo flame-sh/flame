@@ -11,11 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::{BinaryHeap, HashMap};
+use soil::collections::BinaryHeap;
+use std::collections::HashMap;
 
 use std::sync::Arc;
 
 use crate::scheduler::actions::{Action, ActionPtr};
+use crate::scheduler::plugins::ssn_order_fn;
 use crate::scheduler::Context;
 
 use crate::FlameError;
@@ -34,26 +36,28 @@ impl Action for AllocateAction {
     fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
         trace_fn!("AllocateAction::execute");
         let ss = ctx.snapshot.clone();
+        let ss_ptr = ss.borrow();
 
         log::debug!(
             "Session: <{}>, Executor: <{}>",
-            ss.ssn_index
+            ss_ptr
+                .ssn_index
                 .get(&SessionState::Open)
                 .unwrap_or(&HashMap::new())
                 .len(),
-            ss.executors.len()
+            ss_ptr.executors.len()
         );
 
-        let mut open_ssns = BinaryHeap::new();
+        let mut open_ssns = BinaryHeap::new(ssn_order_fn(ctx));
         let mut idle_execs = Vec::new();
 
-        if let Some(ssn_list) = ss.ssn_index.get(&SessionState::Open) {
+        if let Some(ssn_list) = ss_ptr.ssn_index.get(&SessionState::Open) {
             for ssn in ssn_list.values() {
                 open_ssns.push(ssn.clone());
             }
         }
 
-        if let Some(execs) = ss.exec_index.get(&ExecutorState::Idle) {
+        if let Some(execs) = ss_ptr.exec_index.get(&ExecutorState::Idle) {
             for exec in execs.values() {
                 idle_execs.push(exec.clone());
             }

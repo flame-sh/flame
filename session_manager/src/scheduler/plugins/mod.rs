@@ -11,27 +11,29 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::rc::Rc;
 
-use common::{lock_ptr, FlameError};
-use lazy_static::lazy_static;
+use soil::collections;
 
 use crate::model::{ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot};
 use crate::scheduler::plugins::fairshare::FairShare;
-use common::ptr::MutexPtr;
+use crate::scheduler::Context;
+
+use common::FlameError;
 
 mod fairshare;
 
-lazy_static! {
-    static ref INSTANCE: MutexPtr<PluginManager> = Arc::new(Mutex::new(PluginManager {
-        plugins: HashMap::from([("fairshare".to_string(), FairShare::new_ptr())])
-    }));
-}
+// lazy_static! {
+//     static ref INSTANCE: MutexPtr<PluginManager> = Arc::new(Mutex::new(PluginManager {
+//         plugins: HashMap::from([("fairshare".to_string(), FairShare::new_ptr())])
+//     }));
+// }
 
 pub type PluginPtr = Box<dyn Plugin>;
-pub type PluginManagerPtr = MutexPtr<PluginManager>;
+pub type PluginManagerPtr = Rc<RefCell<PluginManager>>;
 
 pub trait Plugin: Send + Sync + 'static {
     // Installation of plugin
@@ -56,17 +58,18 @@ pub trait Plugin: Send + Sync + 'static {
 }
 
 pub struct PluginManager {
-    pub plugins: HashMap<String, Box<dyn Plugin>>,
+    pub plugins: HashMap<String, PluginPtr>,
 }
 
 impl PluginManager {
     pub fn setup(ss: &SnapShot) -> Result<PluginManagerPtr, FlameError> {
-        let mut ins = lock_ptr!(INSTANCE)?;
-        for plugin in ins.plugins.values_mut() {
+        let mut plugins = HashMap::from([("fairshare".to_string(), FairShare::new_ptr())]);
+
+        for plugin in plugins.values_mut() {
             plugin.setup(ss);
         }
 
-        Ok(INSTANCE.clone())
+        Ok(Rc::new(RefCell::new(PluginManager { plugins })))
     }
 
     pub fn is_underused(&self, ssn: &SessionInfoPtr) -> bool {
@@ -104,50 +107,41 @@ impl PluginManager {
 
     pub fn on_session_bind(&mut self, ssn: &SessionInfoPtr) {
         for plugin in self.plugins.values_mut() {
-            plugin.on_session_bind(ssn)
+            plugin.on_session_bind(ssn);
         }
     }
 
     pub fn on_session_unbind(&mut self, ssn: &SessionInfoPtr) {
         for plugin in self.plugins.values_mut() {
-            plugin.on_session_unbind(ssn)
+            plugin.on_session_unbind(ssn);
         }
     }
-}
 
-impl PartialOrd<Self> for SessionInfo {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl PartialEq<Self> for SessionInfo {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Eq for SessionInfo {}
-
-impl Ord for SessionInfo {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let mut ins = lock_ptr!(INSTANCE);
-        match &mut ins {
-            Ok(ins) => {
-                for plugin in ins.plugins.values() {
-                    if let Some(order) = plugin.ssn_order_fn(self, other) {
-                        if order != Ordering::Equal {
-                            return order;
-                        }
-                    }
+    pub fn ssn_order_fn(&self, t1: &SessionInfoPtr, t2: &SessionInfoPtr) -> Ordering {
+        for plugin in self.plugins.values() {
+            if let Some(order) = plugin.ssn_order_fn(t1, t2) {
+                if order != Ordering::Equal {
+                    return order;
                 }
-
-                Ordering::Equal
-            }
-            Err(e) => {
-                log::warn!("Failed to compare sessions: {}", e);
-                Ordering::Equal
             }
         }
+
+        Ordering::Equal
+    }
+}
+
+pub fn ssn_order_fn(ctx: &Context) -> impl collections::Cmp<SessionInfoPtr> {
+    SsnOrderFn {
+        plugin_mgr: ctx.plugins.clone(),
+    }
+}
+
+struct SsnOrderFn {
+    plugin_mgr: PluginManagerPtr,
+}
+
+impl collections::Cmp<SessionInfoPtr> for SsnOrderFn {
+    fn cmp(&self, t1: &SessionInfoPtr, t2: &SessionInfoPtr) -> Ordering {
+        self.plugin_mgr.borrow().ssn_order_fn(t1, t2)
     }
 }

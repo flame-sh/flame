@@ -11,26 +11,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use chrono::Utc;
-use lazy_static::lazy_static;
 
 use common::apis::{
     CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID, SessionPtr, SessionState,
     Task, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
-use common::ptr::{self, AsyncPtr, MutexPtr};
+use common::ptr::{self, MutexPtr};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
-use crate::storage::engine::EnginePtr; 
-use crate::model::{ExecutorInfo, SessionInfo, SnapShot};
+use crate::model::{ExecutorInfo, SessionInfo, SnapShot, SnapShotPtr};
+use crate::storage::engine::EnginePtr;
 
 mod engine;
 mod states;
@@ -72,7 +72,7 @@ impl Storage {
         Ok(*id.deref())
     }
 
-    pub fn snapshot(&self) -> Result<SnapShot, FlameError> {
+    pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {
         let mut res = SnapShot {
             sessions: HashMap::new(),
             ssn_index: HashMap::new(),
@@ -98,7 +98,7 @@ impl Storage {
             }
         }
 
-        Ok(res)
+        Ok(Rc::new(RefCell::new(res)))
     }
 
     pub fn create_session(

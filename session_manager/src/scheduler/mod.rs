@@ -33,7 +33,7 @@ struct ScheduleRunner {
 }
 
 impl FlameThread for ScheduleRunner {
-    fn run(&self, flame_ctx: FlameContext) -> Result<(), FlameError> {
+    fn run(&self, _flame_ctx: FlameContext) -> Result<(), FlameError> {
         loop {
             let mut ctx = Context::new(self.storage.clone())?;
 
