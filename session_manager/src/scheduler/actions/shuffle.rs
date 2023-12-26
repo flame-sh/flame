@@ -34,11 +34,10 @@ impl ShuffleAction {
 impl Action for ShuffleAction {
     fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
         trace_fn!("ShuffleAction::execute");
-        let ss = ctx.snapshot.clone();
-        let ss_ptr = ss.borrow();
+        let ss = ctx.snapshot.borrow().clone();
 
         let mut underused = BinaryHeap::new(ssn_order_fn(ctx));
-        if let Some(open_ssns) = ss_ptr.ssn_index.get(&SessionState::Open) {
+        if let Some(open_ssns) = ss.ssn_index.get(&SessionState::Open) {
             for ssn in open_ssns.values() {
                 if ctx.is_underused(ssn) {
                     underused.push(ssn.clone());
@@ -47,7 +46,7 @@ impl Action for ShuffleAction {
         }
 
         let mut bound_execs = vec![];
-        if let Some(execs) = ss_ptr.exec_index.get(&ExecutorState::Bound) {
+        if let Some(execs) = ss.exec_index.get(&ExecutorState::Bound) {
             for exec in execs.values() {
                 bound_execs.push(exec.clone());
             }
@@ -70,7 +69,7 @@ impl Action for ShuffleAction {
                 }
 
                 let target_ssn = match exec.ssn_id {
-                    Some(ssn_id) => ss_ptr.sessions.get(&ssn_id).cloned(),
+                    Some(ssn_id) => ss.sessions.get(&ssn_id).cloned(),
                     None => None,
                 };
 

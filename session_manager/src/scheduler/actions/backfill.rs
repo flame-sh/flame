@@ -35,29 +35,28 @@ impl BackfillAction {
 impl Action for BackfillAction {
     fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
         trace_fn!("BackfillAction::execute");
-        let ss = ctx.snapshot.clone();
-        let ss_ptr = ss.borrow();
+        let ss = ctx.snapshot.borrow().clone();
 
         log::debug!(
             "Session: <{}>, Executor: <{}>",
-            ss_ptr
+            ss
                 .ssn_index
                 .get(&SessionState::Open)
                 .unwrap_or(&HashMap::new())
                 .len(),
-            ss_ptr.executors.len()
+            ss.executors.len()
         );
 
         let mut open_ssns = BinaryHeap::new(ssn_order_fn(ctx));
         let mut idle_execs = Vec::new();
 
-        if let Some(ssn_list) = ss_ptr.ssn_index.get(&SessionState::Open) {
+        if let Some(ssn_list) = ss.ssn_index.get(&SessionState::Open) {
             for ssn in ssn_list.values() {
                 open_ssns.push(ssn.clone());
             }
         }
 
-        if let Some(execs) = ss_ptr.exec_index.get(&ExecutorState::Idle) {
+        if let Some(execs) = ss.exec_index.get(&ExecutorState::Idle) {
             for exec in execs.values() {
                 idle_execs.push(exec.clone());
             }
