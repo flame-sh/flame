@@ -16,7 +16,7 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use soil::collections;
+use stdng::collections;
 
 use crate::model::{ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot};
 use crate::scheduler::plugins::fairshare::FairShare;
