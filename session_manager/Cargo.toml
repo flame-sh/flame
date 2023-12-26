@@ -24,4 +24,6 @@ url = { version = "2", features = ["serde"] }
 futures="0.3"
 thiserror = "1"
 chrono = "0.4"
-lazy_static = "1.4"
+# lazy_static = "1.4"
+
+soil = "0.1.3"

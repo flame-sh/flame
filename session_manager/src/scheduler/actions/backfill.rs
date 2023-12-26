@@ -11,11 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::{BinaryHeap, HashMap};
+use soil::collections::BinaryHeap;
+use std::collections::HashMap;
 
 use std::sync::Arc;
 
 use crate::scheduler::actions::{Action, ActionPtr};
+use crate::scheduler::plugins::ssn_order_fn;
 use crate::scheduler::Context;
 
 use crate::FlameError;
@@ -33,18 +35,19 @@ impl BackfillAction {
 impl Action for BackfillAction {
     fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
         trace_fn!("BackfillAction::execute");
-        let ss = ctx.snapshot.clone();
+        let ss = ctx.snapshot.borrow().clone();
 
         log::debug!(
             "Session: <{}>, Executor: <{}>",
-            ss.ssn_index
+            ss
+                .ssn_index
                 .get(&SessionState::Open)
                 .unwrap_or(&HashMap::new())
                 .len(),
             ss.executors.len()
         );
 
-        let mut open_ssns = BinaryHeap::new();
+        let mut open_ssns = BinaryHeap::new(ssn_order_fn(ctx));
         let mut idle_execs = Vec::new();
 
         if let Some(ssn_list) = ss.ssn_index.get(&SessionState::Open) {

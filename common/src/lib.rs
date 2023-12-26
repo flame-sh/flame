@@ -66,14 +66,34 @@ macro_rules! lock_ptr {
 }
 
 #[macro_export]
-macro_rules! lock_cond_ptr {
+macro_rules! lock_async_ptr {
     ( $mutex_arc:expr ) => {
         $mutex_arc
-            .ptr
             .lock()
-            .map_err(|_| FlameError::Internal("cond ptr".to_string()))
+            .await
+            .map_err(|_| FlameError::Internal("mutex ptr".to_string()))
     };
 }
+
+// #[macro_export]
+// macro_rules! lock_async_ptr {
+//     ( $mutex_arc:expr ) => {
+//         $mutex_arc
+//             .lock()
+//             .await
+//             .map_err(|_| FlameError::Internal("async mutex ptr".to_string()))
+//     };
+// }
+
+// #[macro_export]
+// macro_rules! lock_cond_ptr {
+//     ( $mutex_arc:expr ) => {
+//         $mutex_arc
+//             .ptr
+//             .lock()
+//             .map_err(|_| FlameError::Internal("cond ptr".to_string()))
+//     };
+// }
 //
 // #[derive(Clone, Debug, Copy, ::prost::Enumeration, Serialize, Deserialize)]
 // pub enum Shim {

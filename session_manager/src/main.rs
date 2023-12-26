@@ -45,8 +45,11 @@ async fn main() -> Result<(), FlameError> {
 
     let mut handlers = vec![];
     let mut threads = HashMap::new();
-    threads.insert("scheduler", scheduler::new());
-    threads.insert("apiserver", apiserver::new());
+
+    let storage = storage::new_ptr().await?;
+
+    threads.insert("scheduler", scheduler::new(storage.clone()));
+    threads.insert("apiserver", apiserver::new(storage.clone()));
 
     for (n, thread) in threads {
         let ctx = ctx.clone();

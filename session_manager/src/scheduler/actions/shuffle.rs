@@ -11,12 +11,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::binary_heap::BinaryHeap;
-
 use std::sync::Arc;
+
+use soil::collections::BinaryHeap;
 
 use crate::scheduler::actions::{Action, ActionPtr};
 use crate::scheduler::ctx::Context;
+use crate::scheduler::plugins::ssn_order_fn;
+
 use common::apis::{ExecutorState, SessionState};
 use common::FlameError;
 use common::{trace::TraceFn, trace_fn};
@@ -32,9 +34,10 @@ impl ShuffleAction {
 impl Action for ShuffleAction {
     fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
         trace_fn!("ShuffleAction::execute");
+        let ss = ctx.snapshot.borrow().clone();
 
-        let mut underused = BinaryHeap::new();
-        if let Some(open_ssns) = ctx.snapshot.ssn_index.get(&SessionState::Open) {
+        let mut underused = BinaryHeap::new(ssn_order_fn(ctx));
+        if let Some(open_ssns) = ss.ssn_index.get(&SessionState::Open) {
             for ssn in open_ssns.values() {
                 if ctx.is_underused(ssn) {
                     underused.push(ssn.clone());
@@ -43,7 +46,7 @@ impl Action for ShuffleAction {
         }
 
         let mut bound_execs = vec![];
-        if let Some(execs) = ctx.snapshot.exec_index.get(&ExecutorState::Bound) {
+        if let Some(execs) = ss.exec_index.get(&ExecutorState::Bound) {
             for exec in execs.values() {
                 bound_execs.push(exec.clone());
             }
@@ -60,17 +63,13 @@ impl Action for ShuffleAction {
             }
 
             let mut pos = None;
-            for (i, exec) in bound_execs.iter_mut().enumerate() {
+            for (i, exec) in bound_execs.iter().enumerate() {
                 if !ctx.filter_one(exec, &ssn) {
                     continue;
                 }
 
                 let target_ssn = match exec.ssn_id {
-                    Some(ssn_id) => ctx
-                        .snapshot
-                        .sessions
-                        .get_mut(&ssn_id)
-                        .map(|target_ssn| target_ssn.clone()),
+                    Some(ssn_id) => ss.sessions.get(&ssn_id).cloned(),
                     None => None,
                 };
 

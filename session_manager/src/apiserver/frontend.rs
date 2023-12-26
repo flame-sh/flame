@@ -29,7 +29,7 @@ use common::{trace::TraceFn, trace_fn};
 use rpc::flame as rpc;
 
 use crate::apiserver::Flame;
-use crate::storage;
+
 use common::apis;
 
 #[async_trait]
@@ -167,8 +167,9 @@ impl Frontend for Flame {
             .map_err(|_| Status::invalid_argument("invalid task id"))?;
 
         let (tx, rx) = mpsc::channel(128);
+
+        let storage = self.storage.clone();
         tokio::spawn(async move {
-            let storage = storage::instance();
             loop {
                 match storage.watch_task(ssn_id, task_id).await {
                     Ok(task) => {

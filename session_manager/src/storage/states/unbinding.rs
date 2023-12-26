@@ -13,7 +13,7 @@ limitations under the License.
 
 use crate::storage::states::States;
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
-use common::{lock_cond_ptr, trace::TraceFn, trace_fn, FlameError};
+use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct UnbindingState {
     pub executor: ExecutorPtr,
@@ -31,7 +31,7 @@ impl States for UnbindingState {
     fn unbind_executor(&self) -> Result<(), FlameError> {
         trace_fn!("UnbindingState::unbind_session");
 
-        let mut e = lock_cond_ptr!(self.executor)?;
+        let mut e = lock_ptr!(self.executor)?;
         e.state = ExecutorState::Unbinding;
 
         Ok(())
@@ -40,7 +40,7 @@ impl States for UnbindingState {
     fn unbind_executor_completed(&self) -> Result<(), FlameError> {
         trace_fn!("UnbindingState::unbind_session_completed");
 
-        let mut e = lock_cond_ptr!(self.executor)?;
+        let mut e = lock_ptr!(self.executor)?;
         e.state = ExecutorState::Idle;
         e.ssn_id = None;
         e.task_id = None;
@@ -61,17 +61,17 @@ impl States for UnbindingState {
         trace_fn!("UnbindingState::complete_task");
 
         {
-            let mut e = lock_cond_ptr!(self.executor)?;
+            let mut e = lock_ptr!(self.executor)?;
             e.task_id = None;
         };
 
         {
-            let mut task = lock_cond_ptr!(task_ptr)?;
+            let mut task = lock_ptr!(task_ptr)?;
             task.output = task_output;
         }
 
         {
-            let mut ssn = lock_cond_ptr!(ssn_ptr)?;
+            let mut ssn = lock_ptr!(ssn_ptr)?;
             ssn.update_task_state(task_ptr, TaskState::Succeed)?;
         }
 

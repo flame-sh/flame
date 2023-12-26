@@ -15,7 +15,7 @@ use crate::storage::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
-use common::{lock_cond_ptr, FlameError};
+use common::{lock_ptr, FlameError};
 
 mod binding;
 mod bound;
@@ -23,7 +23,7 @@ mod idle;
 mod unbinding;
 
 pub fn from(exe_ptr: ExecutorPtr) -> Result<Box<dyn States>, FlameError> {
-    let exe = lock_cond_ptr!(exe_ptr)?;
+    let exe = lock_ptr!(exe_ptr)?;
     log::debug!("Build state <{}> for Executor.", exe.state.to_string());
 
     match exe.state {

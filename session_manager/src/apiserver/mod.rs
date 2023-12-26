@@ -12,7 +12,6 @@ limitations under the License.
 */
 
 use std::env;
-use std::sync::Arc;
 
 use tokio::runtime::Runtime;
 use tonic::transport::Server;
@@ -21,21 +20,25 @@ use common::ctx::FlameContext;
 use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
 
-use crate::storage::Storage;
-use crate::{storage, FlameError, FlameThread};
+use crate::storage::StoragePtr;
+use crate::{FlameError, FlameThread};
 
 mod backend;
 mod frontend;
 
 pub struct Flame {
-    storage: Arc<Storage>,
+    storage: StoragePtr,
 }
 
-pub fn new() -> Box<dyn FlameThread> {
-    Box::new(ApiserverRunner {})
+pub fn new(storage: StoragePtr) -> Box<dyn FlameThread> {
+    Box::new(ApiserverRunner {
+        storage: storage.clone(),
+    })
 }
 
-struct ApiserverRunner {}
+struct ApiserverRunner {
+    storage: StoragePtr,
+}
 
 impl FlameThread for ApiserverRunner {
     fn run(&self, ctx: FlameContext) -> Result<(), FlameError> {
@@ -56,11 +59,11 @@ impl FlameThread for ApiserverRunner {
             .map_err(|_| FlameError::InvalidConfig("failed to parse url".to_string()))?;
 
         let frontend_service = Flame {
-            storage: storage::instance(),
+            storage: self.storage.clone(),
         };
 
         let backend_service = Flame {
-            storage: storage::instance(),
+            storage: self.storage.clone(),
         };
 
         let rt = Runtime::new()

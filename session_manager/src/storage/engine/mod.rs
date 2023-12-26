@@ -11,10 +11,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::sync::Arc;
+
 use async_trait::async_trait;
 
 use crate::FlameError;
 use common::apis::{Session, SessionID, Task, TaskID};
+
+mod sqlite;
+
+pub type EnginePtr = Arc<dyn Engine>;
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
@@ -28,4 +34,8 @@ pub trait Engine: Send + Sync + 'static {
     async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
     async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
     async fn update_task(&self, t: &Task) -> Result<(), FlameError>;
+}
+
+pub async fn connect() -> Result<EnginePtr, FlameError> {
+    Ok(Arc::new(sqlite::SqliteEngine {}))
 }
