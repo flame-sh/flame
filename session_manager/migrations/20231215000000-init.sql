@@ -3,6 +3,8 @@ CREATE TABLE sessions {
     application CHAR(128) NOT NULL,
     slots bigint NOT NULL,
 
+    common_data BLOB,
+
     creation_time: DateTime<Utc>,
     completion_time: Option<DateTime<Utc>>,
 

@@ -37,5 +37,5 @@ pub trait Engine: Send + Sync + 'static {
 }
 
 pub async fn connect() -> Result<EnginePtr, FlameError> {
-    Ok(Arc::new(sqlite::SqliteEngine {}))
+    Ok(sqlite::SqliteEngine::new_ptr()?)
 }

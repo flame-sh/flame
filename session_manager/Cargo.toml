@@ -26,3 +26,4 @@ thiserror = "1"
 chrono = "0.4"
 rusqlite = { version = "0.30", features = ["bundled"] }
 stdng = "0.1"
+bytes = "1"

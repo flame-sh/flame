@@ -860,6 +860,7 @@ name = "flame-session-manager"
 version = "0.3.0"
 dependencies = [
  "async-trait",
+ "bytes",
  "chrono",
  "clap",
  "common",
