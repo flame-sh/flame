@@ -13,7 +13,7 @@ limitations under the License.
 
 use std::sync::Arc;
 
-use soil::collections::BinaryHeap;
+use stdng::collections::BinaryHeap;
 
 use crate::scheduler::actions::{Action, ActionPtr};
 use crate::scheduler::ctx::Context;

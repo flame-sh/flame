@@ -11,8 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use soil::collections::BinaryHeap;
 use std::collections::HashMap;
+use stdng::collections::BinaryHeap;
 
 use std::sync::Arc;
 
@@ -39,8 +39,7 @@ impl Action for BackfillAction {
 
         log::debug!(
             "Session: <{}>, Executor: <{}>",
-            ss
-                .ssn_index
+            ss.ssn_index
                 .get(&SessionState::Open)
                 .unwrap_or(&HashMap::new())
                 .len(),
