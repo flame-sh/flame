@@ -46,7 +46,10 @@ async fn main() -> Result<(), FlameError> {
     let mut handlers = vec![];
     let mut threads = HashMap::new();
 
-    let storage = storage::new_ptr().await?;
+    let storage = storage::new_ptr(&ctx.storage).await?;
+
+    // Load data from engine, e.g. sqlite.
+    storage.load_data().await?;
 
     threads.insert("scheduler", scheduler::new(storage.clone()));
     threads.insert("apiserver", apiserver::new(storage.clone()));

@@ -42,9 +42,9 @@ pub struct Storage {
     executors: MutexPtr<HashMap<ExecutorID, ExecutorPtr>>,
 }
 
-pub async fn new_ptr() -> Result<StoragePtr, FlameError> {
+pub async fn new_ptr(url: &str) -> Result<StoragePtr, FlameError> {
     Ok(Arc::new(Storage {
-        engine: engine::connect().await?,
+        engine: engine::connect(url).await?,
         sessions: ptr::new_ptr(HashMap::new()),
         executors: ptr::new_ptr(HashMap::new()),
     }))
@@ -82,6 +82,22 @@ impl Storage {
         }
 
         Ok(Rc::new(RefCell::new(res)))
+    }
+
+    pub async fn load_data(&self) -> Result<(), FlameError> {
+        let ssn_list = self.engine.find_session().await?;
+        for ssn in ssn_list {
+            let task_list = self.engine.find_tasks(ssn.id).await?;
+            let mut ssn = ssn.clone();
+            for task in task_list {
+                ssn.add_task(&task);
+            }
+
+            let mut ssn_map = lock_ptr!(self.sessions)?;
+            ssn_map.insert(ssn.id, SessionPtr::new(ssn.into()));
+        }
+
+        Ok(())
     }
 
     pub async fn create_session(

@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use std::fmt::{Display, Formatter};
+use std::fs;
 use std::path::Path;
 
 use serde_derive::{Deserialize, Serialize};
@@ -24,7 +25,7 @@ const DEFAULT_CONTEXT_NAME: &str = "flame";
 const DEFAULT_FLAME_ENDPOINT: &str = "http://127.0.0.1:8080";
 const DEFAULT_SLOT: &str = "cpu=1,mem=2g";
 const DEFAULT_POLICY: &str = "proportion";
-const DEFAULT_STORAGE: &str = "mem";
+const DEFAULT_STORAGE: &str = "sqlite://flame.db";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FlameContext {
@@ -68,10 +69,12 @@ impl FlameContext {
             return Err(FlameError::InvalidConfig(format!("<{}> is not a file", fp)));
         }
 
-        let ctx: FlameContext = confy::load_path(fp.clone())
+        let contents = fs::read_to_string(fp.clone())
+            .map_err(|_| FlameError::Internal("can not read flame-conf".to_string()))?;
+        let ctx: FlameContext = serde_yaml::from_str(&contents)
             .map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
 
-        log::debug!("Load FrameContext from <{}>: {}", &fp, ctx);
+        log::debug!("Load FrameContext from <{}>: {}", fp, ctx);
 
         if ctx.applications.is_empty() {
             return Err(FlameError::InvalidConfig("no application".to_string()));
