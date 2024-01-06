@@ -69,10 +69,10 @@ impl FlameContext {
             return Err(FlameError::InvalidConfig(format!("<{}> is not a file", fp)));
         }
 
-        let contents = fs::read_to_string(fp.clone())
-            .map_err(|_| FlameError::Internal("can not read flame-conf".to_string()))?;
-        let ctx: FlameContext = serde_yaml::from_str(&contents)
-            .map_err(|_| FlameError::Internal("flame-conf".to_string()))?;
+        let contents =
+            fs::read_to_string(fp.clone()).map_err(|e| FlameError::Internal(e.to_string()))?;
+        let ctx: FlameContext =
+            serde_yaml::from_str(&contents).map_err(|e| FlameError::Internal(e.to_string()))?;
 
         log::debug!("Load FrameContext from <{}>: {}", fp, ctx);
 
