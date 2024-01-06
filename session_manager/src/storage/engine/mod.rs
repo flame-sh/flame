@@ -16,7 +16,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::FlameError;
-use common::apis::{CommonData, Session, SessionID, Task, TaskGID,  TaskInput, TaskState};
+use common::apis::{CommonData, Session, SessionID, Task, TaskGID, TaskInput, TaskState};
 
 mod sqlite;
 
@@ -46,8 +46,6 @@ pub trait Engine: Send + Sync + 'static {
     async fn find_tasks(&self, ssn_id: SessionID) -> Result<Vec<Task>, FlameError>;
 }
 
-pub async fn connect() -> Result<EnginePtr, FlameError> {
-    let url = String::from("sqlite://flame.db");
-
-    sqlite::SqliteEngine::new_ptr(&url).await
+pub async fn connect(url: &str) -> Result<EnginePtr, FlameError> {
+    sqlite::SqliteEngine::new_ptr(url).await
 }

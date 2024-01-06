@@ -8,18 +8,12 @@ applications:
   - name: "flmexec"
     shim: Log
     command: ""
-    arguments: []
-    environments: []
     working_directory: "/tmp"
   - name: "pi"
     shim: Stdio
     command: "/opt/pi-server"
-    arguments: []
-    environments: []
     working_directory: "/tmp"
   - name: "matrix"
     shim: Wasm
     command: "/opt/matrix_server.wasm"
-    arguments: []
-    environments: []
     working_directory: "/tmp"

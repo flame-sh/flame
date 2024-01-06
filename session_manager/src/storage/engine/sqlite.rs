@@ -66,18 +66,23 @@ impl SqliteEngine {
             Sqlite::create_database(url)
                 .await
                 .map_err(|e| FlameError::Storage(e.to_string()))?;
+            let db = SqlitePool::connect(url)
+                .await
+                .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+            let migrations = std::path::Path::new(&SQLITE_SQL);
+            let migrator = sqlx::migrate::Migrator::new(migrations)
+                .await
+                .map_err(|e| FlameError::Storage(e.to_string()))?;
+            migrator
+                .run(&db)
+                .await
+                .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+            return Ok(Arc::new(SqliteEngine { pool: db }));
         }
 
         let db = SqlitePool::connect(url)
-            .await
-            .map_err(|e| FlameError::Storage(e.to_string()))?;
-
-        let migrations = std::path::Path::new(&SQLITE_SQL);
-        let migrator = sqlx::migrate::Migrator::new(migrations)
-            .await
-            .map_err(|e| FlameError::Storage(e.to_string()))?;
-        migrator
-            .run(&db)
             .await
             .map_err(|e| FlameError::Storage(e.to_string()))?;
 
@@ -443,16 +448,12 @@ mod tests {
         let task_list = tokio_test::block_on(storage.find_tasks(ssn_1.id))?;
         assert_eq!(task_list.len(), 2);
 
-        let task_1_1 = tokio_test::block_on(storage.update_task_state(
-            task_1_1.gid(),
-            TaskState::Succeed,
-        ))?;
+        let task_1_1 =
+            tokio_test::block_on(storage.update_task_state(task_1_1.gid(), TaskState::Succeed))?;
         assert_eq!(task_1_1.state, TaskState::Succeed);
 
-        let task_1_2 = tokio_test::block_on(storage.update_task_state(
-            task_1_2.gid(),
-            TaskState::Succeed,
-        ))?;
+        let task_1_2 =
+            tokio_test::block_on(storage.update_task_state(task_1_2.gid(), TaskState::Succeed))?;
         assert_eq!(task_1_2.state, TaskState::Succeed);
 
         let ssn_1 = tokio_test::block_on(storage.close_session(1))?;
@@ -480,16 +481,12 @@ mod tests {
         let task_1_2 = tokio_test::block_on(storage.create_task(ssn_1.id, None))?;
         assert_eq!(task_1_2.id, 2);
 
-        let task_1_1 = tokio_test::block_on(storage.update_task_state(
-            task_1_1.gid(),
-            TaskState::Succeed,
-        ))?;
+        let task_1_1 =
+            tokio_test::block_on(storage.update_task_state(task_1_1.gid(), TaskState::Succeed))?;
         assert_eq!(task_1_1.state, TaskState::Succeed);
 
-        let task_1_2 = tokio_test::block_on(storage.update_task_state(
-            task_1_2.gid(),
-            TaskState::Succeed,
-        ))?;
+        let task_1_2 =
+            tokio_test::block_on(storage.update_task_state(task_1_2.gid(), TaskState::Succeed))?;
         assert_eq!(task_1_2.state, TaskState::Succeed);
 
         let ssn_2 = tokio_test::block_on(storage.create_session("flmlog".to_string(), 1, None))?;
@@ -504,16 +501,12 @@ mod tests {
         let task_2_2 = tokio_test::block_on(storage.create_task(ssn_2.id, None))?;
         assert_eq!(task_2_2.id, 2);
 
-        let task_2_1 = tokio_test::block_on(storage.update_task_state(
-            task_2_1.gid(),
-            TaskState::Succeed,
-        ))?;
+        let task_2_1 =
+            tokio_test::block_on(storage.update_task_state(task_2_1.gid(), TaskState::Succeed))?;
         assert_eq!(task_2_1.state, TaskState::Succeed);
 
-        let task_2_2 = tokio_test::block_on(storage.update_task_state(
-            task_2_2.gid(),
-            TaskState::Succeed,
-        ))?;
+        let task_2_2 =
+            tokio_test::block_on(storage.update_task_state(task_2_2.gid(), TaskState::Succeed))?;
         assert_eq!(task_2_2.state, TaskState::Succeed);
 
         let ssn_list = tokio_test::block_on(storage.find_session())?;
@@ -569,10 +562,8 @@ mod tests {
         let task_1_1 = tokio_test::block_on(storage.create_task(ssn_1.id, None))?;
         assert_eq!(task_1_1.id, 1);
 
-        let task_1_1 = tokio_test::block_on(storage.update_task_state(
-            task_1_1.gid(),
-            TaskState::Succeed,
-        ))?;
+        let task_1_1 =
+            tokio_test::block_on(storage.update_task_state(task_1_1.gid(), TaskState::Succeed))?;
         assert_eq!(task_1_1.state, TaskState::Succeed);
 
         let ssn_1 = tokio_test::block_on(storage.close_session(1))?;

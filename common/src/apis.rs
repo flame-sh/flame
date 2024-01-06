@@ -118,7 +118,9 @@ pub struct Application {
     pub name: String,
     pub shim: Shim,
     pub command: String,
+    #[serde(default)]
     pub arguments: Vec<String>,
+    #[serde(default)]
     pub environments: Vec<String>,
     pub working_directory: String,
 }

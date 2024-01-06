@@ -1,25 +1,19 @@
 ---
-name: pi
+name: flame
 endpoint: "http://127.0.0.1:8080"
 slot: "cpu=1,mem=1g"
 policy: priority
-storage: mem
+storage: sqlite://flame.db
 applications:
   - name: "pi"
     shim: Stdio
     command: "target/debug/pi-server"
-    arguments: []
-    environments: []
     working_directory: "/tmp"
   - name: "flmexec"
     shim: Log
     command: ""
-    arguments: []
-    environments: []
     working_directory: "/tmp"
   - name: "matrix"
     shim: Wasm
     command: "examples/matrix/server/target/wasm32-wasi/debug/matrix_server.wasm"
-    arguments: []
-    environments: []
     working_directory: "/tmp"
