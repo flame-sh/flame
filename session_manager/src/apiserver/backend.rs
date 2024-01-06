@@ -88,7 +88,7 @@ impl Backend for Flame {
         trace_fn!("Backend::bind_executor_completed");
         let req = req.into_inner();
 
-        self.storage.bind_session_completed(req.executor_id)?;
+        self.storage.bind_session_completed(req.executor_id).await?;
 
         Ok(Response::new(rpc::Result::default()))
     }
@@ -98,7 +98,7 @@ impl Backend for Flame {
         req: Request<UnbindExecutorRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
-        self.storage.unbind_executor(req.executor_id)?;
+        self.storage.unbind_executor(req.executor_id).await?;
 
         Ok(Response::new(rpc::Result::default()))
     }
@@ -108,7 +108,9 @@ impl Backend for Flame {
         req: Request<UnbindExecutorCompletedRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
-        self.storage.unbind_executor_completed(req.executor_id)?;
+        self.storage
+            .unbind_executor_completed(req.executor_id)
+            .await?;
 
         Ok(Response::new(rpc::Result::default()))
     }
@@ -118,7 +120,7 @@ impl Backend for Flame {
         req: Request<LaunchTaskRequest>,
     ) -> Result<Response<LaunchTaskResponse>, Status> {
         let req = req.into_inner();
-        let task = self.storage.launch_task(req.executor_id)?;
+        let task = self.storage.launch_task(req.executor_id).await?;
         if let Some(task) = task {
             return Ok(Response::new(LaunchTaskResponse {
                 task: Some(rpc::Task::from(&task)),
@@ -134,10 +136,12 @@ impl Backend for Flame {
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
 
-        self.storage.complete_task(
-            req.executor_id.clone(),
-            req.task_output.map(TaskOutput::from),
-        )?;
+        self.storage
+            .complete_task(
+                req.executor_id.clone(),
+                req.task_output.map(TaskOutput::from),
+            )
+            .await?;
 
         Ok(Response::new(rpc::Result::default()))
     }

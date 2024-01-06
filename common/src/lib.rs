@@ -38,6 +38,9 @@ pub enum FlameError {
 
     #[error("'{0}'")]
     InvalidState(String),
+
+    #[error("'{0}'")]
+    Storage(String),
 }
 
 impl From<FlameError> for Status {

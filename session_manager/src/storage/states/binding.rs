@@ -12,15 +12,18 @@ limitations under the License.
 */
 
 use crate::storage::states::States;
+use crate::storage::StoragePtr;
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct BindingState {
+    pub storage: StoragePtr,
     pub executor: ExecutorPtr,
 }
 
+#[async_trait::async_trait]
 impl States for BindingState {
-    fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
+    async fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         trace_fn!("BindingState::bind_session");
 
         let ssn_id = {
@@ -35,7 +38,7 @@ impl States for BindingState {
         Ok(())
     }
 
-    fn bind_session_completed(&self) -> Result<(), FlameError> {
+    async fn bind_session_completed(&self) -> Result<(), FlameError> {
         trace_fn!("BindingState::bind_session");
 
         let mut e = lock_ptr!(self.executor)?;
@@ -44,19 +47,19 @@ impl States for BindingState {
         Ok(())
     }
 
-    fn unbind_executor(&self) -> Result<(), FlameError> {
+    async fn unbind_executor(&self) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn unbind_executor_completed(&self) -> Result<(), FlameError> {
+    async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
+    async fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
         todo!()
     }
 
-    fn complete_task(
+    async fn complete_task(
         &self,
         _ssn: SessionPtr,
         _task: TaskPtr,

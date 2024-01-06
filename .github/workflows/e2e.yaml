@@ -39,6 +39,7 @@ jobs:
       - name: Start supervisord
         run: |
           mkdir -p ci/logs
+          cp -r session_manager/migrations .
           supervisord -c ci/supervisord.conf
       - name: Run E2E Test
         run: |

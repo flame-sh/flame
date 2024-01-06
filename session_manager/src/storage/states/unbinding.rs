@@ -12,23 +12,27 @@ limitations under the License.
 */
 
 use crate::storage::states::States;
+use crate::storage::StoragePtr;
+
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct UnbindingState {
+    pub storage: StoragePtr,
     pub executor: ExecutorPtr,
 }
 
+#[async_trait::async_trait]
 impl States for UnbindingState {
-    fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
+    async fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn bind_session_completed(&self) -> Result<(), FlameError> {
+    async fn bind_session_completed(&self) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn unbind_executor(&self) -> Result<(), FlameError> {
+    async fn unbind_executor(&self) -> Result<(), FlameError> {
         trace_fn!("UnbindingState::unbind_session");
 
         let mut e = lock_ptr!(self.executor)?;
@@ -37,7 +41,7 @@ impl States for UnbindingState {
         Ok(())
     }
 
-    fn unbind_executor_completed(&self) -> Result<(), FlameError> {
+    async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
         trace_fn!("UnbindingState::unbind_session_completed");
 
         let mut e = lock_ptr!(self.executor)?;
@@ -48,11 +52,11 @@ impl States for UnbindingState {
         Ok(())
     }
 
-    fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
+    async fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
         Ok(None)
     }
 
-    fn complete_task(
+    async fn complete_task(
         &self,
         ssn_ptr: SessionPtr,
         task_ptr: TaskPtr,
@@ -70,10 +74,9 @@ impl States for UnbindingState {
             task.output = task_output;
         }
 
-        {
-            let mut ssn = lock_ptr!(ssn_ptr)?;
-            ssn.update_task_state(task_ptr, TaskState::Succeed)?;
-        }
+        self.storage
+            .update_task_state(ssn_ptr, task_ptr, TaskState::Succeed)
+            .await?;
 
         Ok(())
     }

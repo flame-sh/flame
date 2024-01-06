@@ -11,25 +11,28 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 use crate::storage::states::States;
-use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
+use crate::storage::StoragePtr;
 
 pub struct BoundState {
+    pub storage: StoragePtr,
     pub executor: ExecutorPtr,
 }
 
+#[async_trait::async_trait]
 impl States for BoundState {
-    fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
+    async fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn bind_session_completed(&self) -> Result<(), FlameError> {
+    async fn bind_session_completed(&self) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn unbind_executor(&self) -> Result<(), FlameError> {
+    async fn unbind_executor(&self) -> Result<(), FlameError> {
         trace_fn!("BoundState::unbind_session");
 
         let mut e = lock_ptr!(self.executor)?;
@@ -38,19 +41,23 @@ impl States for BoundState {
         Ok(())
     }
 
-    fn unbind_executor_completed(&self) -> Result<(), FlameError> {
+    async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
         todo!()
     }
 
-    fn launch_task(&self, ssn_ptr: SessionPtr) -> Result<Option<Task>, FlameError> {
+    async fn launch_task(&self, ssn_ptr: SessionPtr) -> Result<Option<Task>, FlameError> {
         trace_fn!("BoundState::launch_task");
-
         let task_ptr = {
             let mut ssn = lock_ptr!(ssn_ptr)?;
-            let task_ptr = ssn.pop_pending_task();
+            ssn.pop_pending_task()
+        };
+
+        let task_ptr = {
             match task_ptr {
                 Some(task_ptr) => {
-                    ssn.update_task_state(task_ptr.clone(), TaskState::Running)?;
+                    self.storage
+                        .update_task_state(ssn_ptr.clone(), task_ptr.clone(), TaskState::Running)
+                        .await?;
                     Some(task_ptr)
                 }
                 None => None,
@@ -82,7 +89,7 @@ impl States for BoundState {
         Ok(Some((*task).clone()))
     }
 
-    fn complete_task(
+    async fn complete_task(
         &self,
         ssn_ptr: SessionPtr,
         task_ptr: TaskPtr,
@@ -100,10 +107,9 @@ impl States for BoundState {
             task.output = task_output;
         }
 
-        {
-            let mut ssn = lock_ptr!(ssn_ptr)?;
-            ssn.update_task_state(task_ptr, TaskState::Succeed)?;
-        }
+        self.storage
+            .update_task_state(ssn_ptr, task_ptr, TaskState::Succeed)
+            .await?;
 
         Ok(())
     }

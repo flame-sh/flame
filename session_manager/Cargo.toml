@@ -18,11 +18,15 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 clap = { workspace = true }
 prost = { workspace = true }
+sqlx = { workspace = true }
 
 tokio-stream = { version = "0.1"}
 url = { version = "2", features = ["serde"] }
 futures="0.3"
 thiserror = "1"
 chrono = "0.4"
-rusqlite = { version = "0.30", features = ["bundled"] }
 stdng = "0.1"
+bytes = "1"
+
+[dev-dependencies]
+tokio-test = "*"

@@ -19,7 +19,7 @@ use serde_derive::{Deserialize, Serialize};
 use rpc::flame as rpc;
 
 use crate::ptr::MutexPtr;
-use crate::{lock_ptr, FlameError};
+use crate::FlameError;
 
 pub type SessionID = i64;
 pub type TaskID = i64;
@@ -32,6 +32,12 @@ type Message = bytes::Bytes;
 pub type TaskInput = Message;
 pub type TaskOutput = Message;
 pub type CommonData = Message;
+
+#[derive(Clone, Debug, Default)]
+pub struct TaskGID {
+    pub ssn_id: SessionID,
+    pub task_id: TaskID,
+}
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum SessionState {
@@ -158,52 +164,50 @@ impl Session {
     }
 
     pub fn pop_pending_task(&mut self) -> Option<TaskPtr> {
-        let pending_tasks = self.tasks_index.get_mut(&TaskState::Pending);
-        if let Some(tasks) = pending_tasks {
-            if let Some((_, task)) = tasks.iter_mut().next() {
-                return Some(task.clone());
-            }
+        let pending_tasks = self.tasks_index.get_mut(&TaskState::Pending)?;
+        if let Some((task_id, _)) = pending_tasks.clone().iter().next() {
+            return pending_tasks.remove(task_id);
         }
 
         None
     }
 
-    pub fn update_task_state(
-        &mut self,
-        task_ptr: TaskPtr,
-        state: TaskState,
-    ) -> Result<(), FlameError> {
-        let mut task = lock_ptr!(task_ptr)?;
-        match self.tasks_index.get_mut(&task.state) {
-            None => {
-                log::error!(
-                    "Failed to find task <{}> in state map <{}>.",
-                    task.id,
-                    task.state.to_string()
-                );
+    // pub fn update_task_state(
+    //     &mut self,
+    //     task_ptr: TaskPtr,
+    //     state: TaskState,
+    // ) -> Result<(), FlameError> {
+    //     let mut task = lock_ptr!(task_ptr)?;
+    //     match self.tasks_index.get_mut(&task.state) {
+    //         None => {
+    //             log::error!(
+    //                 "Failed to find task <{}> in state map <{}>.",
+    //                 task.id,
+    //                 task.state.to_string()
+    //             );
 
-                return Err(FlameError::NotFound(format!(
-                    "task <{}> in state map <{}>",
-                    task.id, task.state
-                )));
-            }
+    //             return Err(FlameError::NotFound(format!(
+    //                 "task <{}> in state map <{}>",
+    //                 task.id, task.state
+    //             )));
+    //         }
 
-            Some(index) => {
-                index.remove(&task.id);
-            }
-        }
+    //         Some(index) => {
+    //             index.remove(&task.id);
+    //         }
+    //     }
 
-        self.tasks.remove(&task.id);
+    //     self.tasks.remove(&task.id);
 
-        task.state = state;
-        // Also set completion time.
-        if state == TaskState::Succeed || state == TaskState::Failed {
-            task.completion_time = Some(Utc::now());
-        }
-        self.add_task(&task);
+    //     task.state = state;
+    //     // Also set completion time.
+    //     if state == TaskState::Succeed || state == TaskState::Failed {
+    //         task.completion_time = Some(Utc::now());
+    //     }
+    //     self.add_task(&task);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 impl Clone for Session {
@@ -385,6 +389,32 @@ impl From<&Application> for rpc::Application {
             arguments: app.arguments.to_vec(),
             environments: app.environments.to_vec(),
             working_directory: app.working_directory.to_string(),
+        }
+    }
+}
+
+impl TryFrom<i32> for SessionState {
+    type Error = FlameError;
+    fn try_from(s: i32) -> Result<Self, Self::Error> {
+        match s {
+            0 => Ok(SessionState::Open),
+            1 => Ok(SessionState::Closed),
+            _ => Err(FlameError::InvalidState(
+                "invalid session state".to_string(),
+            )),
+        }
+    }
+}
+
+impl TryFrom<i32> for TaskState {
+    type Error = FlameError;
+    fn try_from(s: i32) -> Result<Self, Self::Error> {
+        match s {
+            0 => Ok(TaskState::Pending),
+            1 => Ok(TaskState::Running),
+            2 => Ok(TaskState::Succeed),
+            3 => Ok(TaskState::Failed),
+            _ => Err(FlameError::InvalidState("invalid task state".to_string())),
         }
     }
 }
