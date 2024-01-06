@@ -117,6 +117,7 @@ pub enum Shim {
 pub struct Application {
     pub name: String,
     pub shim: Shim,
+    #[serde(default)]
     pub command: String,
     #[serde(default)]
     pub arguments: Vec<String>,
