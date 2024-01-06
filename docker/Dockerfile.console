@@ -2,7 +2,7 @@ FROM rust:1.74-slim-bookworm as builder
 
 WORKDIR /usr/src/flame
 COPY . .
-RUN apt-get update && apt-get install -y protobuf-compiler
+RUN apt-get update && apt-get install -y protobuf-compiler pkg-config libssl-dev
 RUN cargo install --path ./examples/pi
 RUN cargo install --path ./examples/matrix/client
 RUN cargo install --path ./flmctl

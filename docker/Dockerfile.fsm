@@ -2,9 +2,12 @@ FROM rust:1.74-slim-bookworm as builder
 
 WORKDIR /usr/src/flame
 COPY . .
-RUN apt-get update && apt-get install -y protobuf-compiler
+RUN apt-get update && apt-get install -y protobuf-compiler pkg-config libssl-dev
 RUN cargo install --path ./session_manager
 
 FROM ubuntu:22.04
+WORKDIR /opt
+
+COPY session_manager/migrations /opt/migrations
 COPY --from=builder /usr/local/cargo/bin/flame-session-manager /opt/flame-session-manager
 ENTRYPOINT ["/opt/flame-session-manager"]
