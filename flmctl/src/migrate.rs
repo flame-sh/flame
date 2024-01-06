@@ -18,7 +18,7 @@ use url::Url;
 
 use common::ctx::FlameContext;
 
-pub async fn run(_: &FlameContext, url: &String, sql: &String) -> Result<(), Box<dyn Error>> {
+pub async fn run(_: &FlameContext, url: &str, sql: &str) -> Result<(), Box<dyn Error>> {
     let uri = Url::parse(url)?;
 
     match uri.scheme() {
