@@ -12,6 +12,7 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
+use std::fmt;
 
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
@@ -33,7 +34,7 @@ pub type TaskInput = Message;
 pub type TaskOutput = Message;
 pub type CommonData = Message;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Copy)]
 pub struct TaskGID {
     pub ssn_id: SessionID,
     pub task_id: TaskID,
@@ -85,6 +86,15 @@ pub struct Task {
     pub completion_time: Option<DateTime<Utc>>,
 
     pub state: TaskState,
+}
+
+impl Task {
+    pub fn gid(&self) -> TaskGID {
+        TaskGID {
+            ssn_id: self.ssn_id,
+            task_id: self.id,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Hash, strum_macros::Display)]
@@ -416,5 +426,11 @@ impl TryFrom<i32> for TaskState {
             3 => Ok(TaskState::Failed),
             _ => Err(FlameError::InvalidState("invalid task state".to_string())),
         }
+    }
+}
+
+impl fmt::Display for TaskGID {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}/{}", self.ssn_id, self.task_id)
     }
 }

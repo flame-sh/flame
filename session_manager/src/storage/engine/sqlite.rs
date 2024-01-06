@@ -21,7 +21,8 @@ use sqlx::{migrate::MigrateDatabase, FromRow, Sqlite, SqlitePool};
 
 use crate::FlameError;
 use common::apis::{
-    CommonData, Session, SessionID, SessionState, SessionStatus, Task, TaskID, TaskInput, TaskState,
+    CommonData, Session, SessionID, SessionState, SessionStatus, Task, TaskGID, TaskID, TaskInput,
+    TaskState,
 };
 
 use crate::storage::engine::{Engine, EnginePtr};
@@ -250,7 +251,7 @@ impl Engine for SqliteEngine {
 
         task.try_into()
     }
-    async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
+    async fn get_task(&self, gid: TaskGID) -> Result<Task, FlameError> {
         let mut tx = self
             .pool
             .begin()
@@ -259,8 +260,8 @@ impl Engine for SqliteEngine {
 
         let sql = r#"SELECT * FROM tasks WHERE id=? AND ssn_id=?"#;
         let task: TaskDao = sqlx::query_as(sql)
-            .bind(id)
-            .bind(ssn_id)
+            .bind(gid.task_id)
+            .bind(gid.ssn_id)
             .fetch_one(&mut *tx)
             .await
             .map_err(|e| FlameError::Storage(e.to_string()))?;
@@ -271,7 +272,7 @@ impl Engine for SqliteEngine {
 
         task.try_into()
     }
-    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError> {
+    async fn delete_task(&self, gid: TaskGID) -> Result<Task, FlameError> {
         let mut tx = self
             .pool
             .begin()
@@ -280,8 +281,8 @@ impl Engine for SqliteEngine {
 
         let sql = r#"DELETE tasks WHERE id=? AND ssn_id=? RETURNING *"#;
         let task: TaskDao = sqlx::query_as(sql)
-            .bind(id)
-            .bind(ssn_id)
+            .bind(gid.task_id)
+            .bind(gid.ssn_id)
             .fetch_one(&mut *tx)
             .await
             .map_err(|e| FlameError::Storage(e.to_string()))?;
@@ -292,12 +293,7 @@ impl Engine for SqliteEngine {
 
         task.try_into()
     }
-    async fn update_task_state(
-        &self,
-        ssn_id: SessionID,
-        id: TaskID,
-        state: TaskState,
-    ) -> Result<Task, FlameError> {
+    async fn update_task_state(&self, gid: TaskGID, state: TaskState) -> Result<Task, FlameError> {
         let mut tx = self
             .pool
             .begin()
@@ -314,8 +310,8 @@ impl Engine for SqliteEngine {
         let task: TaskDao = sqlx::query_as(sql)
             .bind(state as i32)
             .bind(completion_time)
-            .bind(id)
-            .bind(ssn_id)
+            .bind(gid.task_id)
+            .bind(gid.ssn_id)
             .fetch_one(&mut *tx)
             .await
             .map_err(|e| FlameError::Storage(e.to_string()))?;
@@ -366,7 +362,6 @@ impl TryFrom<&SessionDao> for Session {
                 .ok_or(FlameError::Storage("invalid creation time".to_string()))?,
             completion_time: ssn
                 .completion_time
-                .clone()
                 .map(|t| {
                     DateTime::<Utc>::from_timestamp(t, 0)
                         .ok_or(FlameError::Storage("invalid completion time".to_string()))
@@ -403,7 +398,6 @@ impl TryFrom<&TaskDao> for Task {
                 .ok_or(FlameError::Storage("invalid creation time".to_string()))?,
             completion_time: task
                 .completion_time
-                .clone()
                 .map(|t| {
                     DateTime::<Utc>::from_timestamp(t, 0)
                         .ok_or(FlameError::Storage("invalid completion time".to_string()))
@@ -450,15 +444,13 @@ mod tests {
         assert_eq!(task_list.len(), 2);
 
         let task_1_1 = tokio_test::block_on(storage.update_task_state(
-            ssn_1.id,
-            task_1_1.id,
+            task_1_1.gid(),
             TaskState::Succeed,
         ))?;
         assert_eq!(task_1_1.state, TaskState::Succeed);
 
         let task_1_2 = tokio_test::block_on(storage.update_task_state(
-            ssn_1.id,
-            task_1_2.id,
+            task_1_2.gid(),
             TaskState::Succeed,
         ))?;
         assert_eq!(task_1_2.state, TaskState::Succeed);
@@ -489,15 +481,13 @@ mod tests {
         assert_eq!(task_1_2.id, 2);
 
         let task_1_1 = tokio_test::block_on(storage.update_task_state(
-            ssn_1.id,
-            task_1_1.id,
+            task_1_1.gid(),
             TaskState::Succeed,
         ))?;
         assert_eq!(task_1_1.state, TaskState::Succeed);
 
         let task_1_2 = tokio_test::block_on(storage.update_task_state(
-            ssn_1.id,
-            task_1_2.id,
+            task_1_2.gid(),
             TaskState::Succeed,
         ))?;
         assert_eq!(task_1_2.state, TaskState::Succeed);
@@ -515,15 +505,13 @@ mod tests {
         assert_eq!(task_2_2.id, 2);
 
         let task_2_1 = tokio_test::block_on(storage.update_task_state(
-            ssn_2.id,
-            task_2_1.id,
+            task_2_1.gid(),
             TaskState::Succeed,
         ))?;
         assert_eq!(task_2_1.state, TaskState::Succeed);
 
         let task_2_2 = tokio_test::block_on(storage.update_task_state(
-            ssn_2.id,
-            task_2_2.id,
+            task_2_2.gid(),
             TaskState::Succeed,
         ))?;
         assert_eq!(task_2_2.state, TaskState::Succeed);
@@ -559,7 +547,7 @@ mod tests {
         assert_eq!(task_1_2.id, 2);
 
         let res = tokio_test::block_on(storage.close_session(1));
-        assert!(!res.is_ok());
+        assert!(res.is_err());
 
         Ok(())
     }
@@ -582,8 +570,7 @@ mod tests {
         assert_eq!(task_1_1.id, 1);
 
         let task_1_1 = tokio_test::block_on(storage.update_task_state(
-            ssn_1.id,
-            task_1_1.id,
+            task_1_1.gid(),
             TaskState::Succeed,
         ))?;
         assert_eq!(task_1_1.state, TaskState::Succeed);
@@ -592,7 +579,7 @@ mod tests {
         assert_eq!(ssn_1.status.state, SessionState::Closed);
 
         let res = tokio_test::block_on(storage.create_task(ssn_1.id, None));
-        assert!(!res.is_ok());
+        assert!(res.is_err());
 
         Ok(())
     }

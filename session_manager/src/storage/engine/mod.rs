@@ -16,7 +16,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::FlameError;
-use common::apis::{CommonData, Session, SessionID, Task, TaskID, TaskInput, TaskState};
+use common::apis::{CommonData, Session, SessionID, Task, TaskGID,  TaskInput, TaskState};
 
 mod sqlite;
 
@@ -40,19 +40,14 @@ pub trait Engine: Send + Sync + 'static {
         ssn_id: SessionID,
         task_input: Option<TaskInput>,
     ) -> Result<Task, FlameError>;
-    async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
-    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
-    async fn update_task_state(
-        &self,
-        ssn_id: SessionID,
-        id: TaskID,
-        state: TaskState,
-    ) -> Result<Task, FlameError>;
+    async fn get_task(&self, gid: TaskGID) -> Result<Task, FlameError>;
+    async fn delete_task(&self, gid: TaskGID) -> Result<Task, FlameError>;
+    async fn update_task_state(&self, gid: TaskGID, state: TaskState) -> Result<Task, FlameError>;
     async fn find_tasks(&self, ssn_id: SessionID) -> Result<Vec<Task>, FlameError>;
 }
 
 pub async fn connect() -> Result<EnginePtr, FlameError> {
     let url = String::from("sqlite://flame.db");
 
-    Ok(sqlite::SqliteEngine::new_ptr(&url).await?)
+    sqlite::SqliteEngine::new_ptr(&url).await
 }

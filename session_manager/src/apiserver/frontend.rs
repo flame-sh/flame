@@ -161,26 +161,28 @@ impl Frontend for Flame {
         req: Request<WatchTaskRequest>,
     ) -> Result<Response<Self::WatchTaskStream>, Status> {
         let req = req.into_inner();
-        let ssn_id = req
-            .session_id
-            .parse::<apis::SessionID>()
-            .map_err(|_| Status::invalid_argument("invalid session id"))?;
+        let gid = apis::TaskGID {
+            ssn_id: req
+                .session_id
+                .parse::<apis::SessionID>()
+                .map_err(|_| Status::invalid_argument("invalid session id"))?,
 
-        let task_id = req
-            .task_id
-            .parse::<apis::SessionID>()
-            .map_err(|_| Status::invalid_argument("invalid task id"))?;
+            task_id: req
+                .task_id
+                .parse::<apis::SessionID>()
+                .map_err(|_| Status::invalid_argument("invalid task id"))?,
+        };
 
         let (tx, rx) = mpsc::channel(128);
 
         let storage = self.storage.clone();
         tokio::spawn(async move {
             loop {
-                match storage.watch_task(ssn_id, task_id).await {
+                match storage.watch_task(gid).await {
                     Ok(task) => {
                         log::debug!("Task <{}> state is <{}>", task.id, task.state as i32);
                         if let Err(e) = tx.send(Result::<_, Status>::Ok(Task::from(&task))).await {
-                            log::debug!("Failed to send Task <{}/{}>: {}", ssn_id, task_id, e);
+                            log::debug!("Failed to send Task <{}>: {}", gid, e);
                             break;
                         }
                         if task.is_completed() {
@@ -189,7 +191,7 @@ impl Frontend for Flame {
                         }
                     }
                     Err(e) => {
-                        log::debug!("Failed to watch Task <{}/{}>: {}", ssn_id, task_id, e);
+                        log::debug!("Failed to watch Task <{}>: {}", gid, e);
                         break;
                     }
                 }
