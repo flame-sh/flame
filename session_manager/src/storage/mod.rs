@@ -201,12 +201,12 @@ impl Storage {
             task_ptr.id
         };
 
-        self.engine
+        let task = self.engine
             .update_task_state(ssn_id, task_id, state)
             .await?;
 
         let mut ssn_ptr = lock_ptr!(ssn)?;
-        ssn_ptr.update_task_state(task, state)?;
+        ssn_ptr.add_task(&task);
 
         Ok(())
     }

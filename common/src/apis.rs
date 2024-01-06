@@ -19,7 +19,7 @@ use serde_derive::{Deserialize, Serialize};
 use rpc::flame as rpc;
 
 use crate::ptr::MutexPtr;
-use crate::{lock_ptr, FlameError};
+use crate::FlameError;
 
 pub type SessionID = i64;
 pub type TaskID = i64;
@@ -158,52 +158,50 @@ impl Session {
     }
 
     pub fn pop_pending_task(&mut self) -> Option<TaskPtr> {
-        let pending_tasks = self.tasks_index.get_mut(&TaskState::Pending);
-        if let Some(tasks) = pending_tasks {
-            if let Some((_, task)) = tasks.iter_mut().next() {
-                return Some(task.clone());
-            }
+        let pending_tasks = self.tasks_index.get_mut(&TaskState::Pending)?;
+        if let Some((task_id, _)) = pending_tasks.clone().iter().next() {
+            return pending_tasks.remove(task_id);
         }
 
         None
     }
 
-    pub fn update_task_state(
-        &mut self,
-        task_ptr: TaskPtr,
-        state: TaskState,
-    ) -> Result<(), FlameError> {
-        let mut task = lock_ptr!(task_ptr)?;
-        match self.tasks_index.get_mut(&task.state) {
-            None => {
-                log::error!(
-                    "Failed to find task <{}> in state map <{}>.",
-                    task.id,
-                    task.state.to_string()
-                );
+    // pub fn update_task_state(
+    //     &mut self,
+    //     task_ptr: TaskPtr,
+    //     state: TaskState,
+    // ) -> Result<(), FlameError> {
+    //     let mut task = lock_ptr!(task_ptr)?;
+    //     match self.tasks_index.get_mut(&task.state) {
+    //         None => {
+    //             log::error!(
+    //                 "Failed to find task <{}> in state map <{}>.",
+    //                 task.id,
+    //                 task.state.to_string()
+    //             );
 
-                return Err(FlameError::NotFound(format!(
-                    "task <{}> in state map <{}>",
-                    task.id, task.state
-                )));
-            }
+    //             return Err(FlameError::NotFound(format!(
+    //                 "task <{}> in state map <{}>",
+    //                 task.id, task.state
+    //             )));
+    //         }
 
-            Some(index) => {
-                index.remove(&task.id);
-            }
-        }
+    //         Some(index) => {
+    //             index.remove(&task.id);
+    //         }
+    //     }
 
-        self.tasks.remove(&task.id);
+    //     self.tasks.remove(&task.id);
 
-        task.state = state;
-        // Also set completion time.
-        if state == TaskState::Succeed || state == TaskState::Failed {
-            task.completion_time = Some(Utc::now());
-        }
-        self.add_task(&task);
+    //     task.state = state;
+    //     // Also set completion time.
+    //     if state == TaskState::Succeed || state == TaskState::Failed {
+    //         task.completion_time = Some(Utc::now());
+    //     }
+    //     self.add_task(&task);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 impl Clone for Session {
