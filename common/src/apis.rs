@@ -117,11 +117,13 @@ pub enum Shim {
 pub struct Application {
     pub name: String,
     pub shim: Shim,
+    #[serde(default)]
     pub command: String,
     #[serde(default)]
     pub arguments: Vec<String>,
     #[serde(default)]
     pub environments: Vec<String>,
+    #[serde(default = "default_work_dir")]
     pub working_directory: String,
 }
 
@@ -435,4 +437,8 @@ impl fmt::Display for TaskGID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{}", self.ssn_id, self.task_id)
     }
+}
+
+fn default_work_dir() -> String {
+    String::from("/tmp")
 }

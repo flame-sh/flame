@@ -8,12 +8,8 @@ applications:
   - name: "pi"
     shim: Stdio
     command: "target/debug/pi-server"
-    working_directory: "/tmp"
   - name: "flmexec"
     shim: Log
-    command: ""
-    working_directory: "/tmp"
   - name: "matrix"
     shim: Wasm
     command: "examples/matrix/server/target/wasm32-wasi/debug/matrix_server.wasm"
-    working_directory: "/tmp"
