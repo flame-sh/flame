@@ -19,6 +19,7 @@ use common::ctx::FlameContext;
 mod create;
 mod helper;
 mod list;
+mod migrate;
 mod view;
 
 #[derive(Parser)]
@@ -46,10 +47,16 @@ enum Commands {
         session: String,
     },
     Create {
-        #[arg(long)]
+        #[arg(short, long)]
         app: String,
-        #[arg(long)]
+        #[arg(short, long)]
         slots: i32,
+    },
+    Migrate {
+        #[arg(short, long)]
+        url: String,
+        #[arg(short, long)]
+        sql: String,
     },
 }
 
@@ -67,6 +74,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         Some(Commands::Create { app, slots }) => create::run(&ctx, app, slots).await?,
         Some(Commands::View { session }) => view::run(&ctx, session).await?,
+        Some(Commands::Migrate { url, sql }) => migrate::run(&ctx, url, sql).await?,
         _ => helper::run().await?,
     };
 

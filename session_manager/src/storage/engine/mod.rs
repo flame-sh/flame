@@ -16,7 +16,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::FlameError;
-use common::apis::{Session, SessionID, Task, TaskID};
+use common::apis::{CommonData, Session, SessionID, Task, TaskID, TaskInput, TaskState};
 
 mod sqlite;
 
@@ -24,18 +24,35 @@ pub type EnginePtr = Arc<dyn Engine>;
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
-    async fn persist_session(&self, ssn: &Session) -> Result<(), FlameError>;
+    async fn create_session(
+        &self,
+        app: String,
+        slots: i32,
+        common_data: Option<CommonData>,
+    ) -> Result<Session, FlameError>;
     async fn get_session(&self, id: SessionID) -> Result<Session, FlameError>;
-    async fn delete_session(&self, id: SessionID) -> Result<(), FlameError>;
-    async fn update_session(&self, ssn: &Session) -> Result<(), FlameError>;
+    async fn close_session(&self, id: SessionID) -> Result<Session, FlameError>;
+    async fn delete_session(&self, id: SessionID) -> Result<Session, FlameError>;
     async fn find_session(&self) -> Result<Vec<Session>, FlameError>;
 
-    async fn persist_task(&self, task: &Task) -> Result<(), FlameError>;
+    async fn create_task(
+        &self,
+        ssn_id: SessionID,
+        task_input: Option<TaskInput>,
+    ) -> Result<Task, FlameError>;
     async fn get_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
-    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<(), FlameError>;
-    async fn update_task(&self, t: &Task) -> Result<(), FlameError>;
+    async fn delete_task(&self, ssn_id: SessionID, id: TaskID) -> Result<Task, FlameError>;
+    async fn update_task_state(
+        &self,
+        ssn_id: SessionID,
+        id: TaskID,
+        state: TaskState,
+    ) -> Result<Task, FlameError>;
+    async fn find_tasks(&self, ssn_id: SessionID) -> Result<Vec<Task>, FlameError>;
 }
 
 pub async fn connect() -> Result<EnginePtr, FlameError> {
-    Ok(sqlite::SqliteEngine::new_ptr()?)
+    let url = String::from("sqlite://flame.db");
+
+    Ok(sqlite::SqliteEngine::new_ptr(&url).await?)
 }

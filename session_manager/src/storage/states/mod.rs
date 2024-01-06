@@ -11,9 +11,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::sync::Arc; 
+
 use crate::storage::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };
+use crate::storage::StoragePtr;
+
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
 use common::{lock_ptr, FlameError};
 
@@ -22,35 +26,40 @@ mod bound;
 mod idle;
 mod unbinding;
 
-pub fn from(exe_ptr: ExecutorPtr) -> Result<Box<dyn States>, FlameError> {
+pub fn from(storage: StoragePtr, exe_ptr: ExecutorPtr) -> Result<Arc<dyn States>, FlameError> {
     let exe = lock_ptr!(exe_ptr)?;
     log::debug!("Build state <{}> for Executor.", exe.state.to_string());
 
     match exe.state {
-        ExecutorState::Idle => Ok(Box::new(IdleState {
+        ExecutorState::Idle => Ok(Arc::new(IdleState {
+            storage,
             executor: exe_ptr.clone(),
         })),
-        ExecutorState::Binding => Ok(Box::new(BindingState {
+        ExecutorState::Binding => Ok(Arc::new(BindingState {
+            storage,
             executor: exe_ptr.clone(),
         })),
-        ExecutorState::Bound => Ok(Box::new(BoundState {
+        ExecutorState::Bound => Ok(Arc::new(BoundState {
+            storage,
             executor: exe_ptr.clone(),
         })),
-        ExecutorState::Unbinding => Ok(Box::new(UnbindingState {
+        ExecutorState::Unbinding => Ok(Arc::new(UnbindingState {
+            storage,
             executor: exe_ptr.clone(),
         })),
     }
 }
 
+#[async_trait::async_trait]
 pub trait States: Send + Sync + 'static {
-    fn bind_session(&self, ssn: SessionPtr) -> Result<(), FlameError>;
-    fn bind_session_completed(&self) -> Result<(), FlameError>;
+    async fn bind_session(&self, ssn: SessionPtr) -> Result<(), FlameError>;
+    async fn bind_session_completed(&self) -> Result<(), FlameError>;
 
-    fn unbind_executor(&self) -> Result<(), FlameError>;
-    fn unbind_executor_completed(&self) -> Result<(), FlameError>;
+    async fn unbind_executor(&self) -> Result<(), FlameError>;
+    async fn unbind_executor_completed(&self) -> Result<(), FlameError>;
 
-    fn launch_task(&self, ssn: SessionPtr) -> Result<Option<Task>, FlameError>;
-    fn complete_task(
+    async fn launch_task(&self, ssn: SessionPtr) -> Result<Option<Task>, FlameError>;
+    async fn complete_task(
         &self,
         ssn: SessionPtr,
         task: TaskPtr,

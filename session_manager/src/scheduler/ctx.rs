@@ -75,7 +75,12 @@ impl Context {
         exec: &ExecutorInfoPtr,
         ssn: &SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        self.storage.bind_session(exec.id.clone(), ssn.id)?;
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| FlameError::Internal(e.to_string()))?;
+        runtime.block_on(self.storage.bind_session(exec.id.clone(), ssn.id))?;
+
         self.plugins.borrow_mut().on_session_bind(ssn);
         self.snapshot
             .borrow_mut()
@@ -103,7 +108,11 @@ impl Context {
         exec: &ExecutorInfoPtr,
         ssn: &SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        self.storage.unbind_executor(exec.id.clone())?;
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| FlameError::Internal(e.to_string()))?;
+        runtime.block_on(self.storage.unbind_executor(exec.id.clone()))?;
 
         self.plugins.borrow_mut().on_session_unbind(ssn);
 

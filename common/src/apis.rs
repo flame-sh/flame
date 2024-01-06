@@ -388,3 +388,29 @@ impl From<&Application> for rpc::Application {
         }
     }
 }
+
+impl TryFrom<i32> for SessionState {
+    type Error = FlameError;
+    fn try_from(s: i32) -> Result<Self, Self::Error> {
+        match s {
+            0 => Ok(SessionState::Open),
+            1 => Ok(SessionState::Closed),
+            _ => Err(FlameError::InvalidState(
+                "invalid session state".to_string(),
+            )),
+        }
+    }
+}
+
+impl TryFrom<i32> for TaskState {
+    type Error = FlameError;
+    fn try_from(s: i32) -> Result<Self, Self::Error> {
+        match s {
+            0 => Ok(TaskState::Pending),
+            1 => Ok(TaskState::Running),
+            2 => Ok(TaskState::Succeed),
+            3 => Ok(TaskState::Failed),
+            _ => Err(FlameError::InvalidState("invalid task state".to_string())),
+        }
+    }
+}

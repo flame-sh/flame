@@ -53,6 +53,7 @@ impl Frontend for Flame {
                 ssn_spec.slots,
                 ssn_spec.common_data.map(apis::CommonData::from),
             )
+            .await
             .map_err(Status::from)?;
 
         Ok(Response::new(Session::from(&ssn)))
@@ -68,7 +69,7 @@ impl Frontend for Flame {
             .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
-        self.storage.delete_session(ssn_id)?;
+        self.storage.delete_session(ssn_id).await?;
 
         Ok(Response::new(rpc::Result::default()))
     }
@@ -91,7 +92,10 @@ impl Frontend for Flame {
             .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
-        self.storage.close_session(ssn_id).map_err(Status::from)?;
+        self.storage
+            .close_session(ssn_id)
+            .await
+            .map_err(Status::from)?;
 
         Ok(Response::new(rpc::Result::default()))
     }
@@ -140,6 +144,7 @@ impl Frontend for Flame {
         let task = self
             .storage
             .create_task(ssn_id, task_spec.input.map(apis::TaskInput::from))
+            .await
             .map_err(Status::from)?;
 
         Ok(Response::new(Task::from(&task)))
