@@ -108,7 +108,9 @@ impl Backend for Flame {
         req: Request<UnbindExecutorCompletedRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
-        self.storage.unbind_executor_completed(req.executor_id).await?;
+        self.storage
+            .unbind_executor_completed(req.executor_id)
+            .await?;
 
         Ok(Response::new(rpc::Result::default()))
     }
@@ -134,10 +136,12 @@ impl Backend for Flame {
     ) -> Result<Response<rpc::Result>, Status> {
         let req = req.into_inner();
 
-        self.storage.complete_task(
-            req.executor_id.clone(),
-            req.task_output.map(TaskOutput::from),
-        ).await?;
+        self.storage
+            .complete_task(
+                req.executor_id.clone(),
+                req.task_output.map(TaskOutput::from),
+            )
+            .await?;
 
         Ok(Response::new(rpc::Result::default()))
     }

@@ -23,7 +23,7 @@ pub struct BindingState {
 
 #[async_trait::async_trait]
 impl States for BindingState {
-    async  fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
+    async fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         trace_fn!("BindingState::bind_session");
 
         let ssn_id = {

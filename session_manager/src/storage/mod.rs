@@ -22,7 +22,7 @@ use std::task::{Context, Poll};
 
 use common::apis::{
     CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID, SessionPtr, SessionState,
-    Task, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
+    Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 use common::ptr::{self, MutexPtr};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
@@ -51,6 +51,10 @@ pub async fn new_ptr() -> Result<StoragePtr, FlameError> {
 }
 
 impl Storage {
+    pub fn clone_ptr(&self) -> StoragePtr {
+        Arc::new(self.clone())
+    }
+
     pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {
         let mut res = SnapShot {
             sessions: HashMap::new(),
@@ -110,7 +114,7 @@ impl Storage {
         Ok(ssn.clone())
     }
 
-    fn get_session_ptr(&self, id: SessionID) -> Result<SessionPtr, FlameError> {
+    pub fn get_session_ptr(&self, id: SessionID) -> Result<SessionPtr, FlameError> {
         let ssn_map = lock_ptr!(self.sessions)?;
         let ssn = ssn_map
             .get(&id)
@@ -119,7 +123,7 @@ impl Storage {
         Ok(ssn.clone())
     }
 
-    fn get_task_ptr(&self, ssn_id: SessionID, task_id: TaskID) -> Result<TaskPtr, FlameError> {
+    pub fn get_task_ptr(&self, ssn_id: SessionID, task_id: TaskID) -> Result<TaskPtr, FlameError> {
         let ssn_map = lock_ptr!(self.sessions)?;
         let ssn_ptr = ssn_map
             .get(&ssn_id)
@@ -201,7 +205,8 @@ impl Storage {
             task_ptr.id
         };
 
-        let task = self.engine
+        let task = self
+            .engine
             .update_task_state(ssn_id, task_id, state)
             .await?;
 
@@ -213,7 +218,7 @@ impl Storage {
 
     pub async fn watch_task(&self, ssn_id: SessionID, task_id: TaskID) -> Result<Task, FlameError> {
         let task_ptr = self.get_task_ptr(ssn_id, task_id)?;
-        WatchTaskFuture::new(&task_ptr)?.await?;
+        WatchTaskFuture::new(self.clone_ptr(), &task_ptr)?.await?;
 
         let task = lock_ptr!(task_ptr)?;
         Ok((*task).clone())
@@ -227,7 +232,7 @@ impl Storage {
         Ok(())
     }
 
-    fn get_executor_ptr(&self, id: ExecutorID) -> Result<ExecutorPtr, FlameError> {
+    pub fn get_executor_ptr(&self, id: ExecutorID) -> Result<ExecutorPtr, FlameError> {
         let exe_map = lock_ptr!(self.executors)?;
         let exe = exe_map
             .get(&id)
@@ -373,18 +378,23 @@ impl Future for WaitForSsnFuture {
 }
 
 struct WatchTaskFuture {
+    storage: StoragePtr,
     current_state: TaskState,
-    task: TaskPtr,
+    task_gid: TaskGID,
 }
 
 impl WatchTaskFuture {
-    pub fn new(task_ptr: &TaskPtr) -> Result<Self, FlameError> {
+    pub fn new(storage: StoragePtr, task_ptr: &TaskPtr) -> Result<Self, FlameError> {
         let task_ptr = task_ptr.clone();
         let task = lock_ptr!(task_ptr)?;
 
         Ok(Self {
+            storage,
             current_state: task.state,
-            task: task_ptr.clone(),
+            task_gid: TaskGID {
+                ssn_id: task.ssn_id,
+                task_id: task.id,
+            },
         })
     }
 }
@@ -393,8 +403,11 @@ impl Future for WatchTaskFuture {
     type Output = Result<(), FlameError>;
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        let task = lock_ptr!(self.task)?;
+        let task_ptr = self
+            .storage
+            .get_task_ptr(self.task_gid.ssn_id, self.task_gid.task_id)?;
 
+        let task = lock_ptr!(task_ptr)?;
         // If the state of task was updated, return ready.
         if self.current_state != task.state || task.is_completed() {
             return Poll::Ready(Ok(()));

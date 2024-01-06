@@ -33,6 +33,12 @@ pub type TaskInput = Message;
 pub type TaskOutput = Message;
 pub type CommonData = Message;
 
+#[derive(Clone, Debug, Default)]
+pub struct TaskGID {
+    pub ssn_id: SessionID,
+    pub task_id: TaskID,
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum SessionState {
     #[default]

@@ -89,7 +89,7 @@ impl States for BoundState {
         Ok(Some((*task).clone()))
     }
 
-    async  fn complete_task(
+    async fn complete_task(
         &self,
         ssn_ptr: SessionPtr,
         task_ptr: TaskPtr,
