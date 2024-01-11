@@ -166,7 +166,7 @@ impl Session {
         self.status.state == SessionState::Closed
     }
 
-    pub fn add_task(&mut self, task: &Task) {
+    pub fn update_task(&mut self, task: &Task) {
         let task_ptr = TaskPtr::new(task.clone().into());
 
         self.tasks.insert(task.id, task_ptr.clone());
@@ -185,43 +185,6 @@ impl Session {
 
         None
     }
-
-    // pub fn update_task_state(
-    //     &mut self,
-    //     task_ptr: TaskPtr,
-    //     state: TaskState,
-    // ) -> Result<(), FlameError> {
-    //     let mut task = lock_ptr!(task_ptr)?;
-    //     match self.tasks_index.get_mut(&task.state) {
-    //         None => {
-    //             log::error!(
-    //                 "Failed to find task <{}> in state map <{}>.",
-    //                 task.id,
-    //                 task.state.to_string()
-    //             );
-
-    //             return Err(FlameError::NotFound(format!(
-    //                 "task <{}> in state map <{}>",
-    //                 task.id, task.state
-    //             )));
-    //         }
-
-    //         Some(index) => {
-    //             index.remove(&task.id);
-    //         }
-    //     }
-
-    //     self.tasks.remove(&task.id);
-
-    //     task.state = state;
-    //     // Also set completion time.
-    //     if state == TaskState::Succeed || state == TaskState::Failed {
-    //         task.completion_time = Some(Utc::now());
-    //     }
-    //     self.add_task(&task);
-
-    //     Ok(())
-    // }
 }
 
 impl Clone for Session {
@@ -241,7 +204,7 @@ impl Clone for Session {
         for (id, t) in &self.tasks {
             match t.lock() {
                 Ok(t) => {
-                    ssn.add_task(&t);
+                    ssn.update_task(&t);
                 }
                 Err(_) => {
                     log::error!("Failed to lock task: <{}>, ignore it during clone.", id);

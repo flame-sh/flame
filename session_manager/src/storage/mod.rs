@@ -90,7 +90,7 @@ impl Storage {
             let task_list = self.engine.find_tasks(ssn.id).await?;
             let mut ssn = ssn.clone();
             for task in task_list {
-                ssn.add_task(&task);
+                ssn.update_task(&task);
             }
 
             let mut ssn_map = lock_ptr!(self.sessions)?;
@@ -184,7 +184,7 @@ impl Storage {
 
         let ssn = self.get_session_ptr(ssn_id)?;
         let mut ssn = lock_ptr!(ssn)?;
-        ssn.add_task(&task);
+        ssn.update_task(&task);
 
         Ok(task)
     }
@@ -225,7 +225,7 @@ impl Storage {
         let task = self.engine.update_task_state(gid, state).await?;
 
         let mut ssn_ptr = lock_ptr!(ssn)?;
-        ssn_ptr.add_task(&task);
+        ssn_ptr.update_task(&task);
 
         Ok(())
     }
