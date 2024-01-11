@@ -1,92 +1,143 @@
-# Copyright 2023 The xflops Authors.
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#     http://www.apache.org/licenses/LICENSE-2.0
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-import argparse
+#!/usr/bin/env python
 import os
-import sys
-import tempfile
-from urllib.parse import urlparse
+import random
+import math
 
 import torch
+import torchvision
 import torch.distributed as dist
+import torch.multiprocessing as mp
+import torchvision.transforms
 import torch.nn as nn
-import torch.optim as optim
-
-from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.nn.functional as F
 
 
-class ToyModel(nn.Module):
+""" Dataset partitioning helper """
+class Partition(object):
+
+    def __init__(self, data, index):
+        self.data = data
+        self.index = index
+
+    def __len__(self):
+        return len(self.index)
+
+    def __getitem__(self, index):
+        data_idx = self.index[index]
+        return self.data[data_idx]
+
+
+class DataPartitioner(object):
+
+    def __init__(self, data, sizes=[0.7, 0.2, 0.1], seed=1234):
+        self.data = data
+        self.partitions = []
+        rng = random.Random()
+        rng.seed(seed)
+        data_len = len(data)
+        indexes = [x for x in range(0, data_len)]
+        rng.shuffle(indexes)
+
+        for frac in sizes:
+            part_len = int(frac * data_len)
+            self.partitions.append(indexes[0:part_len])
+            indexes = indexes[part_len:]
+
+    def use(self, partition):
+        return Partition(self.data, self.partitions[partition])
+
+
+""" Partitioning MNIST """
+def partition_dataset():
+    dataset = torchvision.datasets.MNIST('./data', train=True, download=True,
+                             transform=torchvision.transforms.Compose([
+                                 torchvision.transforms.ToTensor(),
+                                 torchvision.transforms.Normalize((0.1307,), (0.3081,))
+                             ]))
+    size = dist.get_world_size()
+    bsz = int(128 / float(size))
+    partition_sizes = [1.0 / size for _ in range(size)]
+    partition = DataPartitioner(dataset, partition_sizes)
+    partition = partition.use(dist.get_rank())
+    train_set = torch.utils.data.DataLoader(partition,
+                                         batch_size=bsz,
+                                         shuffle=True)
+    return train_set, bsz
+
+
+class Net(nn.Module):
     def __init__(self):
-        super(ToyModel, self).__init__()
-        self.net1 = nn.Linear(10, 10)
-        self.relu = nn.ReLU()
-        self.net2 = nn.Linear(10, 5)
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.5)
+        self.fc1 = nn.Linear(9216, 128)
+        self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
-        return self.net2(self.relu(self.net1(x)))
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
+        x = torch.flatten(x, 1)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.dropout2(x)
+        x = self.fc2(x)
+        output = F.log_softmax(x, dim=1)
+        return output
 
 
-def demo_basic(local_world_size, local_rank):
+""" Distributed Synchronous SGD Example """
+def run(rank, size):
+    torch.manual_seed(1234)
+    train_set, bsz = partition_dataset()
+    model = Net()
+    optimizer = torch.optim.SGD(model.parameters(),
+                          lr=0.01, momentum=0.5)
 
-    # setup devices for this process. For local_world_size = 2, num_gpus = 8,
-    # rank 0 uses GPUs [0, 1, 2, 3] and
-    # rank 1 uses GPUs [4, 5, 6, 7].
-    n = torch.cuda.device_count() // local_world_size
-    device_ids = list(range(local_rank * n, (local_rank + 1) * n))
-
-    print(
-        f"[{os.getpid()}] rank = {dist.get_rank()}, "
-        + f"world_size = {dist.get_world_size()}, n = {n}, device_ids = {device_ids} \n", end=''
-    )
-
-    model = ToyModel().cuda(device_ids[0])
-    ddp_model = DDP(model, device_ids)
-
-    loss_fn = nn.MSELoss()
-    optimizer = optim.SGD(ddp_model.parameters(), lr=0.001)
-
-    optimizer.zero_grad()
-    outputs = ddp_model(torch.randn(20, 10))
-    labels = torch.randn(20, 5).to(device_ids[0])
-    loss_fn(outputs, labels).backward()
-    optimizer.step()
+    num_batches = math.ceil(len(train_set.dataset) / float(bsz))
+    for epoch in range(10):
+        epoch_loss = 0.0
+        for data, target in train_set:
+            optimizer.zero_grad()
+            output = model(data)
+            loss = F.nll_loss(output, target)
+            epoch_loss += loss.item()
+            loss.backward()
+            average_gradients(model)
+            optimizer.step()
+        print('Rank ', dist.get_rank(), ', epoch ',
+              epoch, ': ', epoch_loss / num_batches)
 
 
-def spmd_main(local_world_size, local_rank):
-    # These are the parameters used to initialize the process group
-    env_dict = {
-        key: os.environ[key]
-        for key in ("MASTER_ADDR", "MASTER_PORT", "RANK", "WORLD_SIZE")
-    }
+""" Gradient averaging. """
+def average_gradients(model):
+    size = float(dist.get_world_size())
+    for param in model.parameters():
+        dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
+        param.grad.data /= size
 
-    print(f"[{os.getpid()}] Initializing process group with: {env_dict}")
-    dist.init_process_group(backend="nccl")
 
-    print(
-        f"[{os.getpid()}]: world_size = {dist.get_world_size()}, "
-        + f"rank = {dist.get_rank()}, backend={dist.get_backend()} \n", end=''
-    )
-
-    demo_basic(local_world_size, local_rank)
-
-    # Tear down the process group
-    dist.destroy_process_group()
+def init_process(rank, size, fn, backend='gloo'):
+    """ Initialize the distributed environment. """
+    os.environ['MASTER_ADDR'] = '127.0.0.1'
+    os.environ['MASTER_PORT'] = '29500'
+    dist.init_process_group(backend, rank=rank, world_size=size)
+    fn(rank, size)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    # This is passed in via launch.py
-    parser.add_argument("--local_rank", type=int, default=0)
-    # This needs to be explicitly passed in
-    parser.add_argument("--local_world_size", type=int, default=1)
-    args = parser.parse_args()
-    # The main entry point is called directly without using subprocess
-    spmd_main(args.local_world_size, args.local_rank)
+    size = 2
+    processes = []
+    mp.set_start_method("spawn")
+    for rank in range(size):
+        p = mp.Process(target=init_process, args=(rank, size, run))
+        p.start()
+        processes.append(p)
+
+    for p in processes:
+        p.join()
