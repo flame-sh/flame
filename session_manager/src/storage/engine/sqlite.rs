@@ -298,6 +298,30 @@ impl Engine for SqliteEngine {
 
         task.try_into()
     }
+
+    async fn retry_task(&self, gid: TaskGID) -> Result<Task, FlameError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        let sql = r#"UPDATE tasks SET state=? WHERE id=? AND ssn_id=? RETURNING *"#;
+        let task: TaskDao = sqlx::query_as(sql)
+            .bind(TaskState::Pending as i32)
+            .bind(gid.task_id)
+            .bind(gid.ssn_id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        tx.commit()
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        task.try_into()
+    }
+
     async fn update_task_state(&self, gid: TaskGID, state: TaskState) -> Result<Task, FlameError> {
         let mut tx = self
             .pool

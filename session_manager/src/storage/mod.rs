@@ -90,6 +90,11 @@ impl Storage {
             let task_list = self.engine.find_tasks(ssn.id).await?;
             let mut ssn = ssn.clone();
             for task in task_list {
+                let task = match task.state {
+                    TaskState::Running => self.engine.retry_task(task.gid()).await?,
+                    _ => task,
+                };
+
                 ssn.update_task(&task);
             }
 

@@ -89,6 +89,10 @@ pub struct Task {
 }
 
 impl Task {
+    pub fn is_completed(&self) -> bool {
+        self.state == TaskState::Succeed || self.state == TaskState::Failed
+    }
+
     pub fn gid(&self) -> TaskGID {
         TaskGID {
             ssn_id: self.ssn_id,
@@ -153,12 +157,6 @@ pub struct SessionContext {
     pub application: String,
     pub slots: i32,
     pub common_data: Option<CommonData>,
-}
-
-impl Task {
-    pub fn is_completed(&self) -> bool {
-        self.state == TaskState::Succeed || self.state == TaskState::Failed
-    }
 }
 
 impl Session {
