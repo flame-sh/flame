@@ -7,7 +7,7 @@ RUN cargo install --path ./executor_manager
 RUN cargo install --path ./examples/pi
 
 # Build wasm service
-RUN cargo install cargo-component
+RUN cargo install cargo-component --version 0.6.0
 RUN cd examples/matrix/server && cargo component build --release
 
 FROM ubuntu:22.04
