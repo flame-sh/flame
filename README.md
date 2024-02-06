@@ -1,8 +1,8 @@
 # Flame: A Distributed System for Intelligent Workload
 
-[![license](https://img.shields.io/github/license/xflops/flame)](http://github.com/xflops/flame)
-[![RepoSize](https://img.shields.io/github/repo-size/xflops/flame)](http://github.com/xflops/flame)
-[![Release](https://img.shields.io/github/release/xflops/flame)](https://github.com/xflops/flame/releases)
+[![license](https://img.shields.io/github/license/flame-sh/flame)](http://github.com/flame-sh/flame)
+[![RepoSize](https://img.shields.io/github/repo-size/flame-sh/flame)](http://github.com/flame-sh/flame)
+[![Release](https://img.shields.io/github/release/flame-sh/flame)](https://github.com/flame-sh/flame/releases)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/7299/badge)](https://bestpractices.coreinfrastructure.org/projects/7299)
 
 Flame is a distributed system for intelligent workloads; it provides a suite of mechanisms that are commonly required by many classes of intelligent workload, 
@@ -93,5 +93,5 @@ ID        State     App            Slots     Pending   Running   Succeed   Faile
 
 ## Reference
 
-* **API**: https://github.com/xflops/flame/blob/main/rpc/protos/flame.proto
+* **API**: https://github.com/flame-sh/flame/blob/main/rpc/protos/flame.proto
 
