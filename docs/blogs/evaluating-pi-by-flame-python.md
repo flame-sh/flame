@@ -93,5 +93,5 @@ sys     0m0.094s
 ## Reference
 
 * [Estimating the value of Pi using Monte Carlo](evaluating-pi-by-monte-carlo.md)
-* http://github.com/xflops/flame
-* http://github.com/xflops/flame/example
+* http://github.com/flame-sh/flame
+* http://github.com/flame-sh/flame/example

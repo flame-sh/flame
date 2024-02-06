@@ -209,6 +209,6 @@ ID        State     App            Slots     Pending   Running   Succeed   Faile
 
 ## Reference
 
-* Pi Example: https://github.com/xflops/flame/tree/main/examples/pi
-* Github: https://github.com/xflops/flame
+* Pi Example: https://github.com/flame-sh/flame/tree/main/examples/pi
+* Github: https://github.com/flame-sh/flame
 * Dockerhub: https://hub.docker.com/u/xflops
