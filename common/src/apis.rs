@@ -265,6 +265,12 @@ impl From<TaskState> for rpc::TaskState {
     }
 }
 
+impl From<Task> for rpc::Task {
+    fn from(task: Task) -> Self {
+        rpc::Task::from(&task)
+    }
+}
+
 impl From<&Task> for rpc::Task {
     fn from(task: &Task) -> Self {
         rpc::Task {
@@ -292,6 +298,12 @@ impl From<SessionState> for rpc::SessionState {
             SessionState::Open => rpc::SessionState::SessionOpen,
             SessionState::Closed => rpc::SessionState::SessionClosed,
         }
+    }
+}
+
+impl From<Session> for rpc::Session {
+    fn from(ssn: Session) -> Self {
+        rpc::Session::from(&ssn)
     }
 }
 

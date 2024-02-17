@@ -22,15 +22,14 @@ use self::rpc::frontend_server::Frontend;
 use self::rpc::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest,
     DeleteTaskRequest, GetSessionRequest, GetTaskRequest, ListSessionRequest, OpenSessionRequest,
-    WatchTaskRequest,
+    Session, SessionList, Task, WatchTaskRequest,
 };
-use self::rpc::{Session, SessionList, Task};
-use common::{trace::TraceFn, trace_fn};
 use rpc::flame as rpc;
 
-use crate::apiserver::Flame;
-
 use common::apis;
+use common::{trace::TraceFn, trace_fn};
+
+use crate::apiserver::Flame;
 
 #[async_trait]
 impl Frontend for Flame {
@@ -54,37 +53,42 @@ impl Frontend for Flame {
                 ssn_spec.common_data.map(apis::CommonData::from),
             )
             .await
+            .map(Session::from)
             .map_err(Status::from)?;
 
-        Ok(Response::new(Session::from(&ssn)))
+        Ok(Response::new(ssn))
     }
 
     async fn delete_session(
         &self,
         req: Request<DeleteSessionRequest>,
-    ) -> Result<Response<rpc::Result>, Status> {
+    ) -> Result<Response<rpc::Session>, Status> {
         let ssn_id = req
             .into_inner()
             .session_id
             .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
-        self.storage.delete_session(ssn_id).await?;
+        let ssn = self
+            .storage
+            .delete_session(ssn_id)
+            .await
+            .map(Session::from)?;
 
-        Ok(Response::new(rpc::Result::default()))
+        Ok(Response::new(ssn))
     }
 
     async fn open_session(
         &self,
         _: Request<OpenSessionRequest>,
-    ) -> Result<Response<rpc::Result>, Status> {
+    ) -> Result<Response<rpc::Session>, Status> {
         todo!()
     }
 
     async fn close_session(
         &self,
         req: Request<CloseSessionRequest>,
-    ) -> Result<Response<rpc::Result>, Status> {
+    ) -> Result<Response<rpc::Session>, Status> {
         trace_fn!("Frontend::close_session");
         let ssn_id = req
             .into_inner()
@@ -92,12 +96,14 @@ impl Frontend for Flame {
             .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
-        self.storage
+        let ssn = self
+            .storage
             .close_session(ssn_id)
             .await
+            .map(rpc::Session::from)
             .map_err(Status::from)?;
 
-        Ok(Response::new(rpc::Result::default()))
+        Ok(Response::new(ssn))
     }
 
     async fn get_session(
@@ -111,9 +117,13 @@ impl Frontend for Flame {
             .parse::<apis::SessionID>()
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
-        let ssn = self.storage.get_session(ssn_id).map_err(Status::from)?;
+        let ssn = self
+            .storage
+            .get_session(ssn_id)
+            .map(rpc::Session::from)
+            .map_err(Status::from)?;
 
-        Ok(Response::new(Session::from(&ssn)))
+        Ok(Response::new(ssn))
     }
     async fn list_session(
         &self,
@@ -122,10 +132,7 @@ impl Frontend for Flame {
         trace_fn!("Frontend::list_session");
         let ssn_list = self.storage.list_session().map_err(Status::from)?;
 
-        let mut sessions = vec![];
-        for ssn in &ssn_list {
-            sessions.push(Session::from(ssn));
-        }
+        let sessions = ssn_list.iter().map(Session::from).collect();
 
         Ok(Response::new(SessionList { sessions }))
     }
@@ -145,14 +152,15 @@ impl Frontend for Flame {
             .storage
             .create_task(ssn_id, task_spec.input.map(apis::TaskInput::from))
             .await
+            .map(Task::from)
             .map_err(Status::from)?;
 
-        Ok(Response::new(Task::from(&task)))
+        Ok(Response::new(task))
     }
     async fn delete_task(
         &self,
         _: Request<DeleteTaskRequest>,
-    ) -> Result<Response<rpc::Result>, Status> {
+    ) -> Result<Response<rpc::Task>, Status> {
         todo!()
     }
 
@@ -219,8 +227,9 @@ impl Frontend for Flame {
         let task = self
             .storage
             .get_task(ssn_id, task_id)
+            .map(Task::from)
             .map_err(Status::from)?;
 
-        Ok(Response::new(Task::from(&task)))
+        Ok(Response::new(task))
     }
 }
