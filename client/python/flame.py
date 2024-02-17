@@ -11,6 +11,7 @@
 
 from enum import Enum
 import grpc
+import pickle
 
 from rpc import *
 
@@ -84,3 +85,30 @@ class Task:
         self.input = task.spec.input
         self.output = task.spec.output
         self.state = TaskState(task.status.state)
+
+
+# =========================================================
+# Flame Annotation features
+# =========================================================
+
+def init():
+    pass
+
+class Future:
+    def __init__(self):
+        pass
+
+    def get(self):
+        pass
+
+def service(fn):
+    def service_future(*args, **kwargs):
+        # TODO(k82cn): open session and submit tasks
+        task = pickle.dump(fn)
+        ptr = pickle.dump(args)
+        kws = pickle.dump(kwargs)
+
+        f = Future
+        return f
+
+    return service_future
