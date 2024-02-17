@@ -119,14 +119,14 @@ impl Storage {
         Ok(ssn)
     }
 
-    pub async fn close_session(&self, id: SessionID) -> Result<(), FlameError> {
+    pub async fn close_session(&self, id: SessionID) -> Result<Session, FlameError> {
         let ssn = self.engine.close_session(id).await?;
 
         let ssn_ptr = self.get_session_ptr(ssn.id)?;
         let mut ssn = lock_ptr!(ssn_ptr)?;
         ssn.status.state = SessionState::Closed;
 
-        Ok(())
+        Ok(ssn.clone())
     }
 
     pub fn get_session(&self, id: SessionID) -> Result<Session, FlameError> {
@@ -159,13 +159,13 @@ impl Storage {
         Ok(task_ptr.clone())
     }
 
-    pub async fn delete_session(&self, id: SessionID) -> Result<(), FlameError> {
+    pub async fn delete_session(&self, id: SessionID) -> Result<Session, FlameError> {
         let ssn = self.engine.delete_session(id).await?;
 
         let mut ssn_map = lock_ptr!(self.sessions)?;
         ssn_map.remove(&ssn.id);
 
-        Ok(())
+        Ok(ssn)
     }
 
     pub fn list_session(&self) -> Result<Vec<Session>, FlameError> {
