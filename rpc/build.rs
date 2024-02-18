@@ -23,6 +23,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .compile(
             &[
                 "protos/types.proto",
+                "protos/shim.proto",
                 "protos/frontend.proto",
                 "protos/backend.proto",
             ],
