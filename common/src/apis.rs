@@ -115,6 +115,7 @@ pub enum Shim {
     Log = 0,
     Stdio = 1,
     Wasm = 2,
+    Grpc = 3,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

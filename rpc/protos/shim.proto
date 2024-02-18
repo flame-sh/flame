@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+import "types.proto";
+
+package flame;
+
+service Instance {
+  rpc OnSessionEnter (OnSessionEnterRequest) returns (OnSessionEnterResponse) {}
+  rpc OnSessionLeave (OnSessionLeaveRequest) returns (OnSessionLeaveResponse) {}
+  rpc OnTaskInvoke (OnTaskInvokeRequest) returns (OnTaskInvokeResponse) {}
+}
+
+message OnSessionEnterRequest {
+  string session_id = 1;
+
+  optional bytes common_data = 2;
+}
+
+message OnSessionEnterResponse {
+}
+
+message OnSessionLeaveRequest {
+}
+
+message OnSessionLeaveResponse {
+}
+
+message OnTaskInvokeRequest {
+  string task_id = 1;
+  string session_id = 2;
+
+  optional bytes input = 3;
+}
+
+message OnTaskInvokeResponse {
+  optional bytes output = 1;  
+}
