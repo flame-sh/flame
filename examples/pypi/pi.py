@@ -12,8 +12,7 @@
 import flame
 
 import argparse
-import random
-import math
+
 
 parser = argparse.ArgumentParser(description='Flame Pi Python Example.')
 parser.add_argument('-n', '--task_num', type=int, help="The total number of tasks in the session.")
@@ -27,6 +26,10 @@ flame.init()
 # Define the Pi service.
 @flame.service
 def pi(n):
+    # TODO(k82cn): wrap it in flame.service.
+    import random
+    import math
+
     sum = 0.0
 
     for i in range(n):

@@ -11,7 +11,7 @@
 
 from enum import Enum
 import grpc
-import pickle
+import dill
 
 from rpc import *
 
@@ -24,9 +24,9 @@ class Connection:
     def __init__(self, channel):
         self.channel = channel
 
-    def create_session(self, *, application, slots):
+    def create_session(self, *, application, slots, common_data):
         stub = frontend_pb2_grpc.FrontendStub(self.channel)
-        spec = types_pb2.SessionSpec(application=application, slots=slots)
+        spec = types_pb2.SessionSpec(application=application, slots=slots, common_data=common_data)
         req = frontend_pb2.CreateSessionRequest(session=spec)
         ssn = stub.CreateSession(req)
         return Session(stub, ssn)
@@ -91,24 +91,20 @@ class Task:
 # Flame Annotation features
 # =========================================================
 
-def init():
-    pass
+_connection = None
+_session_manager = None
 
-class Future:
-    def __init__(self):
-        pass
-
-    def get(self):
-        pass
+def init(addr):
+    _connection = connect(addr)
 
 def service(fn):
-    def service_future(*args, **kwargs):
-        # TODO(k82cn): open session and submit tasks
-        task = pickle.dump(fn)
-        ptr = pickle.dump(args)
-        kws = pickle.dump(kwargs)
+    task_code = dill.dumps(fn)
+    ssn = _connection.create_session("flmpy", 1, task_code)
 
-        f = Future
-        return f
+    def service_future(*args, **kwargs):
+        task_args = dill.dump(args)
+        task = ssn.create_task(task_args)
+
+        return task
 
     return service_future

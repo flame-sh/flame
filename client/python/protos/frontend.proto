@@ -10,16 +10,16 @@ package flame;
  */
 service Frontend {
   rpc CreateSession (CreateSessionRequest) returns (Session) {}
-  rpc DeleteSession (DeleteSessionRequest) returns (Result) {}
+  rpc DeleteSession (DeleteSessionRequest) returns (Session) {}
 
-  rpc OpenSession (OpenSessionRequest) returns (Result) {}
-  rpc CloseSession (CloseSessionRequest) returns (Result) {}
+  rpc OpenSession (OpenSessionRequest) returns (Session) {}
+  rpc CloseSession (CloseSessionRequest) returns (Session) {}
 
   rpc GetSession(GetSessionRequest) returns (Session) {}
   rpc ListSession (ListSessionRequest) returns (SessionList) {}
 
   rpc CreateTask (CreateTaskRequest) returns (Task) {}
-  rpc DeleteTask (DeleteTaskRequest) returns (Result) {}
+  rpc DeleteTask (DeleteTaskRequest) returns (Task) {}
 
   rpc GetTask (GetTaskRequest) returns (Task) {}
   rpc WatchTask (WatchTaskRequest) returns (stream Task) {}
