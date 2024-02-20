@@ -26,17 +26,17 @@ class FrontendStub(object):
         self.DeleteSession = channel.unary_unary(
                 '/flame.Frontend/DeleteSession',
                 request_serializer=frontend__pb2.DeleteSessionRequest.SerializeToString,
-                response_deserializer=types__pb2.Result.FromString,
+                response_deserializer=types__pb2.Session.FromString,
                 )
         self.OpenSession = channel.unary_unary(
                 '/flame.Frontend/OpenSession',
                 request_serializer=frontend__pb2.OpenSessionRequest.SerializeToString,
-                response_deserializer=types__pb2.Result.FromString,
+                response_deserializer=types__pb2.Session.FromString,
                 )
         self.CloseSession = channel.unary_unary(
                 '/flame.Frontend/CloseSession',
                 request_serializer=frontend__pb2.CloseSessionRequest.SerializeToString,
-                response_deserializer=types__pb2.Result.FromString,
+                response_deserializer=types__pb2.Session.FromString,
                 )
         self.GetSession = channel.unary_unary(
                 '/flame.Frontend/GetSession',
@@ -56,7 +56,7 @@ class FrontendStub(object):
         self.DeleteTask = channel.unary_unary(
                 '/flame.Frontend/DeleteTask',
                 request_serializer=frontend__pb2.DeleteTaskRequest.SerializeToString,
-                response_deserializer=types__pb2.Result.FromString,
+                response_deserializer=types__pb2.Task.FromString,
                 )
         self.GetTask = channel.unary_unary(
                 '/flame.Frontend/GetTask',
@@ -147,17 +147,17 @@ def add_FrontendServicer_to_server(servicer, server):
             'DeleteSession': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteSession,
                     request_deserializer=frontend__pb2.DeleteSessionRequest.FromString,
-                    response_serializer=types__pb2.Result.SerializeToString,
+                    response_serializer=types__pb2.Session.SerializeToString,
             ),
             'OpenSession': grpc.unary_unary_rpc_method_handler(
                     servicer.OpenSession,
                     request_deserializer=frontend__pb2.OpenSessionRequest.FromString,
-                    response_serializer=types__pb2.Result.SerializeToString,
+                    response_serializer=types__pb2.Session.SerializeToString,
             ),
             'CloseSession': grpc.unary_unary_rpc_method_handler(
                     servicer.CloseSession,
                     request_deserializer=frontend__pb2.CloseSessionRequest.FromString,
-                    response_serializer=types__pb2.Result.SerializeToString,
+                    response_serializer=types__pb2.Session.SerializeToString,
             ),
             'GetSession': grpc.unary_unary_rpc_method_handler(
                     servicer.GetSession,
@@ -177,7 +177,7 @@ def add_FrontendServicer_to_server(servicer, server):
             'DeleteTask': grpc.unary_unary_rpc_method_handler(
                     servicer.DeleteTask,
                     request_deserializer=frontend__pb2.DeleteTaskRequest.FromString,
-                    response_serializer=types__pb2.Result.SerializeToString,
+                    response_serializer=types__pb2.Task.SerializeToString,
             ),
             'GetTask': grpc.unary_unary_rpc_method_handler(
                     servicer.GetTask,
@@ -232,7 +232,7 @@ class Frontend(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/flame.Frontend/DeleteSession',
             frontend__pb2.DeleteSessionRequest.SerializeToString,
-            types__pb2.Result.FromString,
+            types__pb2.Session.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -249,7 +249,7 @@ class Frontend(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/flame.Frontend/OpenSession',
             frontend__pb2.OpenSessionRequest.SerializeToString,
-            types__pb2.Result.FromString,
+            types__pb2.Session.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -266,7 +266,7 @@ class Frontend(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/flame.Frontend/CloseSession',
             frontend__pb2.CloseSessionRequest.SerializeToString,
-            types__pb2.Result.FromString,
+            types__pb2.Session.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -334,7 +334,7 @@ class Frontend(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/flame.Frontend/DeleteTask',
             frontend__pb2.DeleteTaskRequest.SerializeToString,
-            types__pb2.Result.FromString,
+            types__pb2.Task.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

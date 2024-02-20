@@ -27,6 +27,7 @@ message SessionStatus {
 message SessionSpec {
   string application = 1;
   int32 slots = 2;
+  optional bytes common_data = 3;
 }
 
 message Session {
