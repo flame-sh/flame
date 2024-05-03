@@ -11,6 +11,7 @@
 
 from enum import Enum
 import grpc
+import dill
 
 from rpc import *
 
@@ -23,9 +24,9 @@ class Connection:
     def __init__(self, channel):
         self.channel = channel
 
-    def create_session(self, *, application, slots):
+    def create_session(self, *, application, slots, common_data):
         stub = frontend_pb2_grpc.FrontendStub(self.channel)
-        spec = types_pb2.SessionSpec(application=application, slots=slots)
+        spec = types_pb2.SessionSpec(application=application, slots=slots, common_data=common_data)
         req = frontend_pb2.CreateSessionRequest(session=spec)
         ssn = stub.CreateSession(req)
         return Session(stub, ssn)
@@ -84,3 +85,26 @@ class Task:
         self.input = task.spec.input
         self.output = task.spec.output
         self.state = TaskState(task.status.state)
+
+
+# =========================================================
+# Flame Annotation features
+# =========================================================
+
+_connection = None
+_session_manager = None
+
+def init(addr):
+    _connection = connect(addr)
+
+def service(fn):
+    task_code = dill.dumps(fn)
+    ssn = _connection.create_session("flmpy", 1, task_code)
+
+    def service_future(*args, **kwargs):
+        task_args = dill.dump(args)
+        task = ssn.create_task(task_args)
+
+        return task
+
+    return service_future
