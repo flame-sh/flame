@@ -10,9 +10,7 @@
 # limitations under the License.
 
 import flame
-
 import argparse
-
 
 parser = argparse.ArgumentParser(description='Flame Pi Python Example.')
 parser.add_argument('-n', '--task_num', type=int, help="The total number of tasks in the session.")
