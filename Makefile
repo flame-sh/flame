@@ -1,5 +1,5 @@
-FSM_TAG=`cargo get --root session_manager/ version --pretty`
-FEM_TAG=`cargo get --root executor_manager/ version --pretty`
+FSM_TAG=`cargo get --entry session_manager/ package.version --pretty`
+FEM_TAG=`cargo get --entry executor_manager/ package.version --pretty`
 
 all: docker-release
 
