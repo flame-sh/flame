@@ -28,11 +28,7 @@ jobs:
       - name: Install gRPC
         run: |
           sudo apt-get update && sudo apt-get install -y protobuf-compiler
-      - name: Cargo make
-        uses: actions-rs/cargo@v1
-        with:
-          command: make
-      - name: Cargo fmt
+       - name: Cargo fmt
         uses: actions-rs/cargo@v1
         with:
           command: make
@@ -42,3 +38,8 @@ jobs:
         with:
           command: make
           args: clippy-ci-flow
+      - name: Cargo make
+        uses: actions-rs/cargo@v1
+        with:
+          command: make
+          args: build-release

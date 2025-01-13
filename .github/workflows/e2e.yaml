@@ -16,10 +16,14 @@ jobs:
         uses: actions/checkout@v2
       - name: Setup Minikube
         uses: medyagh/setup-minikube@latest
-      - name: Build image
+      - name: Build flame-executor-manager image
         run: |
           minikube image build -t registry.minikube/flame-executor-manager -f docker/Dockerfile.fem .
+      - name: Build flame-session-manager image
+        run: |
           minikube image build -t registry.minikube/flame-session-manager -f docker/Dockerfile.fsm .
+      - name: Build flame-console image
+        run: |
           minikube image build -t registry.minikube/flame-console -f docker/Dockerfile.console .
       - name: Deploy Flame
         run: |
