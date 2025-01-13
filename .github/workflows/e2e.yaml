@@ -18,15 +18,15 @@ jobs:
         uses: helm/kind-action@v1
         with:
           config: ci/kind.yaml
-          cluster_name: flame_ci_cluster
+          cluster_name: flame-ci-cluster
       - name: Build images
         run: |
           make ci-image
       - name: Load images
         run: |
-          kind load docker-image --name flame_ci_cluster xflops/flame-session-manager:latest
-          kind load docker-image --name flame_ci_cluster xflops/flame-executor-manager:latest
-          kind load docker-image --name flame_ci_cluster xflops/flame-console:latest
+          kind load docker-image --name flame-ci-cluster xflops/flame-session-manager:latest
+          kind load docker-image --name flame-ci-cluster xflops/flame-executor-manager:latest
+          kind load docker-image --name flame-ci-cluster xflops/flame-console:latest
       - name: Deploy Flame
         run: |
           kubectl apply -k installer/
