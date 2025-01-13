@@ -20,7 +20,7 @@ use flame_client as flame;
 
 use self::flame::{FlameError, SessionAttributes, SessionState};
 
-const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:38080";
+const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:30080";
 
 const FLAME_DEFAULT_APP: &str = "flmexec";
 
