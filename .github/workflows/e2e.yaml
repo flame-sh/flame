@@ -34,11 +34,15 @@ jobs:
           command: make
           args: build
       - name: Setup Minikube
-        uses: hiberbee/github-action-minikube@1.7.0
-      - name: Deploy Flame by Skaffold
-        uses: hiberbee/github-action-skaffold@1.27.0
-        with:
-          command: run
+        uses: medyagh/setup-minikube@latest
+      - name: Build image
+        run: |
+          minikube image build -t registry.minikube/flame-executor-manager -f docker/Dockerfile.fem .
+          minikube image build -t registry.minikube/flame-session-manager -f docker/Dockerfile.fsm .
+          minikube image build -t registry.minikube/flame-console -f docker/Dockerfile.console .
+      - name: Deploy Flame
+        run: |
+          kubectl apply -k installer/
       - name: Run E2E Test
         run: |
           cargo make test
