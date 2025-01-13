@@ -28,17 +28,15 @@ jobs:
         with:
           command: install
           args: --debug cargo-make
-      - name: Setup Minikube
-        uses: medyagh/setup-minikube@latest
-      - name: Build flame-executor-manager image
+      - name: Setup Kind Cluster
+        uses: helm/kind-action@v1
+          with:
+            config: ci/kind.conf
+      - name: Build and Load images
         run: |
-          minikube image build -t registry.minikube/flame-executor-manager -f docker/Dockerfile.fem .
-      - name: Build flame-session-manager image
-        run: |
-          minikube image build -t registry.minikube/flame-session-manager -f docker/Dockerfile.fsm .
-      - name: Build flame-console image
-        run: |
-          minikube image build -t registry.minikube/flame-console -f docker/Dockerfile.console .
+          make
+          kind load docker-image xflops/flame-session-manager:v0.3.0
+          kind load docker-image xflops/flame-executor-manager:v0.3.0
       - name: Deploy Flame
         run: |
           kubectl apply -k installer/

@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: fsm
-        image: registry.minikube/flame-session-manager:latest
+        image: xflops/flame-session-manager:v0.3.0
         env:
         - name: RUST_LOG
           value: "info"

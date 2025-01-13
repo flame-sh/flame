@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: console
-        image: registry.minikube/flame-console:latest
+        image: xflops/flame-console:v0.3.0
         env:
         - name: RUST_LOG
           value: "info"

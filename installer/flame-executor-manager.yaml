@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: fem
-        image: registry.minikube/flame-executor-manager:latest
+        image: xflops/flame-executor-manager:v0.3.0
         env:
         - name: RUST_LOG
           value: "info"
