@@ -5,6 +5,7 @@ resources:
   - flame-system.yaml
   - flame-executor-manager.yaml
   - flame-session-manager.yaml
+  - flame-console.yaml
   - fsm-service.yaml
 configMapGenerator:
   - name: flame-conf

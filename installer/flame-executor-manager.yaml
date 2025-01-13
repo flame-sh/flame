@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
       - name: fem
-        image: xflops/flame-executor-manager:v0.3.0
+        image: xflops/flame-executor-manager:latest
+        imagePullPolicy: IfNotPresent
         env:
         - name: RUST_LOG
           value: "info"
