@@ -14,6 +14,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Setup Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          config: ci/kind.yaml
+          cluster_name: flame-ci-cluster
+      - name: Build images
+        run: |
+          make ci-image
+      - name: Load images
+        run: |
+          kind load docker-image --name flame-ci-cluster xflops/flame-session-manager:latest
+          kind load docker-image --name flame-ci-cluster xflops/flame-executor-manager:latest
+          kind load docker-image --name flame-ci-cluster xflops/flame-console:latest
+      - name: Deploy Flame
+        run: |
+          kubectl apply -k installer/
+      - name: Install gRPC
+        run: |
+          sudo apt-get update && sudo apt-get install -y protobuf-compiler
       - name: Install rust
         uses: actions-rs/toolchain@v1
         with:
@@ -25,22 +44,6 @@ jobs:
         with:
           command: install
           args: --debug cargo-make
-      - name: Install gRPC
-        run: |
-          sudo apt-get update && sudo apt-get install -y protobuf-compiler
-      - name: Cargo build
-        uses: actions-rs/cargo@v1
-        with:
-          command: make
-          args: build
-      - name: Install supervisord
-        run: |
-          sudo apt-get update && sudo apt-get install -y supervisor
-      - name: Start supervisord
-        run: |
-          mkdir -p ci/logs
-          cp -r session_manager/migrations .
-          supervisord -c ci/supervisord.conf
       - name: Run E2E Test
         run: |
           cargo make test

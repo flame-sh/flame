@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: flame-executor-manager
 spec:
-  replicas: 3
+  replicas: 6
   selector:
     matchLabels:
       app.kubernetes.io/name: flame-executor-manager
@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
       - name: fem
-        image: registry.minikube/flame-executor-manager:latest
+        image: xflops/flame-executor-manager:latest
+        imagePullPolicy: IfNotPresent
         env:
         - name: RUST_LOG
           value: "info"
