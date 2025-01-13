@@ -31,7 +31,7 @@ jobs:
       - name: Setup Kind Cluster
         uses: helm/kind-action@v1
         with:
-          config: ci/kind.conf
+          config: ./ci/kind.conf
       - name: Build and Load images
         run: |
           make
