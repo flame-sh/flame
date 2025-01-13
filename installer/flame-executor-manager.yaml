@@ -5,7 +5,7 @@ metadata:
   labels:
     app.kubernetes.io/name: flame-executor-manager
 spec:
-  replicas: 3
+  replicas: 6
   selector:
     matchLabels:
       app.kubernetes.io/name: flame-executor-manager
