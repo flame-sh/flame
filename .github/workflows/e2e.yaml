@@ -30,11 +30,13 @@ jobs:
           args: --debug cargo-make
       - name: Setup Kind Cluster
         uses: helm/kind-action@v1
-          with:
-            config: ci/kind.conf
+        with:
+          config: ci/kind.conf
       - name: Build and Load images
         run: |
-          make && kind load docker-image xflops/flame-session-manager:v0.3.0 &&  kind load docker-image xflops/flame-executor-manager:v0.3.0
+          make
+          kind load docker-image xflops/flame-session-manager:v0.3.0
+          kind load docker-image xflops/flame-executor-manager:v0.3.0
       - name: Deploy Flame
         run: |
           kubectl apply -k installer/
