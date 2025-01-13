@@ -34,9 +34,9 @@ jobs:
           command: make
           args: build
       - name: Setup Minikube
-        uses: hiberbee/github-action-minikube@1.5.0
-      - name: Run Skaffold pipeline as action
-        uses: hiberbee/github-action-skaffold@1.19.0
+        uses: hiberbee/github-action-minikube@1.7.0
+      - name: Deploy Flame by Skaffold
+        uses: hiberbee/github-action-skaffold@1.27.0
         with:
           command: run
       - name: Run E2E Test
