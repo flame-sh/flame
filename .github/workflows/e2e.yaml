@@ -39,11 +39,6 @@ jobs:
           toolchain: ${{ matrix.rust }}
           profile: minimal
           override: true
-      - name: Install cargo-make
-        uses: actions-rs/cargo@v1
-        with:
-          command: install
-          args: --debug cargo-make
       - name: Run E2E Test
         run: |
-          cargo make test
+          cargo test
