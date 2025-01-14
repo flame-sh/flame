@@ -14,7 +14,7 @@ limitations under the License.
 use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
-use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use futures::TryFutureExt;
 use prost::Enumeration;
 use thiserror::Error;
@@ -311,8 +311,8 @@ impl From<&rpc::Session> for Session {
         let spec = ssn.spec.clone().unwrap();
 
         let naivedatetime_utc =
-            NaiveDateTime::from_timestamp_millis(status.creation_time * 1000).unwrap();
-        let creation_time = Utc.from_utc_datetime(&naivedatetime_utc);
+            DateTime::from_timestamp_millis(status.creation_time * 1000).unwrap();
+        let creation_time = Utc.from_utc_datetime(&naivedatetime_utc.naive_utc());
 
         Session {
             client: None,

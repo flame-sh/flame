@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "#[allow(clippy::enum_variant_names)]",
         )
         .protoc_arg("--experimental_allow_proto3_optional")
-        .compile(
+        .compile_protos(
             &[
                 "protos/types.proto",
                 "protos/frontend.proto",
