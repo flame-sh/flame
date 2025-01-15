@@ -11,12 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::future::Future;
 use std::ops::Deref;
 use std::pin::Pin;
-use std::rc::Rc;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
@@ -56,19 +54,14 @@ impl Storage {
     }
 
     pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {
-        let mut res = SnapShot {
-            sessions: HashMap::new(),
-            ssn_index: HashMap::new(),
-            executors: HashMap::new(),
-            exec_index: HashMap::new(),
-        };
+        let res = SnapShot::new();
 
         {
             let ssn_map = lock_ptr!(self.sessions)?;
             for ssn in ssn_map.deref().values() {
                 let ssn = lock_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
-                res.add_session(Rc::new(info));
+                res.add_session(Arc::new(info));
             }
         }
 
@@ -77,11 +70,11 @@ impl Storage {
             for exe in exe_map.deref().values() {
                 let exe = lock_ptr!(exe)?;
                 let info = ExecutorInfo::from(&(*exe).clone());
-                res.add_executor(Rc::new(info));
+                res.add_executor(Arc::new(info));
             }
         }
 
-        Ok(Rc::new(RefCell::new(res)))
+        Ok(Arc::new(res))
     }
 
     pub async fn load_data(&self) -> Result<(), FlameError> {

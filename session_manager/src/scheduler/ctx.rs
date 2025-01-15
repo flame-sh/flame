@@ -34,7 +34,7 @@ pub struct Context {
 impl Context {
     pub fn new(storage: StoragePtr) -> Result<Self, FlameError> {
         let snapshot = storage.snapshot()?;
-        let plugins = PluginManager::setup(&snapshot.borrow())?;
+        let plugins = PluginManager::setup(&snapshot.clone())?;
 
         Ok(Context {
             snapshot,
@@ -55,69 +55,55 @@ impl Context {
         execs: &Vec<ExecutorInfoPtr>,
         ssn: &SessionInfoPtr,
     ) -> Vec<ExecutorInfoPtr> {
-        self.plugins.borrow().filter(execs, ssn)
+        self.plugins.filter(execs, ssn)
     }
 
     pub fn filter_one(&self, exec: &ExecutorInfoPtr, ssn: &SessionInfoPtr) -> bool {
         !self.filter(&vec![exec.clone()], ssn).is_empty()
     }
 
-    pub fn is_underused(&self, ssn: &SessionInfoPtr) -> bool {
-        self.plugins.borrow().is_underused(ssn)
+    pub fn is_underused(&self, ssn: &SessionInfoPtr) -> Result<bool, FlameError> {
+        self.plugins.is_underused(ssn)
     }
 
-    pub fn is_preemptible(&self, ssn: &SessionInfoPtr) -> bool {
-        self.plugins.borrow().is_preemptible(ssn)
+    pub fn is_preemptible(&self, ssn: &SessionInfoPtr) -> Result<bool, FlameError> {
+        self.plugins.is_preemptible(ssn)
     }
 
-    pub fn bind_session(
+    pub async fn bind_session(
         &self,
-        exec: &ExecutorInfoPtr,
-        ssn: &SessionInfoPtr,
+        exec: ExecutorInfoPtr,
+        ssn: SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| FlameError::Internal(e.to_string()))?;
-        runtime.block_on(self.storage.bind_session(exec.id.clone(), ssn.id))?;
-
-        self.plugins.borrow_mut().on_session_bind(ssn);
+        self.storage.bind_session(exec.id.clone(), ssn.id).await?;
+        self.plugins.on_session_bind(ssn)?;
         self.snapshot
-            .borrow_mut()
             .update_executor_state(exec.clone(), ExecutorState::Binding);
 
         Ok(())
     }
 
-    pub fn pipeline_session(
+    pub async fn pipeline_session(
         &self,
-        exec: &ExecutorInfoPtr,
-        ssn: &SessionInfoPtr,
+        exec: ExecutorInfoPtr,
+        ssn: SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        self.plugins.borrow_mut().on_session_bind(ssn);
+        self.plugins.on_session_bind(ssn)?;
 
         self.snapshot
-            .borrow_mut()
             .update_executor_state(exec.clone(), ExecutorState::Binding);
 
         Ok(())
     }
 
-    pub fn unbind_session(
+    pub async fn unbind_session(
         &self,
-        exec: &ExecutorInfoPtr,
-        ssn: &SessionInfoPtr,
+        exec: ExecutorInfoPtr,
+        ssn: SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| FlameError::Internal(e.to_string()))?;
-        runtime.block_on(self.storage.unbind_executor(exec.id.clone()))?;
-
-        self.plugins.borrow_mut().on_session_unbind(ssn);
-
+        self.storage.unbind_executor(exec.id.clone()).await?;
+        self.plugins.on_session_unbind(ssn)?;
         self.snapshot
-            .borrow_mut()
             .update_executor_state(exec.clone(), ExecutorState::Unbinding);
 
         Ok(())

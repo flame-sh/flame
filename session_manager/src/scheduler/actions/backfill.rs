@@ -11,17 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
+use std::sync::Arc;
 use stdng::collections::BinaryHeap;
 
-use std::sync::Arc;
-
+use crate::model::{IDLE_EXECUTOR, OPEN_SESSION};
 use crate::scheduler::actions::{Action, ActionPtr};
 use crate::scheduler::plugins::ssn_order_fn;
 use crate::scheduler::Context;
-
 use crate::FlameError;
-use common::apis::{ExecutorState, SessionState};
+
 use common::{trace::TraceFn, trace_fn};
 
 pub struct BackfillAction {}
@@ -32,33 +30,23 @@ impl BackfillAction {
     }
 }
 
+#[async_trait::async_trait]
 impl Action for BackfillAction {
-    fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
+    async fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
         trace_fn!("BackfillAction::execute");
-        let ss = ctx.snapshot.borrow().clone();
-
-        log::debug!(
-            "Session: <{}>, Executor: <{}>",
-            ss.ssn_index
-                .get(&SessionState::Open)
-                .unwrap_or(&HashMap::new())
-                .len(),
-            ss.executors.len()
-        );
+        let ss = ctx.snapshot.clone();
 
         let mut open_ssns = BinaryHeap::new(ssn_order_fn(ctx));
         let mut idle_execs = Vec::new();
 
-        if let Some(ssn_list) = ss.ssn_index.get(&SessionState::Open) {
-            for ssn in ssn_list.values() {
-                open_ssns.push(ssn.clone());
-            }
+        let ssn_list = ss.find_sessions(OPEN_SESSION)?;
+        for ssn in ssn_list.values() {
+            open_ssns.push(ssn.clone());
         }
 
-        if let Some(execs) = ss.exec_index.get(&ExecutorState::Idle) {
-            for exec in execs.values() {
-                idle_execs.push(exec.clone());
-            }
+        let execs = ss.find_executors(IDLE_EXECUTOR)?;
+        for exec in execs.values() {
+            idle_execs.push(exec.clone());
         }
 
         loop {
@@ -81,15 +69,7 @@ impl Action for BackfillAction {
                     continue;
                 }
 
-                if let Err(e) = ctx.bind_session(exec, &ssn) {
-                    log::error!(
-                        "Failed to bind Session <{}> to Executor <{}>: {}.",
-                        exec.id.clone(),
-                        ssn.id.clone(),
-                        e
-                    );
-                    continue;
-                }
+                ctx.bind_session(exec.clone(), ssn.clone()).await?;
 
                 pos = Some(i);
 

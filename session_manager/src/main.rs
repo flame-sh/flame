@@ -11,10 +11,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
-use std::thread;
-
 use clap::Parser;
+use futures::future::join_all;
+use std::collections::HashMap;
 
 use common::ctx::FlameContext;
 use common::FlameError;
@@ -43,8 +42,8 @@ async fn main() -> Result<(), FlameError> {
 
     log::info!("flame-session-manager is starting ...");
 
-    let mut handlers = vec![];
     let mut threads = HashMap::new();
+    let mut handlers = vec![];
 
     let storage = storage::new_ptr(&ctx.storage).await?;
 
@@ -54,31 +53,19 @@ async fn main() -> Result<(), FlameError> {
     threads.insert("scheduler", scheduler::new(storage.clone()));
     threads.insert("apiserver", apiserver::new(storage.clone()));
 
-    for (n, thread) in threads {
-        let ctx = ctx.clone();
-        let handler = thread::spawn(move || {
-            match thread.run(ctx) {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("Failed to run thread: {}", e);
-                }
-            };
-        });
-
-        log::info!("<{}> thread was started.", n);
-
+    for thread in threads.values() {
+        let handler = thread.run(ctx.clone());
         handlers.push(handler);
     }
 
     log::info!("flame-session-manager started.");
 
-    for h in handlers {
-        h.join().unwrap();
-    }
+    join_all(handlers);
 
     Ok(())
 }
 
+#[async_trait::async_trait]
 pub trait FlameThread: Send + Sync + 'static {
-    fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
+    async fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
 }

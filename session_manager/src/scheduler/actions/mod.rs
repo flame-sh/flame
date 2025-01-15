@@ -13,6 +13,8 @@ limitations under the License.
 
 use std::sync::Arc;
 
+use async_trait::async_trait;
+
 use crate::scheduler::Context;
 use crate::FlameError;
 
@@ -26,6 +28,7 @@ mod shuffle;
 
 pub type ActionPtr = Arc<dyn Action>;
 
-pub trait Action {
-    fn execute(&self, ctx: &mut Context) -> Result<(), FlameError>;
+#[async_trait]
+pub trait Action: Send + Sync + 'static {
+    async fn execute(&self, ctx: &mut Context) -> Result<(), FlameError>;
 }
