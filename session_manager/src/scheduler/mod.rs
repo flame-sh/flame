@@ -11,6 +11,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use async_trait::async_trait;
+use std::sync::Arc;
 use std::{thread, time};
 
 use crate::scheduler::ctx::Context;
@@ -24,21 +26,22 @@ mod actions;
 mod ctx;
 mod plugins;
 
-pub fn new(storage: StoragePtr) -> Box<dyn FlameThread> {
-    Box::new(ScheduleRunner { storage })
+pub fn new(storage: StoragePtr) -> Arc<dyn FlameThread> {
+    Arc::new(ScheduleRunner { storage })
 }
 
 struct ScheduleRunner {
     storage: StoragePtr,
 }
 
+#[async_trait]
 impl FlameThread for ScheduleRunner {
-    fn run(&self, _flame_ctx: FlameContext) -> Result<(), FlameError> {
+    async fn run(&self, _flame_ctx: FlameContext) -> Result<(), FlameError> {
         loop {
             let mut ctx = Context::new(self.storage.clone())?;
 
             for action in ctx.actions.clone() {
-                if let Err(e) = action.execute(&mut ctx) {
+                if let Err(e) = action.execute(&mut ctx).await {
                     log::error!("Failed to run scheduling: {}", e);
                     break;
                 };

@@ -15,9 +15,12 @@ use std::cmp::Ordering;
 use std::collections::binary_heap::BinaryHeap;
 use std::collections::HashMap;
 
-use crate::model::{ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot};
+use crate::model::{
+    ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot, ALL_EXECUTOR, OPEN_SESSION,
+};
 use crate::scheduler::plugins::{Plugin, PluginPtr};
-use common::apis::{SessionID, SessionState, TaskState};
+use common::apis::{SessionID, TaskState};
+use common::FlameError;
 
 #[derive(Default, Clone)]
 struct SSNInfo {
@@ -69,9 +72,8 @@ impl FairShare {
 }
 
 impl Plugin for FairShare {
-    fn setup(&mut self, ss: &SnapShot) {
-        let empty_map = HashMap::new();
-        let open_ssns = ss.ssn_index.get(&SessionState::Open).unwrap_or(&empty_map);
+    fn setup(&mut self, ss: &SnapShot) -> Result<(), FlameError> {
+        let open_ssns = ss.find_sessions(OPEN_SESSION)?;
 
         for ssn in open_ssns.values() {
             let mut desired = 0.0;
@@ -94,7 +96,8 @@ impl Plugin for FairShare {
 
         let mut remaining_slots = 0.0;
 
-        for exe in ss.executors.values() {
+        let executors = ss.find_executors(ALL_EXECUTOR)?;
+        for exe in executors.values() {
             remaining_slots += exe.slots as f64;
             if let Some(ssn_id) = exe.ssn_id {
                 if let Some(ssn) = self.ssn_map.get_mut(&ssn_id) {
@@ -138,6 +141,8 @@ impl Plugin for FairShare {
                 )
             }
         }
+
+        Ok(())
     }
 
     fn ssn_order_fn(&self, s1: &SessionInfo, s2: &SessionInfo) -> Option<Ordering> {
@@ -185,13 +190,13 @@ impl Plugin for FairShare {
         None
     }
 
-    fn on_session_bind(&mut self, ssn: &SessionInfoPtr) {
+    fn on_session_bind(&mut self, ssn: SessionInfoPtr) {
         if let Some(ss) = self.ssn_map.get_mut(&ssn.id) {
             ss.allocated += ssn.slots as f64;
         }
     }
 
-    fn on_session_unbind(&mut self, ssn: &SessionInfoPtr) {
+    fn on_session_unbind(&mut self, ssn: SessionInfoPtr) {
         if let Some(ss) = self.ssn_map.get_mut(&ssn.id) {
             ss.allocated -= ssn.slots as f64;
         }

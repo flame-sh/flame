@@ -15,11 +15,11 @@ use std::sync::Arc;
 
 use stdng::collections::BinaryHeap;
 
+use crate::model::{BOUND_EXECUTOR, OPEN_SESSION};
 use crate::scheduler::actions::{Action, ActionPtr};
 use crate::scheduler::ctx::Context;
 use crate::scheduler::plugins::ssn_order_fn;
 
-use common::apis::{ExecutorState, SessionState};
 use common::FlameError;
 use common::{trace::TraceFn, trace_fn};
 
@@ -31,25 +31,24 @@ impl ShuffleAction {
     }
 }
 
+#[async_trait::async_trait]
 impl Action for ShuffleAction {
-    fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
+    async fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
         trace_fn!("ShuffleAction::execute");
-        let ss = ctx.snapshot.borrow().clone();
+        let ss = ctx.snapshot.clone();
 
         let mut underused = BinaryHeap::new(ssn_order_fn(ctx));
-        if let Some(open_ssns) = ss.ssn_index.get(&SessionState::Open) {
-            for ssn in open_ssns.values() {
-                if ctx.is_underused(ssn) {
-                    underused.push(ssn.clone());
-                }
+        let open_ssns = ss.find_sessions(OPEN_SESSION)?;
+        for ssn in open_ssns.values() {
+            if ctx.is_underused(ssn)? {
+                underused.push(ssn.clone());
             }
         }
 
         let mut bound_execs = vec![];
-        if let Some(execs) = ss.exec_index.get(&ExecutorState::Bound) {
-            for exec in execs.values() {
-                bound_execs.push(exec.clone());
-            }
+        let execs = ss.find_executors(BOUND_EXECUTOR)?;
+        for exec in execs.values() {
+            bound_execs.push(exec.clone());
         }
 
         loop {
@@ -58,7 +57,7 @@ impl Action for ShuffleAction {
             }
 
             let ssn = underused.pop().unwrap();
-            if !ctx.is_underused(&ssn) {
+            if !ctx.is_underused(&ssn)? {
                 continue;
             }
 
@@ -69,33 +68,17 @@ impl Action for ShuffleAction {
                 }
 
                 let target_ssn = match exec.ssn_id {
-                    Some(ssn_id) => ss.sessions.get(&ssn_id).cloned(),
+                    Some(ssn_id) => Some(ss.get_session(&ssn_id)?),
                     None => None,
                 };
 
                 if let Some(target_ssn) = target_ssn {
-                    if !ctx.is_preemptible(&target_ssn) {
+                    if !ctx.is_preemptible(&target_ssn)? {
                         continue;
                     }
 
-                    if let Err(e) = ctx.unbind_session(exec, &target_ssn) {
-                        log::error!(
-                            "Failed to unbind Session <{}> to Executor <{}>: {}.",
-                            exec.id.clone(),
-                            target_ssn.id.clone(),
-                            e
-                        );
-                        continue;
-                    }
-                    if let Err(e) = ctx.pipeline_session(exec, &ssn) {
-                        log::error!(
-                            "Failed to pipeline Session <{}> to Executor <{}>: {}.",
-                            exec.id.clone(),
-                            ssn.id.clone(),
-                            e
-                        );
-                        continue;
-                    }
+                    ctx.unbind_session(exec.clone(), target_ssn.clone()).await?;
+                    ctx.pipeline_session(exec.clone(), ssn.clone()).await?;
                 }
 
                 pos = Some(i);

@@ -11,10 +11,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
-use std::thread;
-
 use clap::Parser;
+use futures::future::join_all;
+use std::collections::HashMap;
 
 use common::ctx::FlameContext;
 use common::FlameError;
@@ -44,41 +43,40 @@ async fn main() -> Result<(), FlameError> {
     log::info!("flame-session-manager is starting ...");
 
     let mut handlers = vec![];
-    let mut threads = HashMap::new();
 
     let storage = storage::new_ptr(&ctx.storage).await?;
 
     // Load data from engine, e.g. sqlite.
     storage.load_data().await?;
 
-    threads.insert("scheduler", scheduler::new(storage.clone()));
-    threads.insert("apiserver", apiserver::new(storage.clone()));
-
-    for (n, thread) in threads {
+    {
+        let storage = storage.clone();
         let ctx = ctx.clone();
-        let handler = thread::spawn(move || {
-            match thread.run(ctx) {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("Failed to run thread: {}", e);
-                }
-            };
+        let handler = tokio::spawn(async move {
+            let apiserver = apiserver::new(storage);
+            apiserver.run(ctx).await
         });
+        handlers.push(handler);
+    }
 
-        log::info!("<{}> thread was started.", n);
-
+    {
+        let storage = storage.clone();
+        let ctx = ctx.clone();
+        let handler = tokio::spawn(async move {
+            let scheduler = scheduler::new(storage);
+            scheduler.run(ctx).await
+        });
         handlers.push(handler);
     }
 
     log::info!("flame-session-manager started.");
 
-    for h in handlers {
-        h.join().unwrap();
-    }
+    let _ = join_all(handlers).await;
 
     Ok(())
 }
 
+#[async_trait::async_trait]
 pub trait FlameThread: Send + Sync + 'static {
-    fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
+    async fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
 }

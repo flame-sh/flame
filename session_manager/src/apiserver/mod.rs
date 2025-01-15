@@ -12,8 +12,7 @@ limitations under the License.
 */
 
 use std::env;
-
-use tokio::runtime::Runtime;
+use std::sync::Arc;
 use tonic::transport::Server;
 
 use common::ctx::FlameContext;
@@ -30,8 +29,8 @@ pub struct Flame {
     storage: StoragePtr,
 }
 
-pub fn new(storage: StoragePtr) -> Box<dyn FlameThread> {
-    Box::new(ApiserverRunner {
+pub fn new(storage: StoragePtr) -> Arc<dyn FlameThread> {
+    Arc::new(ApiserverRunner {
         storage: storage.clone(),
     })
 }
@@ -40,8 +39,9 @@ struct ApiserverRunner {
     storage: StoragePtr,
 }
 
+#[async_trait::async_trait]
 impl FlameThread for ApiserverRunner {
-    fn run(&self, ctx: FlameContext) -> Result<(), FlameError> {
+    async fn run(&self, ctx: FlameContext) -> Result<(), FlameError> {
         let url = url::Url::parse(&ctx.endpoint)
             .map_err(|_| FlameError::InvalidConfig("invalid endpoint".to_string()))?;
         let port = url.port().unwrap_or(8080);
@@ -66,23 +66,12 @@ impl FlameThread for ApiserverRunner {
             storage: self.storage.clone(),
         };
 
-        let rt = Runtime::new()
-            .map_err(|_| FlameError::Internal("failed to start tokio runtime".to_string()))?;
-        // Execute the future, blocking the current thread until completion
-        rt.block_on(async {
-            let rc = Server::builder()
-                .add_service(FrontendServer::new(frontend_service))
-                .add_service(BackendServer::new(backend_service))
-                .serve(address)
-                .await;
-
-            match rc {
-                Ok(_) => {}
-                Err(e) => {
-                    log::error!("Failed to run apiserver: {}", e)
-                }
-            }
-        });
+        Server::builder()
+            .add_service(FrontendServer::new(frontend_service))
+            .add_service(BackendServer::new(backend_service))
+            .serve(address)
+            .await
+            .map_err(|e| FlameError::Network(e.to_string()))?;
 
         Ok(())
     }

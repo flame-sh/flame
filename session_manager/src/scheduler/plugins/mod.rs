@@ -11,10 +11,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use stdng::collections;
 
@@ -22,7 +21,8 @@ use crate::model::{ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot};
 use crate::scheduler::plugins::fairshare::FairShare;
 use crate::scheduler::Context;
 
-use common::FlameError;
+use common::ptr::{self, MutexPtr};
+use common::{lock_ptr, FlameError};
 
 mod fairshare;
 
@@ -33,11 +33,11 @@ mod fairshare;
 // }
 
 pub type PluginPtr = Box<dyn Plugin>;
-pub type PluginManagerPtr = Rc<RefCell<PluginManager>>;
+pub type PluginManagerPtr = Arc<PluginManager>;
 
 pub trait Plugin: Send + Sync + 'static {
     // Installation of plugin
-    fn setup(&mut self, ss: &SnapShot);
+    fn setup(&mut self, ss: &SnapShot) -> Result<(), FlameError>;
 
     // Schedule Fn
     fn ssn_order_fn(&self, s1: &SessionInfo, s2: &SessionInfo) -> Option<Ordering>;
@@ -53,12 +53,12 @@ pub trait Plugin: Send + Sync + 'static {
     ) -> Option<Vec<ExecutorInfoPtr>>;
 
     // Events
-    fn on_session_bind(&mut self, ssn: &SessionInfoPtr);
-    fn on_session_unbind(&mut self, ssn: &SessionInfoPtr);
+    fn on_session_bind(&mut self, ssn: SessionInfoPtr);
+    fn on_session_unbind(&mut self, ssn: SessionInfoPtr);
 }
 
 pub struct PluginManager {
-    pub plugins: HashMap<String, PluginPtr>,
+    pub plugins: MutexPtr<HashMap<String, PluginPtr>>,
 }
 
 impl PluginManager {
@@ -66,22 +66,28 @@ impl PluginManager {
         let mut plugins = HashMap::from([("fairshare".to_string(), FairShare::new_ptr())]);
 
         for plugin in plugins.values_mut() {
-            plugin.setup(ss);
+            plugin.setup(ss)?;
         }
 
-        Ok(Rc::new(RefCell::new(PluginManager { plugins })))
+        Ok(Arc::new(PluginManager {
+            plugins: ptr::new_ptr(plugins),
+        }))
     }
 
-    pub fn is_underused(&self, ssn: &SessionInfoPtr) -> bool {
-        self.plugins
+    pub fn is_underused(&self, ssn: &SessionInfoPtr) -> Result<bool, FlameError> {
+        let plugins = lock_ptr!(self.plugins)?;
+
+        Ok(plugins
             .values()
-            .all(|plugin| plugin.is_underused(ssn).unwrap_or(false))
+            .all(|plugin| plugin.is_underused(ssn).unwrap_or(false)))
     }
 
-    pub fn is_preemptible(&self, ssn: &SessionInfoPtr) -> bool {
-        self.plugins
+    pub fn is_preemptible(&self, ssn: &SessionInfoPtr) -> Result<bool, FlameError> {
+        let plugins = lock_ptr!(self.plugins)?;
+
+        Ok(plugins
             .values()
-            .all(|plugin| plugin.is_preemptible(ssn).unwrap_or(false))
+            .all(|plugin| plugin.is_preemptible(ssn).unwrap_or(false)))
     }
 
     pub fn filter(
@@ -105,23 +111,32 @@ impl PluginManager {
         res
     }
 
-    pub fn on_session_bind(&mut self, ssn: &SessionInfoPtr) {
-        for plugin in self.plugins.values_mut() {
-            plugin.on_session_bind(ssn);
+    pub fn on_session_bind(&self, ssn: SessionInfoPtr) -> Result<(), FlameError> {
+        let mut plugins = lock_ptr!(self.plugins)?;
+
+        for plugin in plugins.values_mut() {
+            plugin.on_session_bind(ssn.clone());
         }
+
+        Ok(())
     }
 
-    pub fn on_session_unbind(&mut self, ssn: &SessionInfoPtr) {
-        for plugin in self.plugins.values_mut() {
-            plugin.on_session_unbind(ssn);
+    pub fn on_session_unbind(&self, ssn: SessionInfoPtr) -> Result<(), FlameError> {
+        let mut plugins = lock_ptr!(self.plugins)?;
+
+        for plugin in plugins.values_mut() {
+            plugin.on_session_unbind(ssn.clone());
         }
+        Ok(())
     }
 
     pub fn ssn_order_fn(&self, t1: &SessionInfoPtr, t2: &SessionInfoPtr) -> Ordering {
-        for plugin in self.plugins.values() {
-            if let Some(order) = plugin.ssn_order_fn(t1, t2) {
-                if order != Ordering::Equal {
-                    return order;
+        if let Ok(plugins) = lock_ptr!(self.plugins) {
+            for plugin in plugins.values() {
+                if let Some(order) = plugin.ssn_order_fn(t1, t2) {
+                    if order != Ordering::Equal {
+                        return order;
+                    }
                 }
             }
         }
@@ -142,6 +157,6 @@ struct SsnOrderFn {
 
 impl collections::Cmp<SessionInfoPtr> for SsnOrderFn {
     fn cmp(&self, t1: &SessionInfoPtr, t2: &SessionInfoPtr) -> Ordering {
-        self.plugin_mgr.borrow().ssn_order_fn(t1, t2)
+        self.plugin_mgr.ssn_order_fn(t1, t2)
     }
 }
