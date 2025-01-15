@@ -60,7 +60,7 @@ async fn main() -> Result<(), FlameError> {
 
     log::info!("flame-session-manager started.");
 
-    join_all(handlers);
+    let _ = join_all(handlers).await;
 
     Ok(())
 }

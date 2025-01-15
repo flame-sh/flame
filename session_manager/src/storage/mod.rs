@@ -61,7 +61,7 @@ impl Storage {
             for ssn in ssn_map.deref().values() {
                 let ssn = lock_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
-                res.add_session(Arc::new(info));
+                res.add_session(Arc::new(info))?;
             }
         }
 
@@ -70,7 +70,7 @@ impl Storage {
             for exe in exe_map.deref().values() {
                 let exe = lock_ptr!(exe)?;
                 let info = ExecutorInfo::from(&(*exe).clone());
-                res.add_executor(Arc::new(info));
+                res.add_executor(Arc::new(info))?;
             }
         }
 

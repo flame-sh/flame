@@ -78,7 +78,7 @@ impl Context {
         self.storage.bind_session(exec.id.clone(), ssn.id).await?;
         self.plugins.on_session_bind(ssn)?;
         self.snapshot
-            .update_executor_state(exec.clone(), ExecutorState::Binding);
+            .update_executor_state(exec.clone(), ExecutorState::Binding)?;
 
         Ok(())
     }
@@ -91,7 +91,7 @@ impl Context {
         self.plugins.on_session_bind(ssn)?;
 
         self.snapshot
-            .update_executor_state(exec.clone(), ExecutorState::Binding);
+            .update_executor_state(exec.clone(), ExecutorState::Binding)?;
 
         Ok(())
     }
@@ -104,7 +104,7 @@ impl Context {
         self.storage.unbind_executor(exec.id.clone()).await?;
         self.plugins.on_session_unbind(ssn)?;
         self.snapshot
-            .update_executor_state(exec.clone(), ExecutorState::Unbinding);
+            .update_executor_state(exec.clone(), ExecutorState::Unbinding)?;
 
         Ok(())
     }

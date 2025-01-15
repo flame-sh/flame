@@ -66,7 +66,7 @@ impl PluginManager {
         let mut plugins = HashMap::from([("fairshare".to_string(), FairShare::new_ptr())]);
 
         for plugin in plugins.values_mut() {
-            plugin.setup(ss);
+            plugin.setup(ss)?;
         }
 
         Ok(Arc::new(PluginManager {

@@ -280,6 +280,7 @@ impl SnapShot {
     pub fn update_session(&self, ssn: SessionInfoPtr) -> Result<(), FlameError> {
         self.delete_session(ssn.clone())?;
         self.add_session(ssn)?;
+
         Ok(())
     }
 
@@ -370,7 +371,11 @@ impl SnapShot {
         Ok(())
     }
 
-    pub fn update_executor_state(&self, exec: ExecutorInfoPtr, state: ExecutorState) {
+    pub fn update_executor_state(
+        &self,
+        exec: ExecutorInfoPtr,
+        state: ExecutorState,
+    ) -> Result<(), FlameError> {
         let new_exec = Arc::new(ExecutorInfo {
             id: exec.id.clone(),
             slots: exec.slots,
@@ -381,7 +386,9 @@ impl SnapShot {
             state,
         });
 
-        self.delete_executor(new_exec.clone());
-        self.add_executor(new_exec);
+        self.delete_executor(new_exec.clone())?;
+        self.add_executor(new_exec)?;
+
+        Ok(())
     }
 }
