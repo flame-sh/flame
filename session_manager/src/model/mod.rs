@@ -46,6 +46,23 @@ impl SnapShot {
             exec_index: Arc::new(Mutex::new(HashMap::new())),
         }
     }
+
+    pub fn debug(&self) -> Result<(), FlameError> {
+        if log::log_enabled!(log::Level::Debug) {
+            let ssn_num = {
+                let ssns = lock_ptr!(self.sessions)?;
+                ssns.len()
+            };
+            let exe_num = {
+                let exes = lock_ptr!(self.executors)?;
+                exes.len()
+            };
+
+            log::debug!("Session: <{ssn_num}>, Executor: <{exe_num}>");
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Default, Clone)]

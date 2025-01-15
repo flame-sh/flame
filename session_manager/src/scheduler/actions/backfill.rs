@@ -36,6 +36,8 @@ impl Action for BackfillAction {
         trace_fn!("BackfillAction::execute");
         let ss = ctx.snapshot.clone();
 
+        ss.debug()?;
+
         let mut open_ssns = BinaryHeap::new(ssn_order_fn(ctx));
         let mut idle_execs = Vec::new();
 

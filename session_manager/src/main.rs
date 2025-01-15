@@ -42,7 +42,6 @@ async fn main() -> Result<(), FlameError> {
 
     log::info!("flame-session-manager is starting ...");
 
-    let mut threads = HashMap::new();
     let mut handlers = vec![];
 
     let storage = storage::new_ptr(&ctx.storage).await?;
@@ -50,11 +49,23 @@ async fn main() -> Result<(), FlameError> {
     // Load data from engine, e.g. sqlite.
     storage.load_data().await?;
 
-    threads.insert("scheduler", scheduler::new(storage.clone()));
-    threads.insert("apiserver", apiserver::new(storage.clone()));
+    {
+        let storage = storage.clone();
+        let ctx = ctx.clone();
+        let handler = tokio::spawn(async move {
+            let apiserver = apiserver::new(storage);
+            apiserver.run(ctx).await
+        });
+        handlers.push(handler);
+    }
 
-    for thread in threads.values() {
-        let handler = thread.run(ctx.clone());
+    {
+        let storage = storage.clone();
+        let ctx = ctx.clone();
+        let handler = tokio::spawn(async move {
+            let scheduler = scheduler::new(storage);
+            scheduler.run(ctx).await
+        });
         handlers.push(handler);
     }
 
