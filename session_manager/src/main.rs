@@ -13,7 +13,6 @@ limitations under the License.
 
 use clap::Parser;
 use futures::future::join_all;
-use std::collections::HashMap;
 
 use common::ctx::FlameContext;
 use common::FlameError;

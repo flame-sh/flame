@@ -47,8 +47,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Run executor.
     // TODO(k82cn): 1. enable gracefully exit, 2. build ExecutorManager for multiple executors.
     let mut exec = Executor::from_context(&ctx, cli.slots).await?;
-    // let mut exec_ptr = ExecutorPtr::new(exec);
 
+    // TODO(k82cn): Replace the following loop with `exec.run().await?;`.
     loop {
         let mut state = states::from(exec.clone()).await;
         match state.execute(&ctx).await {
