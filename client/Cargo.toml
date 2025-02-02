@@ -3,6 +3,11 @@ name = "flame-client"
 version = "0.3.0"
 edition = "2021"
 
+description = "The Rust client of Flame"
+repository = "https://github.com/flame-sh/flame"
+license-file = "../LICENSE.txt"
+readme = "../README.md"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
