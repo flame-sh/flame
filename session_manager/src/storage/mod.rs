@@ -204,7 +204,7 @@ impl Storage {
     }
 
     pub async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError> {
-        Ok(self.engine.get_application(id).await?)
+        self.engine.get_application(id).await
     }
 
     pub async fn update_task_state(

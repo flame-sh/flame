@@ -25,7 +25,7 @@ use self::stdio_shim::StdioShim;
 use self::wasm_shim::WasmShim;
 
 use common::apis::{
-    Application, ApplicationContext, SessionContext, Shim as ShimType, TaskContext, TaskOutput,
+    ApplicationContext, SessionContext, Shim as ShimType, TaskContext, TaskOutput,
 };
 
 use common::FlameError;
