@@ -2,18 +2,13 @@
 resolver = "1"
 members = [
     "common",
-    "client/rust",
+    "client",
     "flmctl",
     "flmping",
     "session_manager",
     "executor_manager",
     "rpc",
-    "examples/pi",
-    "examples/matrix/client",
-    "examples/matrix/local",
 ]
-
-exclude = ["examples/matrix/server"]
 
 [workspace.dependencies]
 tokio = { version = "1", features = ["full"] }

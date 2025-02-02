@@ -4,17 +4,17 @@ WORKDIR /usr/src/flame
 COPY . .
 RUN apt-get update && apt-get install -y protobuf-compiler pkg-config libssl-dev
 RUN cargo install --path ./executor_manager
-RUN cargo install --path ./examples/pi
+RUN cargo install --path ./flmping
 
 # Build wasm service
-RUN cargo install cargo-component --version 0.6.0
-RUN cd examples/matrix/server && cargo component build --release
+# RUN cargo install cargo-component --version 0.6.0
+# RUN cd examples/matrix/server && cargo component build --release
 
 FROM ubuntu:22.04
 WORKDIR /opt
 
 COPY --from=builder /usr/local/cargo/bin/flame-executor-manager /opt/flame-executor-manager
-COPY --from=builder /usr/local/cargo/bin/pi-server /opt/pi-server
-COPY --from=builder /usr/src/flame/examples/matrix/server/target/wasm32-wasi/release/matrix_server.wasm /opt/matrix_server.wasm
+# COPY --from=builder /usr/local/cargo/bin/pi-server /opt/pi-server
+# COPY --from=builder /usr/src/flame/examples/matrix/server/target/wasm32-wasi/release/matrix_server.wasm /opt/matrix_server.wasm
 
 ENTRYPOINT ["/opt/flame-executor-manager"]
