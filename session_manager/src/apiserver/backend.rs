@@ -18,9 +18,9 @@ use tonic::{Request, Response, Status};
 
 use self::rpc::backend_server::Backend;
 use self::rpc::{
-    BindExecutorCompletedRequest, BindExecutorRequest, CompleteTaskRequest, LaunchTaskRequest,
-    LaunchTaskResponse, RegisterExecutorRequest, Session, UnbindExecutorCompletedRequest,
-    UnbindExecutorRequest, UnregisterExecutorRequest,
+    Application, BindExecutorCompletedRequest, BindExecutorRequest, BindExecutorResponse,
+    CompleteTaskRequest, LaunchTaskRequest, LaunchTaskResponse, RegisterExecutorRequest, Session,
+    UnbindExecutorCompletedRequest, UnbindExecutorRequest, UnregisterExecutorRequest,
 };
 use ::rpc::flame as rpc;
 
@@ -40,15 +40,9 @@ impl Backend for Flame {
             .executor_spec
             .ok_or(FlameError::InvalidConfig("no executor spec".to_string()))?;
 
-        let applications = spec
-            .applications
-            .iter()
-            .map(apis::Application::from)
-            .collect();
         let e = apis::Executor {
             id: req.executor_id,
             slots: spec.slots,
-            applications,
             task_id: None,
             ssn_id: None,
             creation_time: Utc::now(),
@@ -69,7 +63,7 @@ impl Backend for Flame {
     async fn bind_executor(
         &self,
         req: Request<BindExecutorRequest>,
-    ) -> Result<Response<Session>, Status> {
+    ) -> Result<Response<BindExecutorResponse>, Status> {
         trace_fn!("Backend::bind_executor");
         let req = req.into_inner();
 
@@ -77,8 +71,22 @@ impl Backend for Flame {
             .storage
             .wait_for_session(req.executor_id.to_string())
             .await?;
+        let session = Some(Session::from(&ssn));
 
-        Ok(Response::new(Session::from(&ssn)))
+        let app = self.storage.get_application(ssn.application).await?;
+        let application = Some(Application::from(&app));
+
+        log::debug!(
+            "Bind executor <{}> to Session <{}:{}>",
+            req.executor_id.to_string(),
+            app.name,
+            ssn.id
+        );
+
+        Ok(Response::new(BindExecutorResponse {
+            application,
+            session,
+        }))
     }
 
     async fn bind_executor_completed(

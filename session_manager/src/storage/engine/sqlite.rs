@@ -18,16 +18,28 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use sqlx::{migrate::MigrateDatabase, FromRow, Sqlite, SqlitePool};
+use stdng::trace_fn;
 
 use crate::FlameError;
 use common::apis::{
-    CommonData, Session, SessionID, SessionState, SessionStatus, Task, TaskGID, TaskID, TaskInput,
-    TaskState,
+    Application, ApplicationID, CommonData, Session, SessionID, SessionState, SessionStatus, Shim,
+    Task, TaskGID, TaskID, TaskInput, TaskState,
 };
 
 use crate::storage::engine::{Engine, EnginePtr};
 
 const SQLITE_SQL: &str = "migrations/sqlite";
+
+#[derive(Clone, FromRow, Debug)]
+struct ApplicationDao {
+    pub name: ApplicationID,
+    pub url: Option<String>,
+    pub command: Option<String>,
+
+    pub shim: i32,
+    pub creation_time: i64,
+    pub state: i32,
+}
 
 #[derive(Clone, FromRow, Debug)]
 struct SessionDao {
@@ -66,23 +78,18 @@ impl SqliteEngine {
             Sqlite::create_database(url)
                 .await
                 .map_err(|e| FlameError::Storage(e.to_string()))?;
-            let db = SqlitePool::connect(url)
-                .await
-                .map_err(|e| FlameError::Storage(e.to_string()))?;
-
-            let migrations = std::path::Path::new(&SQLITE_SQL);
-            let migrator = sqlx::migrate::Migrator::new(migrations)
-                .await
-                .map_err(|e| FlameError::Storage(e.to_string()))?;
-            migrator
-                .run(&db)
-                .await
-                .map_err(|e| FlameError::Storage(e.to_string()))?;
-
-            return Ok(Arc::new(SqliteEngine { pool: db }));
         }
 
         let db = SqlitePool::connect(url)
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        let migrations = std::path::Path::new(&SQLITE_SQL);
+        let migrator = sqlx::migrate::Migrator::new(migrations)
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+        migrator
+            .run(&db)
             .await
             .map_err(|e| FlameError::Storage(e.to_string()))?;
 
@@ -92,6 +99,27 @@ impl SqliteEngine {
 
 #[async_trait]
 impl Engine for SqliteEngine {
+    async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        let sql = "SELECT * FROM applications WHERE name=?";
+        let app: ApplicationDao = sqlx::query_as(sql)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        tx.commit()
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        app.try_into()
+    }
+
     async fn create_session(
         &self,
         app: String,
@@ -446,9 +474,50 @@ impl TryFrom<TaskDao> for Task {
     }
 }
 
+impl TryFrom<&ApplicationDao> for Application {
+    type Error = FlameError;
+
+    fn try_from(app: &ApplicationDao) -> Result<Self, Self::Error> {
+        log::debug!("Application Shim is {}", app.shim);
+
+        Ok(Self {
+            name: app.name.clone(),
+            shim: Shim::try_from(app.shim).map_err(|_| FlameError::Internal("shim".to_string()))?,
+            url: app.url.clone(),
+            command: app.command.clone(),
+            arguments: vec![],
+            environments: vec![],
+            // TODO: make application configurable for work_dir.
+            working_directory: String::from("/tmp"),
+        })
+    }
+}
+
+impl TryFrom<ApplicationDao> for Application {
+    type Error = FlameError;
+
+    fn try_from(ssn: ApplicationDao) -> Result<Self, Self::Error> {
+        Application::try_from(&ssn)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_get_application() -> Result<(), FlameError> {
+        let url = format!(
+            "sqlite:///tmp/flame_test_app_{}.db",
+            Utc::now().timestamp()
+        );
+        let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        let app_1 = tokio_test::block_on(storage.get_application("flmexec".to_string()))?;
+
+        assert_eq!(app_1.name, "flmexec");
+
+        Ok(())
+    }
 
     #[test]
     fn test_single_session() -> Result<(), FlameError> {

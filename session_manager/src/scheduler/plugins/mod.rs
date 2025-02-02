@@ -90,25 +90,9 @@ impl PluginManager {
             .all(|plugin| plugin.is_preemptible(ssn).unwrap_or(false)))
     }
 
-    pub fn filter(
-        &self,
-        execs: &Vec<ExecutorInfoPtr>,
-        ssn: &SessionInfoPtr,
-    ) -> Vec<ExecutorInfoPtr> {
-        let mut res = vec![];
-        for exec in execs {
-            if exec
-                .applications
-                .iter()
-                .any(|app| app.name == ssn.application)
-            {
-                res.push(exec.clone());
-            }
-        }
-
-        // TODO(k82cn): also filter Executor by Plugins.
-
-        res
+    pub fn filter(&self, execs: &Vec<ExecutorInfoPtr>, _: &SessionInfoPtr) -> Vec<ExecutorInfoPtr> {
+        // TODO: if application was prepared, select it.
+        execs.clone()
     }
 
     pub fn on_session_bind(&self, ssn: SessionInfoPtr) -> Result<(), FlameError> {

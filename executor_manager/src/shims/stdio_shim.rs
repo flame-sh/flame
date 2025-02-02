@@ -21,7 +21,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 use crate::shims::{Shim, ShimPtr};
-use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
+use common::apis::{Application, ApplicationContext, SessionContext, TaskContext, TaskOutput};
 use common::FlameError;
 
 const FLAME_TASK_ID: &str = "FLAME_TASK_ID";
@@ -29,12 +29,12 @@ const FLAME_SESSION_ID: &str = "FLAME_SESSION_ID";
 
 #[derive(Clone)]
 pub struct StdioShim {
-    application: Application,
+    application: ApplicationContext,
     session_context: Option<SessionContext>,
 }
 
 impl StdioShim {
-    pub fn new_ptr(app: &Application) -> ShimPtr {
+    pub fn new_ptr(app: &ApplicationContext) -> ShimPtr {
         Arc::new(Mutex::new(Self {
             application: app.clone(),
             session_context: None,
@@ -54,7 +54,11 @@ impl Shim for StdioShim {
         &mut self,
         ctx: &TaskContext,
     ) -> Result<Option<TaskOutput>, FlameError> {
-        let mut cmd = self.application.command.clone();
+        let mut cmd = self
+            .application
+            .command
+            .clone()
+            .ok_or(FlameError::InvalidConfig("command is empty".to_string()))?;
         let path = Path::new(&cmd);
         if !path.has_root() {
             match env::current_dir() {
@@ -79,7 +83,8 @@ impl Shim for StdioShim {
         let mut child = Command::new(&cmd)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .current_dir(&self.application.working_directory)
+            // TODO: add working dir
+            // .current_dir(&self.application.working_directory)
             .env(FLAME_TASK_ID, &ctx.id)
             .env(FLAME_SESSION_ID, &ctx.ssn_id)
             .spawn()
