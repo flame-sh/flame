@@ -26,7 +26,7 @@ use tonic::Status;
 use self::rpc::frontend_client::FrontendClient as FlameFrontendClient;
 use self::rpc::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest,
-    ListSessionRequest, SessionSpec, TaskSpec, WatchTaskRequest,
+    ListApplicationRequest, ListSessionRequest, SessionSpec, TaskSpec, WatchTaskRequest,
 };
 use crate::flame as rpc;
 use crate::trace::TraceFn;
@@ -40,6 +40,7 @@ mod flame {
 type FlameClient = FlameFrontendClient<Channel>;
 type TaskID = String;
 type SessionID = String;
+type ApplicationID = String;
 
 type Message = Bytes;
 pub type TaskInput = Message;
@@ -96,6 +97,19 @@ pub enum TaskState {
     Failed = 3,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
+pub enum ApplicationState {
+    Enabled = 0,
+    Disabled = 1,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
+pub enum Shim {
+    LogShim = 0,
+    StdioShim = 1,
+    WasmShim = 2,
+}
+
 #[derive(Clone)]
 pub struct Connection {
     pub(crate) channel: Channel,
@@ -106,6 +120,15 @@ pub struct SessionAttributes {
     pub application: String,
     pub slots: i32,
     pub common_data: Option<CommonData>,
+}
+
+#[derive(Clone)]
+pub struct Application {
+    pub(crate) client: Option<FlameClient>,
+
+    pub name: ApplicationID,
+    pub shim: Shim,
+    pub command: Option<String>,
 }
 
 #[derive(Clone)]
@@ -180,6 +203,18 @@ impl Connection {
             .sessions
             .iter()
             .map(Session::from)
+            .collect())
+    }
+
+    pub async fn list_application(&self) -> Result<Vec<Application>, FlameError> {
+        let mut client = FlameClient::new(self.channel.clone());
+        let app_list = client.list_application(ListApplicationRequest {}).await?;
+
+        Ok(app_list
+            .into_inner()
+            .applications
+            .iter()
+            .map(Application::from)
             .collect())
     }
 }
@@ -325,6 +360,29 @@ impl From<&rpc::Session> for Session {
             running: status.running,
             succeed: status.succeed,
             failed: status.failed,
+        }
+    }
+}
+
+impl From<&rpc::Application> for Application {
+    fn from(app: &rpc::Application) -> Self {
+        let metadata = app.metadata.clone().unwrap();
+        let spec = app.spec.clone().unwrap();
+        Self {
+            client: None,
+            name: metadata.name,
+            shim: Shim::from(spec.shim()),
+            command: spec.command.clone(),
+        }
+    }
+}
+
+impl From <rpc::Shim> for Shim {
+    fn from(shim: rpc::Shim) -> Self {
+        match shim {
+            rpc::Shim::LogShim => Shim::LogShim,
+            rpc::Shim::StdioShim => Shim::StdioShim,
+            rpc::Shim::WasmShim => Shim::WasmShim,
         }
     }
 }

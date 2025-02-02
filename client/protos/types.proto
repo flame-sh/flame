@@ -67,8 +67,7 @@ message Task {
 enum Shim {
   LogShim = 0;
   StdioShim = 1;
-  RpcShim = 2;
-  RestShim = 3;
+  WasmShim = 2;
 }
 
 enum ApplicationState {
@@ -125,4 +124,8 @@ message Result {
 
 message SessionList {
   repeated Session sessions = 1;
+}
+
+message ApplicationList {
+  repeated Application applications = 1;
 }

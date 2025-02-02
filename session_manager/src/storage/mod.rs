@@ -207,6 +207,10 @@ impl Storage {
         self.engine.get_application(id).await
     }
 
+    pub async fn list_application(&self) -> Result<Vec<Application>, FlameError> {
+        self.engine.find_application().await
+    }
+
     pub async fn update_task_state(
         &self,
         ssn: SessionPtr,

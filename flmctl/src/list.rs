@@ -15,11 +15,37 @@ use std::cmp::Ordering;
 use std::error::Error;
 
 use common::ctx::FlameContext;
-use flame_client as flame;
 use flame_client::SessionState;
+use flame_client::{self as flame, Connection, FlameError};
 
-pub async fn run(ctx: &FlameContext) -> Result<(), Box<dyn Error>> {
+pub async fn run(
+    ctx: &FlameContext,
+    application: bool,
+    session: bool,
+) -> Result<(), Box<dyn Error>> {
     let conn = flame::connect(&ctx.endpoint).await?;
+    match (application, session) {
+        (true, false) => list_application(conn).await,
+        (false, true) => list_session(conn).await,
+        _ => Err(Box::new(FlameError::InvalidConfig(
+            "unsupported parameters".to_string(),
+        ))),
+    }
+}
+
+async fn list_application(conn: Connection) -> Result<(), Box<dyn Error>> {
+    let app_list = conn.list_application().await?;
+
+    println!("{:<10}{:<15}{:<30}", "Name", "Shim", "Command");
+
+    for app in &app_list {
+        println!("{:<10}{:<15}{:<30}", app.name, app.shim.to_string(), app.command.clone().unwrap_or("-".to_string()));
+    }
+
+    Ok(())
+}
+
+async fn list_session(conn: Connection) -> Result<(), Box<dyn Error>> {
     let mut ssn_list = conn.list_session().await?;
 
     println!(

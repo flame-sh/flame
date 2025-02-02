@@ -27,6 +27,8 @@ pub type EnginePtr = Arc<dyn Engine>;
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
     async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError>;
+    async fn find_application(&self) -> Result<Vec<Application>, FlameError>;
+
     async fn create_session(
         &self,
         app: String,
