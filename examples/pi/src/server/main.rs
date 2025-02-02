@@ -11,13 +11,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use rand::distributions::{Distribution, Uniform};
+use rand::distr::{Distribution, Uniform};
+
 use std::error::Error;
 use std::io::stdin;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut rng = rand::thread_rng();
-    let die = Uniform::from(0.0..1.0);
+    let mut rng = rand::rng();
+    let die = Uniform::try_from(0.0..1.0).unwrap();
 
     let mut input = String::new();
     stdin().read_line(&mut input)?;

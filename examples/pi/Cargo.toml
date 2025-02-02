@@ -24,7 +24,6 @@ chrono = "0.4"
 name = "pi-server"
 path = "src/server/main.rs"
 
-
 [[bin]]
 name = "pi"
 path = "src/client/main.rs"
