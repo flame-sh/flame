@@ -85,7 +85,7 @@ message ApplicationStatus {
 message ApplicationSpec {
   Shim shim = 2;
   optional string url = 3;
-  string command = 4;
+  optional string command = 4;
   repeated string arguments = 5;
   repeated string environments = 6;
   optional string working_directory = 7;
