@@ -12,7 +12,7 @@ service Backend {
   rpc RegisterExecutor (RegisterExecutorRequest) returns (Result) {}
   rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
 
-  rpc BindExecutor (BindExecutorRequest) returns (Session) {}
+  rpc BindExecutor (BindExecutorRequest) returns (BindExecutorResponse) {}
   rpc BindExecutorCompleted (BindExecutorCompletedRequest) returns (Result) {}
 
   rpc UnbindExecutor (UnbindExecutorRequest) returns (Result) {}
@@ -33,6 +33,11 @@ message UnregisterExecutorRequest {
 
 message BindExecutorRequest {
   string executor_id = 1;
+}
+
+message BindExecutorResponse {
+  Application application = 1;
+  Session session = 2;
 }
 
 message BindExecutorCompletedRequest {

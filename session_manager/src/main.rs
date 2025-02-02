@@ -48,6 +48,7 @@ async fn main() -> Result<(), FlameError> {
     // Load data from engine, e.g. sqlite.
     storage.load_data().await?;
 
+    // Start apiserver thread.
     {
         let storage = storage.clone();
         let ctx = ctx.clone();
@@ -58,6 +59,7 @@ async fn main() -> Result<(), FlameError> {
         handlers.push(handler);
     }
 
+    // Start scheduler thread.
     {
         let storage = storage.clone();
         let ctx = ctx.clone();
@@ -70,6 +72,7 @@ async fn main() -> Result<(), FlameError> {
 
     log::info!("flame-session-manager started.");
 
+    // Waiting for all thread to exit.
     let _ = join_all(handlers).await;
 
     Ok(())

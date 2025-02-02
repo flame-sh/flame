@@ -94,7 +94,6 @@ pub struct SessionInfo {
 pub struct ExecutorInfo {
     pub id: ExecutorID,
     pub slots: i32,
-    pub applications: Vec<AppInfo>,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
@@ -123,12 +122,9 @@ impl From<&Application> for AppInfo {
 
 impl From<&Executor> for ExecutorInfo {
     fn from(exec: &Executor) -> Self {
-        let applications = exec.applications.iter().map(AppInfo::from).collect();
-
         ExecutorInfo {
             id: exec.id.clone(),
             slots: exec.slots,
-            applications,
             task_id: exec.task_id,
             ssn_id: exec.ssn_id,
             creation_time: exec.creation_time,
@@ -396,7 +392,6 @@ impl SnapShot {
         let new_exec = Arc::new(ExecutorInfo {
             id: exec.id.clone(),
             slots: exec.slots,
-            applications: exec.applications.to_vec(),
             task_id: exec.task_id,
             ssn_id: exec.ssn_id,
             creation_time: exec.creation_time,

@@ -16,7 +16,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::shims::ShimPtr;
-use ::rpc::flame as rpc;
+use ::rpc::flame::{self as rpc, ExecutorSpec, Metadata};
 
 use common::apis::{Application, SessionContext, TaskContext};
 use common::ctx::FlameContext;
@@ -59,15 +59,13 @@ pub struct Executor {
 
 impl From<&Executor> for rpc::Executor {
     fn from(e: &Executor) -> Self {
-        let metadata = Some(rpc::Metadata {
+        let metadata = Some(Metadata {
             id: e.id.clone(),
+            name: e.id.clone(),
             owner: None,
         });
 
-        let spec = Some(rpc::ExecutorSpec {
-            slots: e.slots,
-            applications: e.applications.iter().map(rpc::Application::from).collect(),
-        });
+        let spec = Some(ExecutorSpec { slots: e.slots });
 
         let status = Some(rpc::ExecutorStatus {
             state: rpc::ExecutorState::from(e.state) as i32,
@@ -77,15 +75,6 @@ impl From<&Executor> for rpc::Executor {
             metadata,
             spec,
             status,
-        }
-    }
-}
-
-impl From<&Executor> for rpc::ExecutorSpec {
-    fn from(e: &Executor) -> Self {
-        rpc::ExecutorSpec {
-            slots: e.slots,
-            applications: e.applications.iter().map(rpc::Application::from).collect(),
         }
     }
 }
@@ -102,7 +91,7 @@ impl Executor {
         let exec = Executor {
             id: Uuid::new_v4().to_string(),
             slots: slots.unwrap_or(1),
-            applications: ctx.applications.clone(),
+            applications: vec![],
             session: None,
             task: None,
             shim: None,

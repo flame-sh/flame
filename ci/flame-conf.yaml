@@ -4,12 +4,3 @@ endpoint: "http://flame-session-manager.flame-system:8080"
 slot: "cpu=1,mem=1g"
 policy: priority
 storage: sqlite://flame.db
-applications:
-  - name: "pi"
-    shim: Stdio
-    command: "target/debug/pi-server"
-  - name: "flmexec"
-    shim: Log
-  - name: "matrix"
-    shim: Wasm
-    command: "examples/matrix/server/target/wasm32-wasi/debug/matrix_server.wasm"

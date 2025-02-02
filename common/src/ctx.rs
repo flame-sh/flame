@@ -17,7 +17,6 @@ use std::path::Path;
 
 use serde_derive::{Deserialize, Serialize};
 
-use crate::apis::Application;
 use crate::FlameError;
 
 const DEFAULT_FLAME_CONF: &str = "flame-conf.yaml";
@@ -34,7 +33,6 @@ pub struct FlameContext {
     pub slot: String,
     pub policy: String,
     pub storage: String,
-    pub applications: Vec<Application>,
 }
 
 impl Display for FlameContext {
@@ -51,7 +49,6 @@ impl Default for FlameContext {
             slot: DEFAULT_SLOT.to_string(),
             policy: DEFAULT_POLICY.to_string(),
             storage: DEFAULT_STORAGE.to_string(),
-            applications: vec![Application::default()],
         }
     }
 }
@@ -76,23 +73,6 @@ impl FlameContext {
 
         log::debug!("Load FrameContext from <{}>: {}", fp, ctx);
 
-        if ctx.applications.is_empty() {
-            return Err(FlameError::InvalidConfig("no application".to_string()));
-        }
-
         Ok(ctx)
-    }
-
-    pub fn get_application(&self, n: &String) -> Option<Application> {
-        let mut application = None;
-
-        for app in &self.applications {
-            if n == &app.name {
-                application = Some(app.clone());
-                break;
-            }
-        }
-
-        application
     }
 }

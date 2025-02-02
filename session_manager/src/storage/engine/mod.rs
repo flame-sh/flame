@@ -16,7 +16,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::FlameError;
-use common::apis::{CommonData, Session, SessionID, Task, TaskGID, TaskInput, TaskState};
+use common::apis::{
+    Application, ApplicationID, CommonData, Session, SessionID, Task, TaskGID, TaskInput, TaskState,
+};
 
 mod sqlite;
 
@@ -24,6 +26,7 @@ pub type EnginePtr = Arc<dyn Engine>;
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
+    async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError>;
     async fn create_session(
         &self,
         app: String,

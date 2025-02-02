@@ -24,13 +24,15 @@ use self::log_shim::LogShim;
 use self::stdio_shim::StdioShim;
 use self::wasm_shim::WasmShim;
 
-use common::apis::{Application, SessionContext, Shim as ShimType, TaskContext, TaskOutput};
+use common::apis::{
+    Application, ApplicationContext, SessionContext, Shim as ShimType, TaskContext, TaskOutput,
+};
 
 use common::FlameError;
 
 pub type ShimPtr = Arc<Mutex<dyn Shim>>;
 
-pub async fn from(app: &Application) -> Result<ShimPtr, FlameError> {
+pub async fn from(app: &ApplicationContext) -> Result<ShimPtr, FlameError> {
     match app.shim {
         ShimType::Stdio => Ok(StdioShim::new_ptr(app)),
         ShimType::Wasm => Ok(WasmShim::new_ptr(app).await?),

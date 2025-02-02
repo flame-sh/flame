@@ -4,7 +4,8 @@ package flame;
 
 message Metadata {
   string id = 1;
-  optional string owner = 2;
+  string name = 2;
+  optional string owner = 3;
 }
 
 enum SessionState {
@@ -25,13 +26,13 @@ message SessionStatus {
 }
 
 message SessionSpec {
-  string application = 1;
-  int32 slots = 2;
-  optional bytes common_data = 3;
+  string application = 2;
+  int32 slots = 3;
+  optional bytes common_data = 4;
 }
 
 message Session {
-  Metadata metadata = 1 ;
+  Metadata metadata = 1;
   SessionSpec spec = 2;
   SessionStatus status = 3;
 }
@@ -70,18 +71,34 @@ enum Shim {
   RestShim = 3;
 }
 
-message Application {
-  string name = 1;
+enum ApplicationState {
+  ApplicationEnabled = 0;
+  ApplicationDisabled = 1;
+}
+
+message ApplicationStatus {
+  ApplicationState state = 1;
+
+  int64 creation_time = 2;
+}
+
+message ApplicationSpec {
   Shim shim = 2;
-  string command = 3;
-  repeated string arguments = 4;
-  repeated string environments = 5;
-  string working_directory = 6;
+  optional string url = 3;
+  optional string command = 4;
+  repeated string arguments = 5;
+  repeated string environments = 6;
+  optional string working_directory = 7;
+}
+
+message Application {
+  Metadata metadata = 1;
+  ApplicationSpec spec = 2;
+  ApplicationStatus status = 3;
 }
 
 message ExecutorSpec {
-  int32 slots = 1;
-  repeated Application applications = 2;
+  int32 slots = 2;
 }
 
 enum ExecutorState {

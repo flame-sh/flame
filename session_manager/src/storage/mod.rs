@@ -19,8 +19,8 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use common::apis::{
-    CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID, SessionPtr, SessionState,
-    Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
+    Application, ApplicationID, CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID,
+    SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 use common::ptr::{self, MutexPtr};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
@@ -201,6 +201,10 @@ impl Storage {
             .ok_or(FlameError::NotFound(id.to_string()))?;
         let task = lock_ptr!(task)?;
         Ok(task.clone())
+    }
+
+    pub async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError> {
+        Ok(self.engine.get_application(id).await?)
     }
 
     pub async fn update_task_state(

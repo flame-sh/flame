@@ -17,7 +17,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 use crate::shims::{Shim, ShimPtr};
-use common::apis::{Application, SessionContext, TaskContext, TaskOutput};
+use common::apis::{Application, ApplicationContext, SessionContext, TaskContext, TaskOutput};
 use common::FlameError;
 
 #[derive(Clone)]
@@ -26,7 +26,7 @@ pub struct LogShim {
 }
 
 impl LogShim {
-    pub fn new_ptr(_: &Application) -> ShimPtr {
+    pub fn new_ptr(_: &ApplicationContext) -> ShimPtr {
         Arc::new(Mutex::new(Self {
             session_context: None,
         }))
@@ -39,7 +39,7 @@ impl Shim for LogShim {
         log::info!(
             "on_session_enter: Session: <{}>, Application: <{}>, Slots: <{}>",
             ctx.ssn_id,
-            ctx.application,
+            ctx.application.name,
             ctx.slots
         );
         self.session_context = Some(ctx.clone());
@@ -68,7 +68,7 @@ impl Shim for LogShim {
                 log::info!(
                     "on_session_leave: Session: <{}>, Application: <{}>, Slots: <{}>",
                     ctx.ssn_id,
-                    ctx.application,
+                    ctx.application.name,
                     ctx.slots
                 );
             }

@@ -14,6 +14,7 @@ limitations under the License.
 use std::collections::HashMap;
 use std::fmt;
 
+use ::rpc::flame::ApplicationSpec;
 use chrono::{DateTime, Utc};
 use serde_derive::{Deserialize, Serialize};
 
@@ -25,6 +26,7 @@ use crate::FlameError;
 pub type SessionID = i64;
 pub type TaskID = i64;
 pub type ExecutorID = String;
+pub type ApplicationID = String;
 pub type TaskPtr = MutexPtr<Task>;
 pub type SessionPtr = MutexPtr<Session>;
 pub type ExecutorPtr = MutexPtr<Executor>;
@@ -122,7 +124,9 @@ pub struct Application {
     pub name: String,
     pub shim: Shim,
     #[serde(default)]
-    pub command: String,
+    pub url: Option<String>,
+    #[serde(default)]
+    pub command: Option<String>,
     #[serde(default)]
     pub arguments: Vec<String>,
     #[serde(default)]
@@ -135,7 +139,6 @@ pub struct Application {
 pub struct Executor {
     pub id: ExecutorID,
     pub slots: i32,
-    pub applications: Vec<Application>,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
@@ -154,9 +157,17 @@ pub struct TaskContext {
 #[derive(Clone, Debug)]
 pub struct SessionContext {
     pub ssn_id: String,
-    pub application: String,
+    pub application: ApplicationContext,
     pub slots: i32,
     pub common_data: Option<CommonData>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ApplicationContext {
+    pub name: String,
+    pub url: Option<String>,
+    pub command: Option<String>,
+    pub shim: Shim,
 }
 
 impl Session {
@@ -221,6 +232,7 @@ impl TryFrom<rpc::Task> for TaskContext {
         let metadata = task
             .metadata
             .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
+
         let spec = task
             .spec
             .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
@@ -234,20 +246,52 @@ impl TryFrom<rpc::Task> for TaskContext {
     }
 }
 
-impl TryFrom<rpc::Session> for SessionContext {
+impl TryFrom<rpc::Application> for ApplicationContext {
     type Error = FlameError;
 
-    fn try_from(ssn: rpc::Session) -> Result<Self, Self::Error> {
+    fn try_from(app: rpc::Application) -> Result<Self, Self::Error> {
+        let metadata = app
+            .metadata
+            .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
+
+        let spec = app
+            .spec
+            .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
+
+        Ok(ApplicationContext {
+            name: metadata.name.clone(),
+            url: spec.url.clone(),
+            command: spec.command.clone(),
+            shim: Shim::try_from(spec.shim)
+                .map_err(|_| FlameError::InvalidConfig("shim".to_string()))?,
+        })
+    }
+}
+
+impl TryFrom<rpc::BindExecutorResponse> for SessionContext {
+    type Error = FlameError;
+
+    fn try_from(resp: rpc::BindExecutorResponse) -> Result<Self, Self::Error> {
+        let app = resp
+            .application
+            .ok_or(FlameError::InvalidConfig("application".to_string()))?;
+        let ssn = resp
+            .session
+            .ok_or(FlameError::InvalidConfig("session".to_string()))?;
+
         let metadata = ssn
             .metadata
             .ok_or(FlameError::InvalidConfig("metadata".to_string()))?;
+
         let spec = ssn
             .spec
             .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
 
+        let application = ApplicationContext::try_from(app)?;
+
         Ok(SessionContext {
             ssn_id: metadata.id,
-            application: spec.application.clone(),
+            application,
             slots: spec.slots,
             common_data: spec.common_data.map(CommonData::from),
         })
@@ -273,21 +317,26 @@ impl From<Task> for rpc::Task {
 
 impl From<&Task> for rpc::Task {
     fn from(task: &Task) -> Self {
+        let metadata = Some(rpc::Metadata {
+            id: task.id.to_string(),
+            name: task.id.to_string(),
+            owner: Some(task.ssn_id.to_string()),
+        });
+
+        let spec = Some(rpc::TaskSpec {
+            session_id: task.ssn_id.to_string(),
+            input: task.input.clone().map(TaskInput::into),
+            output: task.output.clone().map(TaskOutput::into),
+        });
+        let status = Some(rpc::TaskStatus {
+            state: task.state as i32,
+            creation_time: task.creation_time.timestamp(),
+            completion_time: task.completion_time.map(|s| s.timestamp()),
+        });
         rpc::Task {
-            metadata: Some(rpc::Metadata {
-                id: task.id.to_string(),
-                owner: Some(task.ssn_id.to_string()),
-            }),
-            spec: Some(rpc::TaskSpec {
-                session_id: task.ssn_id.to_string(),
-                input: task.input.clone().map(TaskInput::into),
-                output: task.output.clone().map(TaskOutput::into),
-            }),
-            status: Some(rpc::TaskStatus {
-                state: task.state as i32,
-                creation_time: task.creation_time.timestamp(),
-                completion_time: task.completion_time.map(|s| s.timestamp()),
-            }),
+            metadata,
+            spec,
+            status,
         }
     }
 }
@@ -330,6 +379,7 @@ impl From<&Session> for rpc::Session {
         rpc::Session {
             metadata: Some(rpc::Metadata {
                 id: ssn.id.to_string(),
+                name: ssn.id.to_string(),
                 owner: None,
             }),
             spec: Some(rpc::SessionSpec {
@@ -342,22 +392,33 @@ impl From<&Session> for rpc::Session {
     }
 }
 
-impl From<rpc::Application> for Application {
-    fn from(app: rpc::Application) -> Self {
-        Application::from(&app)
+impl TryFrom<rpc::Application> for Application {
+    type Error = FlameError;
+    fn try_from(app: rpc::Application) -> Result<Self, Self::Error> {
+        Application::try_from(&app)
     }
 }
 
-impl From<&rpc::Application> for Application {
-    fn from(app: &rpc::Application) -> Self {
-        Application {
-            name: app.name.to_string(),
-            shim: Shim::try_from(app.shim).unwrap_or(Shim::default()),
-            command: app.command.to_string(),
-            arguments: app.arguments.to_vec(),
-            environments: app.environments.to_vec(),
-            working_directory: app.working_directory.to_string(),
-        }
+impl TryFrom<&rpc::Application> for Application {
+    type Error = FlameError;
+    fn try_from(app: &rpc::Application) -> Result<Self, Self::Error> {
+        let metadata = app.metadata.clone().ok_or(FlameError::InvalidConfig(
+            "application metadata is empty".to_string(),
+        ))?;
+
+        let spec = app.spec.clone().ok_or(FlameError::InvalidConfig(
+            "application spec is empty".to_string(),
+        ))?;
+
+        Ok(Application {
+            name: metadata.name.clone(),
+            shim: Shim::try_from(spec.shim).unwrap_or(Shim::default()),
+            url: spec.url.clone(),
+            command: spec.command.clone(),
+            arguments: spec.arguments.to_vec(),
+            environments: spec.environments.to_vec(),
+            working_directory: spec.working_directory.unwrap_or(String::default()),
+        })
     }
 }
 
@@ -369,13 +430,25 @@ impl From<Application> for rpc::Application {
 
 impl From<&Application> for rpc::Application {
     fn from(app: &Application) -> Self {
-        rpc::Application {
-            name: app.name.to_string(),
+        let spec = Some(ApplicationSpec {
             shim: app.shim.clone() as i32,
-            command: app.command.to_string(),
+            url: app.url.clone(),
+            command: app.command.clone(),
             arguments: app.arguments.to_vec(),
             environments: app.environments.to_vec(),
-            working_directory: app.working_directory.to_string(),
+            working_directory: Some(app.working_directory.clone()),
+        });
+        let metadata = Some(rpc::Metadata {
+            id: app.name.clone(),
+            name: app.name.clone(),
+            owner: None,
+        });
+
+        let status = None;
+        rpc::Application {
+            metadata,
+            spec,
+            status,
         }
     }
 }

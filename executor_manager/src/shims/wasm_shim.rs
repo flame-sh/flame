@@ -22,7 +22,7 @@ use wasmtime_wasi::preview2::{command, Table, WasiCtx, WasiCtxBuilder, WasiView}
 
 use crate::shims::wasm_shim::exports::component::flame::service;
 use crate::shims::{Shim, ShimPtr};
-use common::{self, apis};
+use common::{self, apis, FlameError};
 
 wasmtime::component::bindgen!({
     path: "wit/flame.wit",
@@ -37,7 +37,7 @@ pub struct WasmShim {
 }
 
 impl WasmShim {
-    pub async fn new_ptr(app: &apis::Application) -> Result<ShimPtr, common::FlameError> {
+    pub async fn new_ptr(app: &apis::ApplicationContext) -> Result<ShimPtr, common::FlameError> {
         let mut config = Config::default();
         config.wasm_component_model(true);
         config.async_support(true);
@@ -50,7 +50,12 @@ impl WasmShim {
         let wasi_view = ServerWasiView::new();
         let mut store = Store::new(&engine, wasi_view);
 
-        let component = Component::from_file(&engine, app.command.clone())
+        let cmd = app
+            .command
+            .clone()
+            .ok_or(FlameError::InvalidConfig("command is empty".to_string()))?;
+
+        let component = Component::from_file(&engine, cmd)
             .context("Component file not found")
             .map_err(|e| common::FlameError::Internal(e.to_string()))?;
 

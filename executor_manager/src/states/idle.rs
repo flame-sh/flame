@@ -31,41 +31,26 @@ impl State for IdleState {
         trace_fn!("IdleState::execute");
 
         let ssn = client::bind_executor(ctx, &self.executor.clone()).await?;
+        let shim_ptr = shims::from(&ssn.application).await?;
+        {
+            // TODO(k82cn): if on_session_enter failed, add retry limits.
+            let mut shim = shim_ptr.lock().await;
+            shim.on_session_enter(&ssn).await?;
+        };
 
-        let app = ctx.get_application(&ssn.application);
-        match app {
-            None => {
-                log::error!("Failed to find Application in Executor.");
-                Err(FlameError::NotFound(format!(
-                    "Application <{}>",
-                    &ssn.application
-                )))
-            }
-            Some(app) => {
-                // let app = Application::from(&app);
-                let shim_ptr = shims::from(&app).await?;
+        client::bind_executor_completed(ctx, &self.executor.clone()).await?;
 
-                {
-                    // TODO(k82cn): if on_session_enter failed, add retry limits.
-                    let mut shim = shim_ptr.lock().await;
-                    shim.on_session_enter(&ssn).await?;
-                };
+        // Own the shim.
+        self.executor.shim = Some(shim_ptr.clone());
+        self.executor.session = Some(ssn.clone());
+        self.executor.state = ExecutorState::Bound;
 
-                client::bind_executor_completed(ctx, &self.executor.clone()).await?;
+        log::debug!(
+            "Executor <{}> was bound to <{}>.",
+            &self.executor.id.clone(),
+            &ssn.ssn_id.clone()
+        );
 
-                // Own the shim.
-                self.executor.shim = Some(shim_ptr.clone());
-                self.executor.session = Some(ssn.clone());
-                self.executor.state = ExecutorState::Bound;
-
-                log::debug!(
-                    "Executor <{}> was bound to <{}>.",
-                    &self.executor.id.clone(),
-                    &ssn.ssn_id.clone()
-                );
-
-                Ok(self.executor.clone())
-            }
-        }
+        Ok(self.executor.clone())
     }
 }
