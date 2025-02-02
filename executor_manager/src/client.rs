@@ -68,9 +68,7 @@ pub async fn register_executor(ctx: &FlameContext, exe: &Executor) -> Result<(),
 
     let req = RegisterExecutorRequest {
         executor_id: exe.id.clone(),
-        executor_spec: Some(rpc::ExecutorSpec{
-            slots: exe.slots,
-        }),
+        executor_spec: Some(rpc::ExecutorSpec { slots: exe.slots }),
     };
 
     ins.register_executor(req).await.map_err(FlameError::from)?;
@@ -89,7 +87,7 @@ pub async fn bind_executor(
     };
 
     let ssn = ins.bind_executor(req).await.map_err(FlameError::from)?;
-    
+
     SessionContext::try_from(ssn.into_inner())
 }
 

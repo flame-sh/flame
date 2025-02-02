@@ -119,6 +119,30 @@ impl Engine for SqliteEngine {
         app.try_into()
     }
 
+    async fn find_application(&self) -> Result<Vec<Application>, FlameError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        let sql = "SELECT * FROM applications";
+        let app: Vec<ApplicationDao> = sqlx::query_as(sql)
+            .fetch_all(&mut *tx)
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        tx.commit()
+            .await
+            .map_err(|e| FlameError::Storage(e.to_string()))?;
+
+        Ok(app
+            .iter()
+            .map(Application::try_from)
+            .filter_map(Result::ok)
+            .collect())
+    }
+
     async fn create_session(
         &self,
         app: String,
@@ -506,10 +530,7 @@ mod tests {
 
     #[test]
     fn test_get_application() -> Result<(), FlameError> {
-        let url = format!(
-            "sqlite:///tmp/flame_test_app_{}.db",
-            Utc::now().timestamp()
-        );
+        let url = format!("sqlite:///tmp/flame_test_app_{}.db", Utc::now().timestamp());
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
         let app_1 = tokio_test::block_on(storage.get_application("flmexec".to_string()))?;
 

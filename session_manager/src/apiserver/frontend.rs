@@ -12,6 +12,10 @@ limitations under the License.
 */
 use std::pin::Pin;
 
+use ::rpc::flame::{
+    ApplicationList, GetApplicationRequest, ListApplicationRequest, RegisterApplicationRequest,
+    UnregisterApplicationRequest, UpdateApplicationRequest,
+};
 use async_trait::async_trait;
 use futures::Stream;
 use tokio::sync::mpsc;
@@ -34,6 +38,49 @@ use crate::apiserver::Flame;
 #[async_trait]
 impl Frontend for Flame {
     type WatchTaskStream = Pin<Box<dyn Stream<Item = Result<Task, Status>> + Send>>;
+
+    async fn register_application(
+        &self,
+        req: Request<RegisterApplicationRequest>,
+    ) -> Result<Response<rpc::Result>, Status> {
+        todo!()
+    }
+    async fn unregister_application(
+        &self,
+        req: Request<UnregisterApplicationRequest>,
+    ) -> Result<Response<rpc::Result>, Status> {
+        todo!()
+    }
+
+    async fn update_application(
+        &self,
+        req: Request<UpdateApplicationRequest>,
+    ) -> Result<Response<rpc::Result>, Status> {
+        todo!()
+    }
+
+    async fn get_application(
+        &self,
+        req: tonic::Request<GetApplicationRequest>,
+    ) -> Result<Response<rpc::Application>, Status> {
+        todo!()
+    }
+
+    async fn list_application(
+        &self,
+        _: Request<ListApplicationRequest>,
+    ) -> Result<Response<ApplicationList>, Status> {
+        trace_fn!("Frontend::list_application");
+        let app_list = self
+            .storage
+            .list_application()
+            .await
+            .map_err(Status::from)?;
+
+        let applications = app_list.iter().map(rpc::Application::from).collect();
+
+        Ok(Response::new(ApplicationList { applications }))
+    }
 
     async fn create_session(
         &self,

@@ -126,3 +126,7 @@ message Result {
 message SessionList {
   repeated Session sessions = 1;
 }
+
+message ApplicationList {
+  repeated Application applications = 1;
+}

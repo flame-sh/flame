@@ -24,10 +24,11 @@ mod view;
 
 #[derive(Parser)]
 #[command(name = "flmctl")]
-#[command(author = "Klaus Ma <klaus@xflops.cn>")]
-#[command(version = "0.1.0")]
+#[command(author = "Klaus Ma <klaus1982.cn@gmail.com>")]
+#[command(version = "0.3.0")]
 #[command(about = "Flame command line", long_about = None)]
 struct Cli {
+    /// The configuration of flmctl
     #[arg(long)]
     flame_conf: Option<String>,
 
@@ -37,24 +38,42 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// View the object of Flame
     View {
+        /// The id of session
         #[arg(short, long)]
         session: String,
     },
-    List,
+    /// List the objects of Flame
+    List {
+        /// List the applications of Flame
+        #[arg(short, long)]
+        application: bool,
+        /// List the sessions of Flame
+        #[arg(short, long)]
+        session: bool,
+    },
+    /// Close the session in Flame
     Close {
+        /// The id of session
         #[arg(short, long)]
         session: String,
     },
+    /// Create a session in Flame
     Create {
+        /// The name of Application
         #[arg(short, long)]
         app: String,
+        /// The slots requirements of each task
         #[arg(short, long)]
         slots: i32,
     },
+    /// Migrate Flame metadata
     Migrate {
+        /// The url of Flame database
         #[arg(short, long)]
         url: String,
+        /// The target SQL schema of Flame database
         #[arg(short, long)]
         sql: String,
     },
@@ -68,7 +87,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let ctx = FlameContext::from_file(cli.flame_conf)?;
 
     match &cli.command {
-        Some(Commands::List) => list::run(&ctx).await?,
+        Some(Commands::List {
+            application,
+            session,
+        }) => list::run(&ctx, *application, *session).await?,
         Some(Commands::Close { .. }) => {
             todo!()
         }
