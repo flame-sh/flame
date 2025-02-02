@@ -18,7 +18,6 @@ use async_trait::async_trait;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use sqlx::{migrate::MigrateDatabase, FromRow, Sqlite, SqlitePool};
-use stdng::trace_fn;
 
 use crate::FlameError;
 use common::apis::{

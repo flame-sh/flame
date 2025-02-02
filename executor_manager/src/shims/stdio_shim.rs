@@ -21,7 +21,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 use crate::shims::{Shim, ShimPtr};
-use common::apis::{Application, ApplicationContext, SessionContext, TaskContext, TaskOutput};
+use common::apis::{ApplicationContext, SessionContext, TaskContext, TaskOutput};
 use common::FlameError;
 
 const FLAME_TASK_ID: &str = "FLAME_TASK_ID";

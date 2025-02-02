@@ -293,7 +293,7 @@ impl From<&rpc::Task> for Task {
     fn from(task: &rpc::Task) -> Self {
         let metadata = task.metadata.clone().unwrap();
         let spec = task.spec.clone().unwrap();
-        let status = task.status.clone().unwrap();
+        let status = task.status.unwrap();
         Task {
             id: metadata.id,
             ssn_id: spec.session_id.clone(),
@@ -307,7 +307,7 @@ impl From<&rpc::Task> for Task {
 impl From<&rpc::Session> for Session {
     fn from(ssn: &rpc::Session) -> Self {
         let metadata = ssn.metadata.clone().unwrap();
-        let status = ssn.status.clone().unwrap();
+        let status = ssn.status.unwrap();
         let spec = ssn.spec.clone().unwrap();
 
         let naivedatetime_utc =

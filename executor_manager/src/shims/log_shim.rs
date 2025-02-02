@@ -17,7 +17,7 @@ use async_trait::async_trait;
 use tokio::sync::Mutex;
 
 use crate::shims::{Shim, ShimPtr};
-use common::apis::{Application, ApplicationContext, SessionContext, TaskContext, TaskOutput};
+use common::apis::{ApplicationContext, SessionContext, TaskContext, TaskOutput};
 use common::FlameError;
 
 #[derive(Clone)]
