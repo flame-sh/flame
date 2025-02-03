@@ -11,19 +11,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::collections::HashMap;
 use std::future::Future;
-use std::ops::Deref;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use common::apis::{
     Application, ApplicationID, CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID,
-    SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
+    SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 
-use common::ptr::{self, MutexPtr};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 use crate::model::SnapShotPtr;

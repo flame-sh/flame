@@ -20,7 +20,7 @@ use common::apis::{
     SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 use common::ptr::{self, MutexPtr};
-use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
+use common::{lock_ptr, FlameError};
 
 use crate::model::{ExecutorInfo, SessionInfo, SnapShot, SnapShotPtr};
 use crate::storage::engine::EnginePtr;
