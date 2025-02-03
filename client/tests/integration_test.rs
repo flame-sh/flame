@@ -103,7 +103,7 @@ async fn test_create_session_with_tasks() -> Result<(), FlameError> {
         error: 0,
     }));
 
-    let task_num = 10;
+    let task_num = 100;
     let mut tasks = vec![];
     for _ in 0..task_num {
         let task = ssn.run_task(None, informer.clone());
@@ -143,7 +143,7 @@ async fn test_create_multiple_sessions_with_tasks() -> Result<(), FlameError> {
         error: 0,
     }));
 
-    let task_num = 10;
+    let task_num = 100;
     let mut tasks = vec![];
 
     for _ in 0..task_num {
