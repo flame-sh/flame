@@ -211,11 +211,12 @@ impl Storage {
         self.engine.find_application().await
     }
 
-    pub async fn update_task_state(
+    pub async fn update_task(
         &self,
         ssn: SessionPtr,
         task: TaskPtr,
         state: TaskState,
+        output: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
         let gid = TaskGID {
             ssn_id: {
@@ -228,7 +229,7 @@ impl Storage {
             },
         };
 
-        let task = self.engine.update_task_state(gid, state).await?;
+        let task = self.engine.update_task(gid, state, output).await?;
 
         let mut ssn_ptr = lock_ptr!(ssn)?;
         ssn_ptr.update_task(&task);

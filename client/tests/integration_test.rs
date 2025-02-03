@@ -22,7 +22,7 @@ use self::flame::{FlameError, SessionAttributes, SessionState};
 
 const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:30080";
 
-const FLAME_DEFAULT_APP: &str = "flmexec";
+const FLAME_DEFAULT_APP: &str = "flmtest";
 
 pub struct DefaultTaskInformer {
     pub succeed: i32,

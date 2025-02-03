@@ -1005,6 +1005,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "flmexec"
+version = "0.3.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "common",
+ "env_logger",
+ "flame-client",
+ "futures",
+ "indicatif",
+ "log",
+ "rpc",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
 name = "flmping"
 version = "0.3.0"
 dependencies = [

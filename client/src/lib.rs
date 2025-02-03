@@ -108,6 +108,7 @@ pub enum Shim {
     Log = 0,
     Stdio = 1,
     Wasm = 2,
+    Shell = 3,
 }
 
 #[derive(Clone)]
@@ -390,6 +391,7 @@ impl From<rpc::Shim> for Shim {
             rpc::Shim::Log => Shim::Log,
             rpc::Shim::Stdio => Shim::Stdio,
             rpc::Shim::Wasm => Shim::Wasm,
+            rpc::Shim::Shell => Shim::Shell,
         }
     }
 }

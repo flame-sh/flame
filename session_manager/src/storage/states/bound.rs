@@ -56,7 +56,7 @@ impl States for BoundState {
             match task_ptr {
                 Some(task_ptr) => {
                     self.storage
-                        .update_task_state(ssn_ptr.clone(), task_ptr.clone(), TaskState::Running)
+                        .update_task(ssn_ptr.clone(), task_ptr.clone(), TaskState::Running, None)
                         .await?;
                     Some(task_ptr)
                 }
@@ -97,19 +97,14 @@ impl States for BoundState {
     ) -> Result<(), FlameError> {
         trace_fn!("BoundState::complete_task");
 
+        self.storage
+            .update_task(ssn_ptr, task_ptr, TaskState::Succeed, task_output)
+            .await?;
+
         {
             let mut e = lock_ptr!(self.executor)?;
             e.task_id = None;
         };
-
-        {
-            let mut task = lock_ptr!(task_ptr)?;
-            task.output = task_output;
-        }
-
-        self.storage
-            .update_task_state(ssn_ptr, task_ptr, TaskState::Succeed)
-            .await?;
 
         Ok(())
     }
