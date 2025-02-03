@@ -112,8 +112,9 @@ pub enum ExecutorState {
     Unbinding = 3,
 }
 
-#[derive(Clone, Debug, ::prost::Enumeration, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum Shim {
+    #[default]
     Log = 0,
     Stdio = 1,
     Wasm = 2,
@@ -298,17 +299,6 @@ impl TryFrom<rpc::BindExecutorResponse> for SessionContext {
     }
 }
 
-impl From<TaskState> for rpc::TaskState {
-    fn from(state: TaskState) -> Self {
-        match state {
-            TaskState::Pending => rpc::TaskState::TaskPending,
-            TaskState::Running => rpc::TaskState::TaskRunning,
-            TaskState::Succeed => rpc::TaskState::TaskSucceed,
-            TaskState::Failed => rpc::TaskState::TaskFailed,
-        }
-    }
-}
-
 impl From<Task> for rpc::Task {
     fn from(task: Task) -> Self {
         rpc::Task::from(&task)
@@ -337,15 +327,6 @@ impl From<&Task> for rpc::Task {
             metadata,
             spec,
             status,
-        }
-    }
-}
-
-impl From<SessionState> for rpc::SessionState {
-    fn from(state: SessionState) -> Self {
-        match state {
-            SessionState::Open => rpc::SessionState::SessionOpen,
-            SessionState::Closed => rpc::SessionState::SessionClosed,
         }
     }
 }
@@ -456,12 +437,27 @@ impl From<&Application> for rpc::Application {
 impl TryFrom<i32> for SessionState {
     type Error = FlameError;
     fn try_from(s: i32) -> Result<Self, Self::Error> {
+        let state = rpc::SessionState::try_from(s)
+            .map_err(|_| FlameError::InvalidState("invalid session state".to_string()))?;
+
+        Ok(Self::from(state))
+    }
+}
+
+impl From<rpc::SessionState> for SessionState {
+    fn from(s: rpc::SessionState) -> Self {
         match s {
-            0 => Ok(SessionState::Open),
-            1 => Ok(SessionState::Closed),
-            _ => Err(FlameError::InvalidState(
-                "invalid session state".to_string(),
-            )),
+            rpc::SessionState::SessionOpen => SessionState::Open,
+            rpc::SessionState::SessionClosed => SessionState::Closed,
+        }
+    }
+}
+
+impl From<SessionState> for rpc::SessionState {
+    fn from(state: SessionState) -> Self {
+        match state {
+            SessionState::Open => rpc::SessionState::SessionOpen,
+            SessionState::Closed => rpc::SessionState::SessionClosed,
         }
     }
 }
@@ -469,13 +465,61 @@ impl TryFrom<i32> for SessionState {
 impl TryFrom<i32> for TaskState {
     type Error = FlameError;
     fn try_from(s: i32) -> Result<Self, Self::Error> {
+        let state = rpc::TaskState::try_from(s)
+            .map_err(|_| FlameError::InvalidState("invalid task state".to_string()))?;
+
+        Ok(Self::from(state))
+    }
+}
+
+impl From<rpc::TaskState> for TaskState {
+    fn from(s: rpc::TaskState) -> Self {
         match s {
-            0 => Ok(TaskState::Pending),
-            1 => Ok(TaskState::Running),
-            2 => Ok(TaskState::Succeed),
-            3 => Ok(TaskState::Failed),
-            _ => Err(FlameError::InvalidState("invalid task state".to_string())),
+            rpc::TaskState::TaskPending => TaskState::Pending,
+            rpc::TaskState::TaskRunning => TaskState::Running,
+            rpc::TaskState::TaskSucceed => TaskState::Succeed,
+            rpc::TaskState::TaskFailed => TaskState::Failed,
         }
+    }
+}
+
+impl From<TaskState> for rpc::TaskState {
+    fn from(state: TaskState) -> Self {
+        match state {
+            TaskState::Pending => rpc::TaskState::TaskPending,
+            TaskState::Running => rpc::TaskState::TaskRunning,
+            TaskState::Succeed => rpc::TaskState::TaskSucceed,
+            TaskState::Failed => rpc::TaskState::TaskFailed,
+        }
+    }
+}
+
+impl From<rpc::Shim> for Shim {
+    fn from(s: rpc::Shim) -> Self {
+        match s {
+            rpc::Shim::Log => Self::Log,
+            rpc::Shim::Stdio => Self::Stdio,
+            rpc::Shim::Wasm => Self::Wasm,
+        }
+    }
+}
+
+impl From<Shim> for rpc::Shim {
+    fn from(s: Shim) -> Self {
+        match s {
+            Shim::Log => Self::Log,
+            Shim::Stdio => Self::Stdio,
+            Shim::Wasm => Self::Wasm,
+        }
+    }
+}
+
+impl TryFrom<i32> for Shim {
+    type Error = FlameError;
+
+    fn try_from(v: i32) -> Result<Self, Self::Error> {
+        let s = rpc::Shim::try_from(v).map_err(|_| FlameError::InvalidState("unknown shim".to_string()))?;
+        Ok(Self::from(s))
     }
 }
 

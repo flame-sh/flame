@@ -65,10 +65,9 @@ message Task {
 }
 
 enum Shim {
-  LogShim = 0;
-  StdioShim = 1;
-  RpcShim = 2;
-  RestShim = 3;
+  Log = 0;
+  Stdio = 1;
+  Wasm = 2;
 }
 
 enum ApplicationState {
