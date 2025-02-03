@@ -592,7 +592,3 @@ impl fmt::Display for TaskGID {
         write!(f, "{}/{}", self.ssn_id, self.task_id)
     }
 }
-
-fn default_work_dir() -> String {
-    String::from("/tmp")
-}
