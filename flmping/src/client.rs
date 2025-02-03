@@ -25,23 +25,21 @@ use flame_client as flame;
 
 #[derive(Parser)]
 #[command(name = "flmping")]
-#[command(author = "Klaus Ma <klaus@xflops.cn>")]
+#[command(author = "Klaus Ma <klaus1982.cn@gmail.com>")]
 #[command(version = "0.1.0")]
 #[command(about = "Flame Ping", long_about = None)]
 struct Cli {
     #[arg(long)]
     flame_conf: Option<String>,
     #[arg(short, long)]
-    app: Option<String>,
-    #[arg(short, long)]
     slots: Option<i32>,
     #[arg(short, long)]
     task_num: Option<i32>,
 }
 
-const DEFAULT_APP: &str = "flmexec";
+const DEFAULT_APP: &str = "flmping";
 const DEFAULT_SLOTS: i32 = 1;
-const DEFAULT_TASK_NUM: i32 = 10;
+const DEFAULT_TASK_NUM: i32 = 100;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -50,7 +48,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let ctx = FlameContext::from_file(cli.flame_conf)?;
 
-    let app = cli.app.unwrap_or(DEFAULT_APP.to_string());
     let slots = cli.slots.unwrap_or(DEFAULT_SLOTS);
     let task_num = cli.task_num.unwrap_or(DEFAULT_TASK_NUM);
 
@@ -58,7 +55,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let ssn_creation_start_time = Local::now();
     let ssn_attr = flame::SessionAttributes {
-        application: app.clone(),
+        application: DEFAULT_APP.to_string(),
         slots,
         common_data: None,
     };
