@@ -124,11 +124,11 @@ pub struct SessionAttributes {
 
 #[derive(Clone)]
 pub struct Application {
-    pub(crate) client: Option<FlameClient>,
-
     pub name: ApplicationID,
+    pub state: ApplicationState,
     pub shim: Shim,
     pub command: Option<String>,
+    pub creation_time: DateTime<Utc>,
 }
 
 #[derive(Clone)]
@@ -368,21 +368,37 @@ impl From<&rpc::Application> for Application {
     fn from(app: &rpc::Application) -> Self {
         let metadata = app.metadata.clone().unwrap();
         let spec = app.spec.clone().unwrap();
+        let status = app.status.clone().unwrap();
+
+        let naivedatetime_utc =
+            DateTime::from_timestamp_millis(status.creation_time * 1000).unwrap();
+        let creation_time = Utc.from_utc_datetime(&naivedatetime_utc.naive_utc());
+
         Self {
-            client: None,
             name: metadata.name,
             shim: Shim::from(spec.shim()),
+            state: ApplicationState::from(status.state()),
             command: spec.command.clone(),
+            creation_time,
         }
     }
 }
 
-impl From <rpc::Shim> for Shim {
+impl From<rpc::Shim> for Shim {
     fn from(shim: rpc::Shim) -> Self {
         match shim {
             rpc::Shim::Log => Shim::Log,
             rpc::Shim::Stdio => Shim::Stdio,
             rpc::Shim::Wasm => Shim::Wasm,
+        }
+    }
+}
+
+impl From<rpc::ApplicationState> for ApplicationState {
+    fn from(s: rpc::ApplicationState) -> Self {
+        match s {
+            rpc::ApplicationState::Disabled => Self::Disabled,
+            rpc::ApplicationState::Enabled => Self::Enabled,
         }
     }
 }

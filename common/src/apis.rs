@@ -36,10 +36,32 @@ pub type TaskInput = Message;
 pub type TaskOutput = Message;
 pub type CommonData = Message;
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
+pub enum ApplicationState {
+    #[default]
+    Enabled = 0,
+    Disabled = 1,
+}
+
 #[derive(Clone, Debug, Default, Copy)]
-pub struct TaskGID {
-    pub ssn_id: SessionID,
-    pub task_id: TaskID,
+pub enum Shim {
+    #[default]
+    Log = 0,
+    Stdio = 1,
+    Wasm = 2,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Application {
+    pub name: String,
+    pub state: ApplicationState,
+    pub creation_time: DateTime<Utc>,
+    pub shim: Shim,
+    pub url: Option<String>,
+    pub command: Option<String>,
+    pub arguments: Vec<String>,
+    pub environments: Vec<String>,
+    pub working_directory: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
@@ -77,6 +99,12 @@ pub enum TaskState {
     Failed = 3,
 }
 
+#[derive(Clone, Debug, Default, Copy)]
+pub struct TaskGID {
+    pub ssn_id: SessionID,
+    pub task_id: TaskID,
+}
+
 #[derive(Clone, Debug)]
 pub struct Task {
     pub id: TaskID,
@@ -110,30 +138,6 @@ pub enum ExecutorState {
     Binding = 1,
     Bound = 2,
     Unbinding = 3,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub enum Shim {
-    #[default]
-    Log = 0,
-    Stdio = 1,
-    Wasm = 2,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Application {
-    pub name: String,
-    pub shim: Shim,
-    #[serde(default)]
-    pub url: Option<String>,
-    #[serde(default)]
-    pub command: Option<String>,
-    #[serde(default)]
-    pub arguments: Vec<String>,
-    #[serde(default)]
-    pub environments: Vec<String>,
-    #[serde(default = "default_work_dir")]
-    pub working_directory: String,
 }
 
 #[derive(Clone, Debug)]
@@ -391,8 +395,16 @@ impl TryFrom<&rpc::Application> for Application {
             "application spec is empty".to_string(),
         ))?;
 
+        let status = app.status.clone().ok_or(FlameError::InvalidConfig(
+            "application status is empty".to_string(),
+        ))?;
+
         Ok(Application {
             name: metadata.name.clone(),
+            state: ApplicationState::from(status.state()),
+            creation_time: DateTime::<Utc>::from_timestamp(status.creation_time, 0).ok_or(
+                FlameError::InvalidState("invalid creation time".to_string()),
+            )?,
             shim: Shim::try_from(spec.shim).unwrap_or(Shim::default()),
             url: spec.url.clone(),
             command: spec.command.clone(),
@@ -412,7 +424,7 @@ impl From<Application> for rpc::Application {
 impl From<&Application> for rpc::Application {
     fn from(app: &Application) -> Self {
         let spec = Some(ApplicationSpec {
-            shim: app.shim.clone() as i32,
+            shim: app.shim.into(),
             url: app.url.clone(),
             command: app.command.clone(),
             arguments: app.arguments.to_vec(),
@@ -425,7 +437,10 @@ impl From<&Application> for rpc::Application {
             owner: None,
         });
 
-        let status = None;
+        let status = Some(rpc::ApplicationStatus {
+            state: app.state.into(),
+            creation_time: app.creation_time.timestamp(),
+        });
         rpc::Application {
             metadata,
             spec,
@@ -434,6 +449,55 @@ impl From<&Application> for rpc::Application {
     }
 }
 
+impl From<ApplicationState> for rpc::ApplicationState {
+    fn from(s: ApplicationState) -> Self {
+        match s {
+            ApplicationState::Disabled => Self::Disabled,
+            ApplicationState::Enabled => Self::Enabled,
+        }
+    }
+}
+
+impl From<rpc::ApplicationState> for ApplicationState {
+    fn from(s: rpc::ApplicationState) -> Self {
+        match s {
+            rpc::ApplicationState::Disabled => Self::Disabled,
+            rpc::ApplicationState::Enabled => Self::Enabled,
+        }
+    }
+}
+
+impl TryFrom<i32> for ApplicationState {
+    type Error = FlameError;
+    fn try_from(s: i32) -> Result<Self, Self::Error> {
+        let state = rpc::ApplicationState::try_from(s)
+            .map_err(|_| FlameError::InvalidState("unknown application state".to_string()))?;
+        Ok(Self::from(state))
+    }
+}
+impl From<ApplicationState> for i32 {
+    fn from(s: ApplicationState) -> Self {
+        s as i32
+    }
+}
+
+impl From<rpc::SessionState> for SessionState {
+    fn from(s: rpc::SessionState) -> Self {
+        match s {
+            rpc::SessionState::Open => SessionState::Open,
+            rpc::SessionState::Closed => SessionState::Closed,
+        }
+    }
+}
+
+impl From<SessionState> for rpc::SessionState {
+    fn from(state: SessionState) -> Self {
+        match state {
+            SessionState::Open => rpc::SessionState::Open,
+            SessionState::Closed => rpc::SessionState::Closed,
+        }
+    }
+}
 impl TryFrom<i32> for SessionState {
     type Error = FlameError;
     fn try_from(s: i32) -> Result<Self, Self::Error> {
@@ -444,20 +508,30 @@ impl TryFrom<i32> for SessionState {
     }
 }
 
-impl From<rpc::SessionState> for SessionState {
-    fn from(s: rpc::SessionState) -> Self {
+impl From<SessionState> for i32 {
+    fn from(s: SessionState) -> Self {
+        s as i32
+    }
+}
+
+impl From<rpc::TaskState> for TaskState {
+    fn from(s: rpc::TaskState) -> Self {
         match s {
-            rpc::SessionState::SessionOpen => SessionState::Open,
-            rpc::SessionState::SessionClosed => SessionState::Closed,
+            rpc::TaskState::Pending => TaskState::Pending,
+            rpc::TaskState::Running => TaskState::Running,
+            rpc::TaskState::Succeed => TaskState::Succeed,
+            rpc::TaskState::Failed => TaskState::Failed,
         }
     }
 }
 
-impl From<SessionState> for rpc::SessionState {
-    fn from(state: SessionState) -> Self {
+impl From<TaskState> for rpc::TaskState {
+    fn from(state: TaskState) -> Self {
         match state {
-            SessionState::Open => rpc::SessionState::SessionOpen,
-            SessionState::Closed => rpc::SessionState::SessionClosed,
+            TaskState::Pending => rpc::TaskState::Pending,
+            TaskState::Running => rpc::TaskState::Running,
+            TaskState::Succeed => rpc::TaskState::Succeed,
+            TaskState::Failed => rpc::TaskState::Failed,
         }
     }
 }
@@ -472,25 +546,9 @@ impl TryFrom<i32> for TaskState {
     }
 }
 
-impl From<rpc::TaskState> for TaskState {
-    fn from(s: rpc::TaskState) -> Self {
-        match s {
-            rpc::TaskState::TaskPending => TaskState::Pending,
-            rpc::TaskState::TaskRunning => TaskState::Running,
-            rpc::TaskState::TaskSucceed => TaskState::Succeed,
-            rpc::TaskState::TaskFailed => TaskState::Failed,
-        }
-    }
-}
-
-impl From<TaskState> for rpc::TaskState {
-    fn from(state: TaskState) -> Self {
-        match state {
-            TaskState::Pending => rpc::TaskState::TaskPending,
-            TaskState::Running => rpc::TaskState::TaskRunning,
-            TaskState::Succeed => rpc::TaskState::TaskSucceed,
-            TaskState::Failed => rpc::TaskState::TaskFailed,
-        }
+impl From<TaskState> for i32 {
+    fn from(s: TaskState) -> Self {
+        s as i32
     }
 }
 
@@ -518,8 +576,15 @@ impl TryFrom<i32> for Shim {
     type Error = FlameError;
 
     fn try_from(v: i32) -> Result<Self, Self::Error> {
-        let s = rpc::Shim::try_from(v).map_err(|_| FlameError::InvalidState("unknown shim".to_string()))?;
+        let s = rpc::Shim::try_from(v)
+            .map_err(|_| FlameError::InvalidState("unknown shim".to_string()))?;
         Ok(Self::from(s))
+    }
+}
+
+impl From<Shim> for i32 {
+    fn from(s: Shim) -> Self {
+        s as i32
     }
 }
 

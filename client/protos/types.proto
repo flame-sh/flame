@@ -9,8 +9,8 @@ message Metadata {
 }
 
 enum SessionState {
-  SessionOpen = 0;
-  SessionClosed = 1;
+  Open = 0;
+  Closed = 1;
 }
 
 message SessionStatus {
@@ -38,10 +38,10 @@ message Session {
 }
 
 enum TaskState {
-  TaskPending = 0;
-  TaskRunning = 1;
-  TaskSucceed = 2;
-  TaskFailed = 3;
+  Pending = 0;
+  Running = 1;
+  Succeed = 2;
+  Failed = 3;
 }
 
 message TaskStatus {
@@ -71,8 +71,8 @@ enum Shim {
 }
 
 enum ApplicationState {
-  ApplicationEnabled = 0;
-  ApplicationDisabled = 1;
+  Enabled = 0;
+  Disabled = 1;
 }
 
 message ApplicationStatus {
@@ -82,12 +82,12 @@ message ApplicationStatus {
 }
 
 message ApplicationSpec {
-  Shim shim = 2;
-  optional string url = 3;
-  optional string command = 4;
-  repeated string arguments = 5;
-  repeated string environments = 6;
-  optional string working_directory = 7;
+  Shim shim = 1;
+  optional string url = 2;
+  optional string command = 3;
+  repeated string arguments = 4;
+  repeated string environments = 5;
+  optional string working_directory = 6;
 }
 
 message Application {

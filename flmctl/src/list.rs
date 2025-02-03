@@ -36,10 +36,20 @@ pub async fn run(
 async fn list_application(conn: Connection) -> Result<(), Box<dyn Error>> {
     let app_list = conn.list_application().await?;
 
-    println!("{:<10}{:<15}{:<30}", "Name", "Shim", "Command");
+    println!(
+        "{:<15}{:<15}{:<15}{:<15}{:<30}",
+        "Name", "Shim", "State", "Created", "Command"
+    );
 
     for app in &app_list {
-        println!("{:<10}{:<15}{:<30}", app.name, app.shim.to_string(), app.command.clone().unwrap_or("-".to_string()));
+        println!(
+            "{:<15}{:<15}{:<15}{:<15}{:<30}",
+            app.name,
+            app.shim.to_string(),
+            app.state.to_string(),
+            app.creation_time.format("%T"),
+            app.command.clone().unwrap_or("-".to_string())
+        );
     }
 
     Ok(())
