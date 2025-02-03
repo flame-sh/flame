@@ -11,19 +11,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::storage::states::States;
-use crate::storage::StoragePtr;
-
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
-pub struct UnbindingState {
+use crate::controller::states::States;
+use crate::storage::StoragePtr;
+
+pub struct BoundState {
     pub storage: StoragePtr,
     pub executor: ExecutorPtr,
 }
 
 #[async_trait::async_trait]
-impl States for UnbindingState {
+impl States for BoundState {
     async fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         todo!()
     }
@@ -33,7 +33,7 @@ impl States for UnbindingState {
     }
 
     async fn unbind_executor(&self) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::unbind_session");
+        trace_fn!("BoundState::unbind_session");
 
         let mut e = lock_ptr!(self.executor)?;
         e.state = ExecutorState::Unbinding;
@@ -42,18 +42,51 @@ impl States for UnbindingState {
     }
 
     async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::unbind_session_completed");
-
-        let mut e = lock_ptr!(self.executor)?;
-        e.state = ExecutorState::Idle;
-        e.ssn_id = None;
-        e.task_id = None;
-
-        Ok(())
+        todo!()
     }
 
-    async fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
-        Ok(None)
+    async fn launch_task(&self, ssn_ptr: SessionPtr) -> Result<Option<Task>, FlameError> {
+        trace_fn!("BoundState::launch_task");
+        let task_ptr = {
+            let mut ssn = lock_ptr!(ssn_ptr)?;
+            ssn.pop_pending_task()
+        };
+
+        let task_ptr = {
+            match task_ptr {
+                Some(task_ptr) => {
+                    self.storage
+                        .update_task(ssn_ptr.clone(), task_ptr.clone(), TaskState::Running, None)
+                        .await?;
+                    Some(task_ptr)
+                }
+                None => None,
+            }
+        };
+
+        // No pending task, return.
+        if task_ptr.is_none() {
+            return Ok(None);
+        }
+
+        // let task_ptr = task_ptr.unwrap();
+        let (ssn_id, task_id) = {
+            let task_ptr = task_ptr.clone().unwrap();
+            let task = lock_ptr!(task_ptr)?;
+            (task.ssn_id, task.id)
+        };
+
+        log::debug!("Launching task <{}/{}>", ssn_id.clone(), task_id.clone());
+
+        {
+            let mut e = lock_ptr!(self.executor)?;
+            e.task_id = Some(task_id);
+            e.ssn_id = Some(ssn_id);
+        };
+
+        let task_ptr = task_ptr.unwrap();
+        let task = lock_ptr!(task_ptr)?;
+        Ok(Some((*task).clone()))
     }
 
     async fn complete_task(
@@ -62,10 +95,10 @@ impl States for UnbindingState {
         task_ptr: TaskPtr,
         task_output: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::complete_task");
+        trace_fn!("BoundState::complete_task");
 
         self.storage
-            .update_task(ssn_ptr, task_ptr, TaskState::Succeed, task_output.clone())
+            .update_task(ssn_ptr, task_ptr, TaskState::Succeed, task_output)
             .await?;
 
         {

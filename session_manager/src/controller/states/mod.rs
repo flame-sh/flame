@@ -13,7 +13,7 @@ limitations under the License.
 
 use std::sync::Arc;
 
-use crate::storage::states::{
+use crate::controller::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
 };
 use crate::storage::StoragePtr;

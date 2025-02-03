@@ -11,11 +11,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use crate::controller::ControllerPtr;
 use crate::model::{ExecutorInfoPtr, SessionInfoPtr, SnapShotPtr};
 use crate::scheduler::actions::{ActionPtr, AllocateAction, BackfillAction, ShuffleAction};
 use crate::scheduler::plugins::{PluginManager, PluginManagerPtr};
-
-use crate::storage::StoragePtr;
 
 use common::apis::ExecutorState;
 
@@ -25,21 +24,21 @@ const DEFAULT_SCHEDULE_INTERVAL: u64 = 500;
 
 pub struct Context {
     pub snapshot: SnapShotPtr,
-    pub storage: StoragePtr,
+    pub controller: ControllerPtr,
     pub actions: Vec<ActionPtr>,
     pub plugins: PluginManagerPtr,
     pub schedule_interval: u64,
 }
 
 impl Context {
-    pub fn new(storage: StoragePtr) -> Result<Self, FlameError> {
-        let snapshot = storage.snapshot()?;
+    pub fn new(controller: ControllerPtr) -> Result<Self, FlameError> {
+        let snapshot = controller.snapshot()?;
         let plugins = PluginManager::setup(&snapshot.clone())?;
 
         Ok(Context {
             snapshot,
             plugins,
-            storage,
+            controller,
             // TODO(k82cn): Add ActionManager for them.
             actions: vec![
                 AllocateAction::new_ptr(),
@@ -75,7 +74,7 @@ impl Context {
         exec: ExecutorInfoPtr,
         ssn: SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        self.storage.bind_session(exec.id.clone(), ssn.id).await?;
+        self.controller.bind_session(exec.id.clone(), ssn.id).await?;
         self.plugins.on_session_bind(ssn)?;
         self.snapshot
             .update_executor_state(exec.clone(), ExecutorState::Binding)?;
@@ -101,7 +100,7 @@ impl Context {
         exec: ExecutorInfoPtr,
         ssn: SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        self.storage.unbind_executor(exec.id.clone()).await?;
+        self.controller.unbind_executor(exec.id.clone()).await?;
         self.plugins.on_session_unbind(ssn)?;
         self.snapshot
             .update_executor_state(exec.clone(), ExecutorState::Unbinding)?;
