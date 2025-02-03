@@ -1,7 +1,11 @@
 FSM_TAG=`cargo get --entry session_manager/ package.version --pretty`
 FEM_TAG=`cargo get --entry executor_manager/ package.version --pretty`
 
+.PHONY: client build
+
 build:
+	cp rpc/protos/frontend.proto client/protos
+	cp rpc/protos/types.proto client/protos
 	cargo build
 
 init:
@@ -16,7 +20,7 @@ ci-image:
 	sudo docker build -t xflops/flame-executor-manager -f docker/Dockerfile.fem .
 	sudo docker build -t xflops/flame-console -f docker/Dockerfile.console .
 
-.PHONY: client
+
 client:
 	cp rpc/protos/frontend.proto client/protos
 	cp rpc/protos/types.proto client/protos

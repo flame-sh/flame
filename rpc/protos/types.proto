@@ -68,6 +68,7 @@ enum Shim {
   Log = 0;
   Stdio = 1;
   Wasm = 2;
+  Shell = 3;
 }
 
 enum ApplicationState {

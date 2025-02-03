@@ -5,6 +5,7 @@ members = [
     "client",
     "flmctl",
     "flmping",
+    "flmexec",
     "session_manager",
     "executor_manager",
     "rpc",
