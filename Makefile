@@ -16,6 +16,7 @@ ci-image:
 	sudo docker build -t xflops/flame-executor-manager -f docker/Dockerfile.fem .
 	sudo docker build -t xflops/flame-console -f docker/Dockerfile.console .
 
+.PHONY: client
 client:
 	cp rpc/protos/frontend.proto client/protos
 	cp rpc/protos/types.proto client/protos

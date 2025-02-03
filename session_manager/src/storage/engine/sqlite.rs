@@ -21,8 +21,8 @@ use sqlx::{migrate::MigrateDatabase, FromRow, Sqlite, SqlitePool};
 
 use crate::FlameError;
 use common::apis::{
-    Application, ApplicationID, CommonData, Session, SessionID, SessionState, SessionStatus, Shim,
-    Task, TaskGID, TaskID, TaskInput, TaskState,
+    Application, ApplicationID, ApplicationState, CommonData, Session, SessionID, SessionState,
+    SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskState,
 };
 
 use crate::storage::engine::{Engine, EnginePtr};
@@ -505,7 +505,11 @@ impl TryFrom<&ApplicationDao> for Application {
 
         Ok(Self {
             name: app.name.clone(),
-            shim: Shim::try_from(app.shim).map_err(|_| FlameError::Internal("shim".to_string()))?,
+            state: ApplicationState::try_from(app.state)?,
+            shim: Shim::try_from(app.shim)
+                .map_err(|_| FlameError::Internal("unknown shim".to_string()))?,
+            creation_time: DateTime::<Utc>::from_timestamp(app.creation_time, 0)
+                .ok_or(FlameError::Storage("invalid creation time".to_string()))?,
             url: app.url.clone(),
             command: app.command.clone(),
             arguments: vec![],
@@ -526,6 +530,8 @@ impl TryFrom<ApplicationDao> for Application {
 
 #[cfg(test)]
 mod tests {
+    use common::apis::ApplicationState;
+
     use super::*;
 
     #[test]
@@ -535,6 +541,7 @@ mod tests {
         let app_1 = tokio_test::block_on(storage.get_application("flmexec".to_string()))?;
 
         assert_eq!(app_1.name, "flmexec");
+        assert_eq!(app_1.state, ApplicationState::Enabled);
 
         Ok(())
     }
