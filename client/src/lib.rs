@@ -368,7 +368,7 @@ impl From<&rpc::Application> for Application {
     fn from(app: &rpc::Application) -> Self {
         let metadata = app.metadata.clone().unwrap();
         let spec = app.spec.clone().unwrap();
-        let status = app.status.clone().unwrap();
+        let status = app.status.unwrap();
 
         let naivedatetime_utc =
             DateTime::from_timestamp_millis(status.creation_time * 1000).unwrap();

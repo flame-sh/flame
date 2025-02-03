@@ -16,7 +16,6 @@ use std::fmt;
 
 use ::rpc::flame::ApplicationSpec;
 use chrono::{DateTime, Utc};
-use serde_derive::{Deserialize, Serialize};
 
 use rpc::flame as rpc;
 
@@ -395,7 +394,7 @@ impl TryFrom<&rpc::Application> for Application {
             "application spec is empty".to_string(),
         ))?;
 
-        let status = app.status.clone().ok_or(FlameError::InvalidConfig(
+        let status = app.status.ok_or(FlameError::InvalidConfig(
             "application status is empty".to_string(),
         ))?;
 
