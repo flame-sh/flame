@@ -72,7 +72,7 @@ impl Frontend for Flame {
     ) -> Result<Response<ApplicationList>, Status> {
         trace_fn!("Frontend::list_application");
         let app_list = self
-            .storage
+            .controller
             .list_application()
             .await
             .map_err(Status::from)?;
@@ -93,7 +93,7 @@ impl Frontend for Flame {
             .ok_or(Status::invalid_argument("session spec"))?;
 
         let ssn = self
-            .storage
+            .controller
             .create_session(
                 ssn_spec.application,
                 ssn_spec.slots,
@@ -117,7 +117,7 @@ impl Frontend for Flame {
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         let ssn = self
-            .storage
+            .controller
             .delete_session(ssn_id)
             .await
             .map(Session::from)?;
@@ -144,7 +144,7 @@ impl Frontend for Flame {
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         let ssn = self
-            .storage
+            .controller
             .close_session(ssn_id)
             .await
             .map(rpc::Session::from)
@@ -165,7 +165,7 @@ impl Frontend for Flame {
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         let ssn = self
-            .storage
+            .controller
             .get_session(ssn_id)
             .map(rpc::Session::from)
             .map_err(Status::from)?;
@@ -177,7 +177,7 @@ impl Frontend for Flame {
         _: Request<ListSessionRequest>,
     ) -> Result<Response<SessionList>, Status> {
         trace_fn!("Frontend::list_session");
-        let ssn_list = self.storage.list_session().map_err(Status::from)?;
+        let ssn_list = self.controller.list_session().map_err(Status::from)?;
 
         let sessions = ssn_list.iter().map(Session::from).collect();
 
@@ -196,7 +196,7 @@ impl Frontend for Flame {
             .map_err(|_| Status::invalid_argument("invalid session id"))?;
 
         let task = self
-            .storage
+            .controller
             .create_task(ssn_id, task_spec.input.map(apis::TaskInput::from))
             .await
             .map(Task::from)
@@ -230,10 +230,10 @@ impl Frontend for Flame {
 
         let (tx, rx) = mpsc::channel(128);
 
-        let storage = self.storage.clone();
+        let controller = self.controller.clone();
         tokio::spawn(async move {
             loop {
-                match storage.watch_task(gid).await {
+                match controller.watch_task(gid).await {
                     Ok(task) => {
                         log::debug!("Task <{}> state is <{}>", task.id, task.state as i32);
                         if let Err(e) = tx.send(Result::<_, Status>::Ok(Task::from(&task))).await {
@@ -272,7 +272,7 @@ impl Frontend for Flame {
             .map_err(|_| Status::invalid_argument("invalid task id"))?;
 
         let task = self
-            .storage
+            .controller
             .get_task(ssn_id, task_id)
             .map(Task::from)
             .map_err(Status::from)?;

@@ -15,6 +15,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 use std::{thread, time};
 
+use crate::controller::ControllerPtr;
 use crate::scheduler::ctx::Context;
 
 use crate::storage::StoragePtr;
@@ -26,19 +27,19 @@ mod actions;
 mod ctx;
 mod plugins;
 
-pub fn new(storage: StoragePtr) -> Arc<dyn FlameThread> {
-    Arc::new(ScheduleRunner { storage })
+pub fn new(controller: ControllerPtr) -> Arc<dyn FlameThread> {
+    Arc::new(ScheduleRunner { controller })
 }
 
 struct ScheduleRunner {
-    storage: StoragePtr,
+    controller: ControllerPtr,
 }
 
 #[async_trait]
 impl FlameThread for ScheduleRunner {
     async fn run(&self, _flame_ctx: FlameContext) -> Result<(), FlameError> {
         loop {
-            let mut ctx = Context::new(self.storage.clone())?;
+            let mut ctx = Context::new(self.controller.clone())?;
 
             for action in ctx.actions.clone() {
                 if let Err(e) = action.execute(&mut ctx).await {

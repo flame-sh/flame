@@ -18,6 +18,7 @@ use common::ctx::FlameContext;
 use common::FlameError;
 
 mod apiserver;
+mod controller;
 mod model;
 mod scheduler;
 mod storage;
@@ -48,12 +49,14 @@ async fn main() -> Result<(), FlameError> {
     // Load data from engine, e.g. sqlite.
     storage.load_data().await?;
 
+    let controller = controller::new_ptr(storage.clone());
+
     // Start apiserver thread.
     {
-        let storage = storage.clone();
+        let controller = controller.clone();
         let ctx = ctx.clone();
         let handler = tokio::spawn(async move {
-            let apiserver = apiserver::new(storage);
+            let apiserver = apiserver::new(controller);
             apiserver.run(ctx).await
         });
         handlers.push(handler);
@@ -61,10 +64,10 @@ async fn main() -> Result<(), FlameError> {
 
     // Start scheduler thread.
     {
-        let storage = storage.clone();
+        let controller = controller.clone();
         let ctx = ctx.clone();
         let handler = tokio::spawn(async move {
-            let scheduler = scheduler::new(storage);
+            let scheduler = scheduler::new(controller);
             scheduler.run(ctx).await
         });
         handlers.push(handler);

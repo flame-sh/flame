@@ -19,24 +19,24 @@ use common::ctx::FlameContext;
 use rpc::flame::backend_server::BackendServer;
 use rpc::flame::frontend_server::FrontendServer;
 
-use crate::storage::StoragePtr;
+use crate::controller::ControllerPtr;
 use crate::{FlameError, FlameThread};
 
 mod backend;
 mod frontend;
 
 pub struct Flame {
-    storage: StoragePtr,
+    controller: ControllerPtr
 }
 
-pub fn new(storage: StoragePtr) -> Arc<dyn FlameThread> {
+pub fn new(controller: ControllerPtr) -> Arc<dyn FlameThread> {
     Arc::new(ApiserverRunner {
-        storage: storage.clone(),
+        controller
     })
 }
 
 struct ApiserverRunner {
-    storage: StoragePtr,
+    controller: ControllerPtr,
 }
 
 #[async_trait::async_trait]
@@ -59,11 +59,11 @@ impl FlameThread for ApiserverRunner {
             .map_err(|_| FlameError::InvalidConfig("failed to parse url".to_string()))?;
 
         let frontend_service = Flame {
-            storage: self.storage.clone(),
+            controller: self.controller.clone(),
         };
 
         let backend_service = Flame {
-            storage: self.storage.clone(),
+            controller: self.controller.clone(),
         };
 
         Server::builder()

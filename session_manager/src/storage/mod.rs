@@ -12,11 +12,8 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
-use std::future::Future;
 use std::ops::Deref;
-use std::pin::Pin;
 use std::sync::Arc;
-use std::task::{Context, Poll};
 
 use common::apis::{
     Application, ApplicationID, CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID,
@@ -29,7 +26,6 @@ use crate::model::{ExecutorInfo, SessionInfo, SnapShot, SnapShotPtr};
 use crate::storage::engine::EnginePtr;
 
 mod engine;
-mod states;
 
 pub type StoragePtr = Arc<Storage>;
 
@@ -49,10 +45,6 @@ pub async fn new_ptr(url: &str) -> Result<StoragePtr, FlameError> {
 }
 
 impl Storage {
-    pub fn clone_ptr(&self) -> StoragePtr {
-        Arc::new(self.clone())
-    }
-
     pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {
         let res = SnapShot::new();
 
@@ -237,14 +229,6 @@ impl Storage {
         Ok(())
     }
 
-    pub async fn watch_task(&self, gid: TaskGID) -> Result<Task, FlameError> {
-        let task_ptr = self.get_task_ptr(gid)?;
-        WatchTaskFuture::new(self.clone_ptr(), &task_ptr)?.await?;
-
-        let task = lock_ptr!(task_ptr)?;
-        Ok((*task).clone())
-    }
-
     pub fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
         let mut exe_map = lock_ptr!(self.executors)?;
         let exe = ExecutorPtr::new(e.clone().into());
@@ -260,179 +244,5 @@ impl Storage {
             .ok_or(FlameError::NotFound(id.to_string()))?;
 
         Ok(exe.clone())
-    }
-
-    pub async fn wait_for_session(&self, id: ExecutorID) -> Result<Session, FlameError> {
-        let exe_ptr = self.get_executor_ptr(id)?;
-        let ssn_id = WaitForSsnFuture::new(&exe_ptr).await?;
-
-        let ssn_ptr = self.get_session_ptr(ssn_id)?;
-        let ssn = lock_ptr!(ssn_ptr)?;
-
-        Ok((*ssn).clone())
-    }
-
-    pub async fn bind_session(&self, id: ExecutorID, ssn_id: SessionID) -> Result<(), FlameError> {
-        trace_fn!("Storage::bind_session");
-
-        let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(Arc::new(self.clone()), exe_ptr)?;
-
-        let ssn_ptr = self.get_session_ptr(ssn_id)?;
-        state.bind_session(ssn_ptr).await?;
-
-        Ok(())
-    }
-
-    pub async fn bind_session_completed(&self, id: ExecutorID) -> Result<(), FlameError> {
-        trace_fn!("Storage::bind_session_completed");
-
-        let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(Arc::new(self.clone()), exe_ptr)?;
-
-        state.bind_session_completed().await?;
-
-        Ok(())
-    }
-
-    pub async fn launch_task(&self, id: ExecutorID) -> Result<Option<Task>, FlameError> {
-        trace_fn!("Storage::launch_task");
-        let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(self.clone_ptr(), exe_ptr.clone())?;
-        let (ssn_id, task_id) = {
-            let exec = lock_ptr!(exe_ptr)?;
-            (exec.ssn_id, exec.task_id)
-        };
-        let ssn_id = ssn_id.ok_or(FlameError::InvalidState(
-            "no session in bound executor".to_string(),
-        ))?;
-
-        //
-        if let Some(task_id) = task_id {
-            log::warn!(
-                "Re-launch the task <{}/{}>",
-                ssn_id.clone(),
-                task_id.clone()
-            );
-            let task_ptr = self.get_task_ptr(TaskGID { ssn_id, task_id })?;
-
-            let task = lock_ptr!(task_ptr)?;
-            return Ok(Some((*task).clone()));
-        }
-
-        let ssn_ptr = self.get_session_ptr(ssn_id)?;
-        state.launch_task(ssn_ptr).await
-    }
-
-    pub async fn complete_task(
-        &self,
-        id: ExecutorID,
-        task_output: Option<TaskOutput>,
-    ) -> Result<(), FlameError> {
-        trace_fn!("Storage::complete_task");
-        let exe_ptr = self.get_executor_ptr(id)?;
-        let (ssn_id, task_id) = {
-            let exe = lock_ptr!(exe_ptr)?;
-            (
-                exe.ssn_id.ok_or(FlameError::InvalidState(
-                    "no session in executor".to_string(),
-                ))?,
-                exe.task_id
-                    .ok_or(FlameError::InvalidState("no task in executor".to_string()))?,
-            )
-        };
-
-        let task_ptr = self.get_task_ptr(TaskGID { ssn_id, task_id })?;
-        let ssn_ptr = self.get_session_ptr(ssn_id)?;
-
-        let state = states::from(self.clone_ptr(), exe_ptr)?;
-        state.complete_task(ssn_ptr, task_ptr, task_output).await?;
-
-        Ok(())
-    }
-
-    pub async fn unbind_executor(&self, id: ExecutorID) -> Result<(), FlameError> {
-        let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(Arc::new(self.clone()), exe_ptr)?;
-        state.unbind_executor().await?;
-
-        Ok(())
-    }
-
-    pub async fn unbind_executor_completed(&self, id: ExecutorID) -> Result<(), FlameError> {
-        let exe_ptr = self.get_executor_ptr(id)?;
-        let state = states::from(Arc::new(self.clone()), exe_ptr)?;
-
-        state.unbind_executor_completed().await?;
-
-        Ok(())
-    }
-}
-
-struct WaitForSsnFuture {
-    executor: ExecutorPtr,
-}
-
-impl WaitForSsnFuture {
-    pub fn new(exe_ptr: &ExecutorPtr) -> Self {
-        Self {
-            executor: exe_ptr.clone(),
-        }
-    }
-}
-
-impl Future for WaitForSsnFuture {
-    type Output = Result<SessionID, FlameError>;
-
-    fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        let exe = lock_ptr!(self.executor)?;
-
-        match exe.ssn_id {
-            None => {
-                // No bound session, trigger waker.
-                ctx.waker().wake_by_ref();
-                Poll::Pending
-            }
-            Some(ssn_id) => Poll::Ready(Ok(ssn_id)),
-        }
-    }
-}
-
-struct WatchTaskFuture {
-    storage: StoragePtr,
-    current_state: TaskState,
-    task_gid: TaskGID,
-}
-
-impl WatchTaskFuture {
-    pub fn new(storage: StoragePtr, task_ptr: &TaskPtr) -> Result<Self, FlameError> {
-        let task_ptr = task_ptr.clone();
-        let task = lock_ptr!(task_ptr)?;
-
-        Ok(Self {
-            storage,
-            current_state: task.state,
-            task_gid: TaskGID {
-                ssn_id: task.ssn_id,
-                task_id: task.id,
-            },
-        })
-    }
-}
-
-impl Future for WatchTaskFuture {
-    type Output = Result<(), FlameError>;
-
-    fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        let task_ptr = self.storage.get_task_ptr(self.task_gid)?;
-
-        let task = lock_ptr!(task_ptr)?;
-        // If the state of task was updated, return ready.
-        if self.current_state != task.state || task.is_completed() {
-            return Poll::Ready(Ok(()));
-        }
-
-        ctx.waker().wake_by_ref();
-        Poll::Pending
     }
 }

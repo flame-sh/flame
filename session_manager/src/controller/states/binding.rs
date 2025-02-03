@@ -11,21 +11,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::storage::states::States;
+use crate::controller::states::States;
 use crate::storage::StoragePtr;
-
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
-pub struct IdleState {
+pub struct BindingState {
     pub storage: StoragePtr,
     pub executor: ExecutorPtr,
 }
 
 #[async_trait::async_trait]
-impl States for IdleState {
+impl States for BindingState {
     async fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
-        trace_fn!("IdleState::bind_session");
+        trace_fn!("BindingState::bind_session");
 
         let ssn_id = {
             let ssn = lock_ptr!(ssn_ptr)?;
@@ -40,7 +39,12 @@ impl States for IdleState {
     }
 
     async fn bind_session_completed(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BindingState::bind_session");
+
+        let mut e = lock_ptr!(self.executor)?;
+        e.state = ExecutorState::Bound;
+
+        Ok(())
     }
 
     async fn unbind_executor(&self) -> Result<(), FlameError> {
