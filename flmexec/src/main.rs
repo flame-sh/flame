@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Local;
 use clap::Parser;
-use indicatif::{HumanCount, ProgressBar, ProgressStyle};
+use indicatif::HumanCount;
 
 use self::flame::FlameError;
 use common::ctx::FlameContext;

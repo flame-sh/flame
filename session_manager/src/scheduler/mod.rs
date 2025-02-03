@@ -18,7 +18,6 @@ use std::{thread, time};
 use crate::controller::ControllerPtr;
 use crate::scheduler::ctx::Context;
 
-use crate::storage::StoragePtr;
 use crate::FlameThread;
 use common::ctx::FlameContext;
 use common::FlameError;
