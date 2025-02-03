@@ -105,9 +105,9 @@ pub enum ApplicationState {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
 pub enum Shim {
-    LogShim = 0,
-    StdioShim = 1,
-    WasmShim = 2,
+    Log = 0,
+    Stdio = 1,
+    Wasm = 2,
 }
 
 #[derive(Clone)]
@@ -380,9 +380,9 @@ impl From<&rpc::Application> for Application {
 impl From <rpc::Shim> for Shim {
     fn from(shim: rpc::Shim) -> Self {
         match shim {
-            rpc::Shim::LogShim => Shim::LogShim,
-            rpc::Shim::StdioShim => Shim::StdioShim,
-            rpc::Shim::WasmShim => Shim::WasmShim,
+            rpc::Shim::Log => Shim::Log,
+            rpc::Shim::Stdio => Shim::Stdio,
+            rpc::Shim::Wasm => Shim::Wasm,
         }
     }
 }
