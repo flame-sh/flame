@@ -64,19 +64,14 @@ impl States for UnbindingState {
     ) -> Result<(), FlameError> {
         trace_fn!("UnbindingState::complete_task");
 
+        self.storage
+            .update_task(ssn_ptr, task_ptr, TaskState::Succeed, task_output.clone())
+            .await?;
+
         {
             let mut e = lock_ptr!(self.executor)?;
             e.task_id = None;
         };
-
-        {
-            let mut task = lock_ptr!(task_ptr)?;
-            task.output = task_output;
-        }
-
-        self.storage
-            .update_task_state(ssn_ptr, task_ptr, TaskState::Succeed)
-            .await?;
 
         Ok(())
     }
