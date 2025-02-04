@@ -31,3 +31,7 @@ features = [
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
+
+[lints.rust]
+unused = "allow"
+unsafe_code = "forbid"

@@ -28,3 +28,6 @@ sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "sqlit
 [workspace.lints.rust]
 unused = "allow"
 unsafe_code = "forbid"
+
+[workspace.build]
+rustflags = ["-A", "unused"]
