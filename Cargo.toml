@@ -25,6 +25,4 @@ clap = { version = "4", features = ["derive"] }
 
 sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "sqlite", "macros" ] }
 
-[workspace.lints.rust]
-unused = "allow"
-unsafe_code = "forbid"
+

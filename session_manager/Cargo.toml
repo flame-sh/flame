@@ -30,3 +30,7 @@ bytes = "1"
 
 [dev-dependencies]
 tokio-test = "*"
+
+[lints.rust]
+unused = "allow"
+unsafe_code = "forbid"
