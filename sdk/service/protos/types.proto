@@ -118,18 +118,15 @@ message Executor {
   ExecutorStatus status = 3;
 }
 
+message Result {
+  int32 return_code = 1;
+  optional string message = 2;
+}
+
 message SessionList {
   repeated Session sessions = 1;
 }
 
 message ApplicationList {
   repeated Application applications = 1;
-}
-
-message Result {
-  int32 return_code = 1;
-  optional string message = 2;
-}
-
-message EmptyRequest {
 }
