@@ -963,6 +963,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "flame-service"
+version = "0.1.0"
+
+[[package]]
 name = "flame-session-manager"
 version = "0.3.0"
 dependencies = [

@@ -15,6 +15,7 @@ mod log_shim;
 mod stdio_shim;
 mod wasm_shim;
 mod shell_shim;
+mod grpc_shim;
 
 use std::sync::Arc;
 
