@@ -49,7 +49,7 @@ impl State for BoundState {
 
                 let (ssn_id, task_id) = {
                     let task = &self.executor.task.clone().unwrap();
-                    (task.ssn_id.clone(), task.id.clone())
+                    (task.session_id.clone(), task.task_id.clone())
                 };
                 log::debug!("Complete task <{}/{}>", ssn_id, task_id)
             }

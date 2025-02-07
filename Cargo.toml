@@ -2,13 +2,14 @@
 resolver = "1"
 members = [
     "common",
-    "client",
     "flmctl",
     "flmping",
     "flmexec",
     "session_manager",
     "executor_manager",
     "rpc",
+    "sdk/rust/service",
+    "sdk/rust/client",
 ]
 
 [workspace.dependencies]

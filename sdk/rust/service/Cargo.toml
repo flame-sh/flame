@@ -1,0 +1,17 @@
+[package]
+name = "flame-service"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+tower = "0.4"
+prost = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+tokio-stream = "0.1"
+tonic.workspace = true
+thiserror = "1.0"
+bytes = "1"
+
+[build-dependencies]
+tonic-build = { workspace = true }

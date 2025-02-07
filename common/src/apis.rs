@@ -49,6 +49,7 @@ pub enum Shim {
     Stdio = 1,
     Wasm = 2,
     Shell = 3,
+    Grpc = 4,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -153,15 +154,15 @@ pub struct Executor {
 
 #[derive(Clone, Debug)]
 pub struct TaskContext {
-    pub id: String,
-    pub ssn_id: String,
+    pub task_id: String,
+    pub session_id: String,
     pub input: Option<TaskInput>,
     pub output: Option<TaskOutput>,
 }
 
 #[derive(Clone, Debug)]
 pub struct SessionContext {
-    pub ssn_id: String,
+    pub session_id: String,
     pub application: ApplicationContext,
     pub slots: i32,
     pub common_data: Option<CommonData>,
@@ -243,8 +244,8 @@ impl TryFrom<rpc::Task> for TaskContext {
             .ok_or(FlameError::InvalidConfig("spec".to_string()))?;
 
         Ok(TaskContext {
-            id: metadata.id,
-            ssn_id: spec.session_id.to_string(),
+            task_id: metadata.id.clone(),
+            session_id: spec.session_id.to_string(),
             input: spec.input.map(TaskInput::from),
             output: spec.output.map(TaskOutput::from),
         })
@@ -273,6 +274,37 @@ impl TryFrom<rpc::Application> for ApplicationContext {
     }
 }
 
+impl From<TaskContext> for rpc::TaskContext {
+    fn from(ctx: TaskContext) -> Self {
+        Self {
+            task_id: ctx.task_id.clone(),
+            session_id: ctx.session_id.clone(),
+            input: ctx.input.map(|d| d.into()),
+        }
+    }
+}
+
+impl From<SessionContext> for rpc::SessionContext {
+    fn from(ctx: SessionContext) -> Self {
+        Self {
+            session_id: ctx.session_id.clone(),
+            application: Some(ctx.application.into()),
+            common_data: ctx.common_data.map(|d| d.into()),
+        }
+    }
+}
+
+impl From<ApplicationContext> for rpc::ApplicationContext {
+    fn from(ctx: ApplicationContext) -> Self {
+        Self {
+            name: ctx.name.clone(),
+            url: ctx.url.clone(),
+            shim: ctx.shim.into(),
+            command: ctx.command.clone(),
+        }
+    }
+}
+
 impl TryFrom<rpc::BindExecutorResponse> for SessionContext {
     type Error = FlameError;
 
@@ -295,7 +327,7 @@ impl TryFrom<rpc::BindExecutorResponse> for SessionContext {
         let application = ApplicationContext::try_from(app)?;
 
         Ok(SessionContext {
-            ssn_id: metadata.id,
+            session_id: metadata.id,
             application,
             slots: spec.slots,
             common_data: spec.common_data.map(CommonData::from),
@@ -559,6 +591,7 @@ impl From<rpc::Shim> for Shim {
             rpc::Shim::Stdio => Self::Stdio,
             rpc::Shim::Wasm => Self::Wasm,
             rpc::Shim::Shell => Self::Shell,
+            rpc::Shim::Grpc => Self::Grpc,
         }
     }
 }
@@ -570,6 +603,7 @@ impl From<Shim> for rpc::Shim {
             Shim::Stdio => Self::Stdio,
             Shim::Wasm => Self::Wasm,
             Shim::Shell => Self::Shell,
+            Shim::Grpc => Self::Grpc,
         }
     }
 }

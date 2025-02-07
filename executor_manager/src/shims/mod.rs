@@ -11,20 +11,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+mod grpc_shim;
 mod log_shim;
+mod shell_shim;
 mod stdio_shim;
 mod wasm_shim;
-mod shell_shim;
 
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use grpc_shim::GrpcShim;
 use tokio::sync::Mutex;
 
 use self::log_shim::LogShim;
+use self::shell_shim::ShellShim;
 use self::stdio_shim::StdioShim;
 use self::wasm_shim::WasmShim;
-use self::shell_shim::ShellShim;
 
 use common::apis::{ApplicationContext, SessionContext, Shim as ShimType, TaskContext, TaskOutput};
 
@@ -37,6 +39,7 @@ pub async fn from(app: &ApplicationContext) -> Result<ShimPtr, FlameError> {
         ShimType::Stdio => Ok(StdioShim::new_ptr(app)),
         ShimType::Wasm => Ok(WasmShim::new_ptr(app).await?),
         ShimType::Shell => Ok(ShellShim::new_ptr(app)),
+        ShimType::Grpc => Ok(GrpcShim::new_ptr(app).await?),
         _ => Ok(LogShim::new_ptr(app)),
     }
 }

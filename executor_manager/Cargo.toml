@@ -16,6 +16,8 @@ log = { workspace = true }
 async-trait = { workspace = true }
 clap = { workspace = true }
 prost = { workspace = true }
+tower = "0.5"
+hyper-util = "0.1"
 
 bytes = "1"
 chrono = "0.4"

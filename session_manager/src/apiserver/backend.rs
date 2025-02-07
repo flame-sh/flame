@@ -49,7 +49,9 @@ impl Backend for Flame {
             state: apis::ExecutorState::Idle,
         };
 
-        self.controller.register_executor(&e).map_err(Status::from)?;
+        self.controller
+            .register_executor(&e)
+            .map_err(Status::from)?;
 
         Ok(Response::new(rpc::Result::default()))
     }
@@ -96,7 +98,9 @@ impl Backend for Flame {
         trace_fn!("Backend::bind_executor_completed");
         let req = req.into_inner();
 
-        self.controller.bind_session_completed(req.executor_id).await?;
+        self.controller
+            .bind_session_completed(req.executor_id)
+            .await?;
 
         Ok(Response::new(rpc::Result::default()))
     }

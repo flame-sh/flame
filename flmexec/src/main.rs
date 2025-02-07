@@ -72,7 +72,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut tasks = vec![];
     let tasks_creations_start_time = Local::now();
 
-    let info = Arc::new(Mutex::new(ExecInfo{}));
+    let info = Arc::new(Mutex::new(ExecInfo {}));
 
     for _ in 0..task_num {
         tasks.push(ssn.run_task(Some(cli.command.clone().into()), info.clone()));
@@ -95,13 +95,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-struct ExecInfo {
-}
+struct ExecInfo {}
 
 impl flame::TaskInformer for ExecInfo {
     fn on_update(&mut self, task: flame::Task) {
         if task.is_completed() {
-            println!("Task {:<10}: {:?}", task.id, task.output.unwrap_or_default());
+            println!(
+                "Task {:<10}: {:?}",
+                task.id,
+                task.output.unwrap_or_default()
+            );
         }
     }
 

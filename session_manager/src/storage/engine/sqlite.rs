@@ -21,7 +21,8 @@ use sqlx::{migrate::MigrateDatabase, FromRow, Sqlite, SqlitePool};
 
 use crate::FlameError;
 use common::apis::{
-    Application, ApplicationID, ApplicationState, CommonData, Session, SessionID, SessionState, SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskState
+    Application, ApplicationID, ApplicationState, CommonData, Session, SessionID, SessionState,
+    SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskState,
 };
 
 use crate::storage::engine::{Engine, EnginePtr};
@@ -372,7 +373,12 @@ impl Engine for SqliteEngine {
         task.try_into()
     }
 
-    async fn update_task(&self, gid: TaskGID, state: TaskState, output: Option<TaskOutput>) -> Result<Task, FlameError> {
+    async fn update_task(
+        &self,
+        gid: TaskGID,
+        state: TaskState,
+        output: Option<TaskOutput>,
+    ) -> Result<Task, FlameError> {
         let mut tx = self
             .pool
             .begin()
@@ -384,8 +390,7 @@ impl Engine for SqliteEngine {
             _ => None,
         };
         let output: Option<Vec<u8>> = output.map(Bytes::into);
-        let sql =
-            r#"UPDATE tasks SET state=?, completion_time=?, output=? WHERE id=? AND ssn_id=? RETURNING *"#;
+        let sql = r#"UPDATE tasks SET state=?, completion_time=?, output=? WHERE id=? AND ssn_id=? RETURNING *"#;
         let task: TaskDao = sqlx::query_as(sql)
             .bind::<i32>(state.into())
             .bind(completion_time)

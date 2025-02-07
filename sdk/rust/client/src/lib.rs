@@ -56,6 +56,13 @@ macro_rules! lock_ptr {
     };
 }
 
+#[macro_export]
+macro_rules! new_ptr {
+    ( $mutex_arc:expr ) => {
+        Arc::new(Mutex::new($mutex_arc))
+    };
+}
+
 pub async fn connect(addr: &str) -> Result<Connection, FlameError> {
     let endpoint = Endpoint::from_shared(addr.to_string())
         .map_err(|_| FlameError::InvalidConfig("invalid address".to_string()))?;
@@ -109,6 +116,7 @@ pub enum Shim {
     Stdio = 1,
     Wasm = 2,
     Shell = 3,
+    Grpc = 4,
 }
 
 #[derive(Clone)]
@@ -160,7 +168,6 @@ pub struct Task {
 }
 
 pub type TaskInformerPtr = Arc<Mutex<dyn TaskInformer>>;
-pub type TaskResultPtr = Arc<Mutex<Result<Task, FlameError>>>;
 
 pub trait TaskInformer: Send + Sync + 'static {
     fn on_update(&mut self, task: Task);
@@ -392,6 +399,7 @@ impl From<rpc::Shim> for Shim {
             rpc::Shim::Stdio => Shim::Stdio,
             rpc::Shim::Wasm => Shim::Wasm,
             rpc::Shim::Shell => Shim::Shell,
+            rpc::Shim::Grpc => Shim::Grpc,
         }
     }
 }

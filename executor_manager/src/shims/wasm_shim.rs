@@ -79,7 +79,7 @@ impl Shim for WasmShim {
         ctx: &apis::SessionContext,
     ) -> Result<(), common::FlameError> {
         let ssn_ctx = service::SessionContext {
-            session_id: ctx.ssn_id.clone(),
+            session_id: ctx.session_id.clone(),
             common_data: ctx.common_data.clone().map(apis::CommonData::into),
         };
 
@@ -101,8 +101,8 @@ impl Shim for WasmShim {
         ctx: &apis::TaskContext,
     ) -> Result<Option<apis::TaskOutput>, common::FlameError> {
         let task_ctx = service::TaskContext {
-            session_id: ctx.ssn_id.clone(),
-            task_id: ctx.id.clone(),
+            session_id: ctx.session_id.clone(),
+            task_id: ctx.task_id.clone(),
         };
 
         let output = self
@@ -122,7 +122,7 @@ impl Shim for WasmShim {
 
     async fn on_session_leave(&mut self) -> Result<(), common::FlameError> {
         let ssn_ctx = service::SessionContext {
-            session_id: self.session_context.clone().unwrap().ssn_id.clone(),
+            session_id: self.session_context.clone().unwrap().session_id.clone(),
             common_data: None,
         };
 
