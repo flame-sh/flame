@@ -13,6 +13,7 @@ limitations under the License.
 
 use std::env;
 use std::sync::Arc;
+use std::time::Duration;
 use tonic::transport::Server;
 
 use common::ctx::FlameContext;
@@ -65,6 +66,7 @@ impl FlameThread for ApiserverRunner {
         };
 
         Server::builder()
+            .tcp_keepalive(Some(Duration::from_secs(1)))
             .add_service(FrontendServer::new(frontend_service))
             .add_service(BackendServer::new(backend_service))
             .serve(address)
