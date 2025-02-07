@@ -8,8 +8,8 @@ members = [
     "session_manager",
     "executor_manager",
     "rpc",
-    "sdk/service",
-    "sdk/client",
+    "sdk/rust/service",
+    "sdk/rust/client",
 ]
 
 [workspace.dependencies]

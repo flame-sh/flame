@@ -19,7 +19,7 @@ ci-image:
 	sudo docker build -t xflops/flame-console -f docker/Dockerfile.console .
 
 update_protos:
-	cp rpc/protos/frontend.proto sdk/client/protos
-	cp rpc/protos/types.proto sdk/client/protos
-	cp rpc/protos/shim.proto sdk/service/protos
-	cp rpc/protos/types.proto sdk/service/protos
+	cp rpc/protos/frontend.proto sdk/rust/client/protos
+	cp rpc/protos/types.proto sdk/rust/client/protos
+	cp rpc/protos/shim.proto sdk/rust/service/protos
+	cp rpc/protos/types.proto sdk/rust/service/protos

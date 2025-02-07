@@ -11,18 +11,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::env::{self, VarError};
-
 use gethostname::gethostname;
 
-const FLAME_TASK_ID: &str = "FLAME_TASK_ID";
-const FLAME_SESSION_ID: &str = "FLAME_SESSION_ID";
+use flame_service::{self as flame, FlameError, SessionContext, TaskContext, TaskOutput};
 
-pub fn main() -> Result<(), VarError> {
-    let ssn_id = env::var(FLAME_SESSION_ID)?;
-    let task_id = env::var(FLAME_TASK_ID)?;
+#[derive(Clone)]
+pub struct FlmpingService {}
 
-    print!("Execute <{ssn_id}/{task_id}> on host <{:?}>", gethostname());
+#[tonic::async_trait]
+impl flame::FlameService for FlmpingService {
+    async fn on_session_enter(&self, _: SessionContext) -> Result<(), FlameError> {
+        Ok(())
+    }
+
+    async fn on_task_invoke(&self, ctx: TaskContext) -> Result<Option<TaskOutput>, FlameError> {
+        Ok(Some(TaskOutput::from(format!(
+            "Task <{}/{}> is executed on <{:?}>",
+            ctx.session_id,
+            ctx.task_id,
+            gethostname(),
+        ))))
+    }
+
+    async fn on_session_leave(&self) -> Result<(), FlameError> {
+        Ok(())
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    flame_service::run(FlmpingService {}).await?;
 
     Ok(())
 }

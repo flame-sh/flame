@@ -38,7 +38,7 @@ impl Shim for LogShim {
     async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
         log::info!(
             "on_session_enter: Session: <{}>, Application: <{}>, Slots: <{}>",
-            ctx.ssn_id,
+            ctx.session_id,
             ctx.application.name,
             ctx.slots
         );
@@ -53,8 +53,8 @@ impl Shim for LogShim {
     ) -> Result<Option<TaskOutput>, FlameError> {
         log::info!(
             "on_task_invoke: Task: <{}>, Session: <{}>",
-            ctx.id,
-            ctx.ssn_id
+            ctx.task_id,
+            ctx.session_id
         );
         Ok(None)
     }
@@ -67,7 +67,7 @@ impl Shim for LogShim {
             Some(ctx) => {
                 log::info!(
                     "on_session_leave: Session: <{}>, Application: <{}>, Slots: <{}>",
-                    ctx.ssn_id,
+                    ctx.session_id,
                     ctx.application.name,
                     ctx.slots
                 );

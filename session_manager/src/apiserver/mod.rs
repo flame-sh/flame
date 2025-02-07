@@ -26,13 +26,11 @@ mod backend;
 mod frontend;
 
 pub struct Flame {
-    controller: ControllerPtr
+    controller: ControllerPtr,
 }
 
 pub fn new(controller: ControllerPtr) -> Arc<dyn FlameThread> {
-    Arc::new(ApiserverRunner {
-        controller
-    })
+    Arc::new(ApiserverRunner { controller })
 }
 
 struct ApiserverRunner {

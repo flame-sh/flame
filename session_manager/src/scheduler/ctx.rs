@@ -74,7 +74,9 @@ impl Context {
         exec: ExecutorInfoPtr,
         ssn: SessionInfoPtr,
     ) -> Result<(), FlameError> {
-        self.controller.bind_session(exec.id.clone(), ssn.id).await?;
+        self.controller
+            .bind_session(exec.id.clone(), ssn.id)
+            .await?;
         self.plugins.on_session_bind(ssn)?;
         self.snapshot
             .update_executor_state(exec.clone(), ExecutorState::Binding)?;

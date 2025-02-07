@@ -69,6 +69,7 @@ enum Shim {
   Stdio = 1;
   Wasm = 2;
   Shell = 3;
+  Grpc = 4;
 }
 
 enum ApplicationState {

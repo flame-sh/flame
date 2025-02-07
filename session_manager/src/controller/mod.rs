@@ -57,7 +57,7 @@ impl Controller {
     }
 
     pub async fn delete_session(&self, id: SessionID) -> Result<Session, FlameError> {
-       self.storage.delete_session(id).await
+        self.storage.delete_session(id).await
     }
 
     pub fn list_session(&self) -> Result<Vec<Session>, FlameError> {
@@ -76,8 +76,6 @@ impl Controller {
         self.storage.get_task(ssn_id, id)
     }
 
-
-
     pub async fn update_task(
         &self,
         ssn: SessionPtr,
@@ -91,7 +89,7 @@ impl Controller {
     pub fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
         self.storage.register_executor(e)
     }
-   
+
     pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {
         self.storage.snapshot()
     }

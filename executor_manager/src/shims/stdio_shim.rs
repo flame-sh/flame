@@ -85,8 +85,8 @@ impl Shim for StdioShim {
             .stdout(Stdio::piped())
             // TODO: add working dir
             // .current_dir(&self.application.working_directory)
-            .env(FLAME_TASK_ID, &ctx.id)
-            .env(FLAME_SESSION_ID, &ctx.ssn_id)
+            .env(FLAME_TASK_ID, &ctx.task_id)
+            .env(FLAME_SESSION_ID, &ctx.session_id)
             .spawn()
             .map_err(|_| FlameError::Internal("failed to start subprocess".to_string()))?;
 

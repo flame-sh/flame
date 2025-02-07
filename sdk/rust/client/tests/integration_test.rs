@@ -15,7 +15,7 @@ use std::sync::{Arc, Mutex};
 
 use futures::future::try_join_all;
 
-use self::flame::{lock_ptr, Task, TaskInformer, TaskState};
+use self::flame::{lock_ptr, new_ptr, Task, TaskInformer, TaskState};
 use flame_client as flame;
 
 use self::flame::{FlameError, SessionAttributes, SessionState};
@@ -97,11 +97,11 @@ async fn test_create_session_with_tasks() -> Result<(), FlameError> {
 
     assert_eq!(ssn.state, SessionState::Open);
 
-    let informer = Arc::new(Mutex::new(DefaultTaskInformer {
+    let informer = new_ptr!(DefaultTaskInformer {
         succeed: 0,
         failed: 0,
         error: 0,
-    }));
+    });
 
     let task_num = 100;
     let mut tasks = vec![];
@@ -137,11 +137,11 @@ async fn test_create_multiple_sessions_with_tasks() -> Result<(), FlameError> {
     let ssn_2 = conn.create_session(&ssn_attr).await?;
     assert_eq!(ssn_2.state, SessionState::Open);
 
-    let informer = Arc::new(Mutex::new(DefaultTaskInformer {
+    let informer = new_ptr!(DefaultTaskInformer {
         succeed: 0,
         failed: 0,
         error: 0,
-    }));
+    });
 
     let task_num = 100;
     let mut tasks = vec![];
