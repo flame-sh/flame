@@ -16,6 +16,10 @@ pub mod ctx;
 pub mod ptr;
 pub mod trace;
 
+use std::io::Write;
+use std::process;
+
+use chrono::Local;
 use thiserror::Error;
 use tonic::Status;
 
@@ -124,3 +128,22 @@ macro_rules! lock_async_ptr {
 //         }
 //     }
 // }
+
+pub fn init_logger() {
+    // Initialize env_logger with a custom format
+    env_logger::Builder::from_default_env()
+        .format(|buf, record| {
+            let now = Local::now();
+            let pid = process::id(); // Get the current process ID
+            writeln!(
+                buf,
+                "{} [{}] {} [{}]: {}",
+                record.level(),
+                now.format("%Y-%m-%d %H:%M:%S%.6f"),
+                pid,
+                record.target(),
+                record.args()
+            )
+        })
+        .init();
+}

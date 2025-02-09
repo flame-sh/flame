@@ -37,7 +37,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::init();
+    common::init_logger();
 
     let cli = Cli::parse();
     let ctx = FlameContext::from_file(cli.flame_conf)?;
