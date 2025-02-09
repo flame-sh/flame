@@ -11,13 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::sync::Arc;
+use std::{env, process, sync::Arc, time::Duration};
 
 use bytes::Bytes;
+use flame::{grpc_service_manager_client::GrpcServiceManagerClient, RegisterServiceRequest};
+use futures::future::join_all;
 use thiserror::Error;
-use tokio::net::UnixListener;
-use tokio_stream::wrappers::UnixListenerStream;
-use tonic::{transport::Server, Request, Response, Status};
+use tokio::net::TcpListener;
+use tonic::{
+    transport::{server::TcpIncoming, Server},
+    Request, Response, Status,
+};
 
 mod flame {
     tonic::include_proto!("flame");
@@ -31,7 +35,7 @@ pub type TaskInput = Message;
 pub type TaskOutput = Message;
 pub type CommonData = Message;
 
-const FLAME_SOCKET_PATH: &str = "FLAME_SOCKET_PATH";
+const FLAME_SERVICE_MANAGER: &str = "FLAME_SERVICE_MANAGER";
 
 #[derive(Error, Debug, Clone)]
 pub enum FlameError {
@@ -77,24 +81,17 @@ pub type FlameServicePtr = Arc<dyn FlameService>;
 
 struct ShimService {
     service: FlameServicePtr,
+    // client: GrpcServiceManagerClient<Channel>,
 }
 
 #[tonic::async_trait]
 impl GrpcShim for ShimService {
-    async fn readiness(
-        &self,
-        _: Request<rpc::EmptyRequest>,
-    ) -> Result<Response<rpc::Result>, Status> {
-        Ok(Response::new(rpc::Result {
-            return_code: 0,
-            message: None,
-        }))
-    }
-
     async fn on_session_enter(
         &self,
         req: Request<rpc::SessionContext>,
     ) -> Result<Response<rpc::Result>, Status> {
+        log::debug!("ShimService::on_session_enter");
+
         let req = req.into_inner();
         self.service
             .on_session_enter(SessionContext::from(req))
@@ -110,6 +107,7 @@ impl GrpcShim for ShimService {
         &self,
         req: Request<rpc::TaskContext>,
     ) -> Result<Response<rpc::TaskOutput>, Status> {
+        log::debug!("ShimService::on_task_invoke");
         let req = req.into_inner();
         let data = self.service.on_task_invoke(TaskContext::from(req)).await?;
 
@@ -122,6 +120,7 @@ impl GrpcShim for ShimService {
         &self,
         _: Request<rpc::EmptyRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
+        log::debug!("ShimService::on_session_leave");
         self.service.on_session_leave().await?;
 
         Ok(Response::new(rpc::Result {
@@ -132,19 +131,47 @@ impl GrpcShim for ShimService {
 }
 
 pub async fn run(service: impl FlameService) -> Result<(), Box<dyn std::error::Error>> {
+    let listener = TcpListener::bind("127.0.0.1:0").await?;
+    let addr = listener.local_addr()?;
+
     let shim_service = ShimService {
         service: Arc::new(service),
     };
 
-    let path = std::env::var(FLAME_SOCKET_PATH)?;
+    let incoming = TcpIncoming::from_listener(listener, true, Some(Duration::from_secs(1)))
+        .map_err(|e| {
+            FlameError::Network(format!("failed to create TCP incomming from listener: {e}"))
+        })?;
+    let handler = tokio::spawn(async move {
+        Server::builder()
+            .add_service(GrpcShimServer::new(shim_service))
+            .serve_with_incoming(incoming)
+            .await
+    });
 
-    let uds = UnixListener::bind(path)?;
-    let uds_stream = UnixListenerStream::new(uds);
+    log::debug!("Start service on {}", addr.to_string());
 
-    Server::builder()
-        .add_service(GrpcShimServer::new(shim_service))
-        .serve_with_incoming(uds_stream)
+    let exec_addr = env::var(FLAME_SERVICE_MANAGER)?;
+    log::debug!(
+        "Try to connect to service manager {}",
+        exec_addr.to_string()
+    );
+
+    let mut client = GrpcServiceManagerClient::connect(exec_addr).await?;
+    client
+        .register_service(Request::new(RegisterServiceRequest {
+            address: format!("http://127.0.0.1:{}", addr.port()),
+            service_id: process::id().to_string(),
+        }))
         .await?;
+
+    let status = join_all(vec![handler]).await;
+    for s in status {
+        match s {
+            Err(e) => log::error!("Failed to join flame service: {}", e),
+            Ok(res) => log::debug!("Service was stopped with: {:?}", res),
+        }
+    }
 
     Ok(())
 }

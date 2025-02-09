@@ -10,7 +10,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 use gethostname::gethostname;
 
 use flame_service::{self as flame, FlameError, SessionContext, TaskContext, TaskOutput};
@@ -40,7 +39,11 @@ impl flame::FlameService for FlmpingService {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+
     flame_service::run(FlmpingService {}).await?;
+
+    log::debug!("FlmpingService was stopped.");
 
     Ok(())
 }

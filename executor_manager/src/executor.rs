@@ -16,6 +16,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::shims::ShimPtr;
+use crate::svcmgr::ServiceManagerPtr;
 use ::rpc::flame::{self as rpc, ExecutorSpec, Metadata};
 
 use common::apis::{Application, SessionContext, TaskContext};
@@ -44,6 +45,8 @@ impl From<ExecutorState> for rpc::ExecutorState {
 
 #[derive(Clone)]
 pub struct Executor {
+    pub service_manager: ServiceManagerPtr,
+
     pub id: String,
     pub slots: i32,
     pub applications: Vec<Application>,
@@ -85,7 +88,11 @@ impl Executor {
         self.shim = next.shim.clone();
     }
 
-    pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
+    pub async fn from_context(
+        ctx: &FlameContext,
+        slots: Option<i32>,
+        service_manager: ServiceManagerPtr,
+    ) -> Result<Self, FlameError> {
         // let applications = ctx.applications.iter().map(Application::from).collect();
 
         let exec = Executor {
@@ -97,6 +104,7 @@ impl Executor {
             shim: None,
             start_time: Utc::now(),
             state: ExecutorState::Init,
+            service_manager,
         };
 
         Ok(exec)

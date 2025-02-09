@@ -969,6 +969,8 @@ name = "flame-service"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "futures",
+ "log",
  "prost",
  "thiserror",
  "tokio",

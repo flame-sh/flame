@@ -11,7 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::env;
+use std::fs::File;
+use std::process::{self, Stdio};
 use std::sync::Arc;
+use std::time::Duration;
 use std::{thread, time};
 
 use async_trait::async_trait;
@@ -26,10 +30,12 @@ use tower::service_fn;
 use ::rpc::flame as rpc;
 use rpc::grpc_shim_client::GrpcShimClient;
 use rpc::EmptyRequest;
+use uuid::Uuid;
 
 use crate::shims::{Shim, ShimPtr};
+use crate::svcmgr::ServiceManagerPtr;
 use common::apis::{ApplicationContext, SessionContext, TaskContext, TaskOutput};
-use common::FlameError;
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 pub struct GrpcShim {
     session_context: Option<SessionContext>,
@@ -37,53 +43,44 @@ pub struct GrpcShim {
     child: tokio::process::Child,
 }
 
-const FLAME_SOCKET_PATH: &str = "FLAME_SOCKET_PATH";
+const FLAME_SERVICE_MANAGER: &str = "FLAME_SERVICE_MANAGER";
+const RUST_LOG: &str = "RUST_LOG";
+const DEFAULT_SVC_LOG_LEVEL: &str = "info";
 
 impl GrpcShim {
-    pub async fn new_ptr(app_ctx: &ApplicationContext) -> Result<ShimPtr, FlameError> {
-        let socket_path = format!("/tmp/flame-shim-{}.sock", uuid::Uuid::new_v4().simple());
-        std::env::set_var(FLAME_SOCKET_PATH, socket_path.clone());
-
+    pub async fn new_ptr(
+        app: &ApplicationContext,
+        servce_manager: ServiceManagerPtr,
+    ) -> Result<ShimPtr, FlameError> {
         // Spawn child process
-        let mut cmd = tokio::process::Command::new(&app_ctx.command.clone().unwrap());
-        cmd.env(FLAME_SOCKET_PATH, &socket_path).kill_on_drop(true);
+        let mut cmd = tokio::process::Command::new(&app.command.clone().unwrap());
+        let log_level = env::var(RUST_LOG).unwrap_or(String::from(DEFAULT_SVC_LOG_LEVEL));
 
-        let child = cmd
-            .env(FLAME_SOCKET_PATH, &socket_path)
+        let mut child = cmd
+            .env(FLAME_SERVICE_MANAGER, &servce_manager.get_address())
+            .env(RUST_LOG, log_level)
+            .kill_on_drop(true)
             .spawn()
-            .map_err(|e| FlameError::InvalidConfig(e.to_string()))?;
+            .map_err(|e| {
+                FlameError::InvalidConfig(format!(
+                    "failed to start service by command <{}>: {e}",
+                    app.command.clone().unwrap_or_default()
+                ))
+            })?;
 
-        let channel = Endpoint::try_from("http://[::]:50051")
-            .map_err(|e| FlameError::Network(e.to_string()))?
-            .connect_with_connector(service_fn(|_: Uri| async {
-                // Connect to a Uds socket
-                let path = std::env::var(FLAME_SOCKET_PATH).ok().unwrap();
-                Ok::<_, std::io::Error>(TokioIo::new(UnixStream::connect(path).await?))
-            }))
-            .await
-            .map_err(|e| FlameError::Network(e.to_string()))?;
+        let service_id = child.id().unwrap_or_default();
 
-        let mut client = GrpcShimClient::new(channel);
+        log::debug!(
+            "The service <{}> was started, waiting for registering.",
+            service_id
+        );
 
-        let mut connected = false;
-        for i in 1..10 {
-            let resp = client
-                .readiness(Request::new(EmptyRequest::default()))
-                .await;
-            if resp.is_ok() {
-                connected = true;
-                break;
-            }
-            // sleep 1s
-            let ten_millis = time::Duration::from_secs(1);
-            thread::sleep(ten_millis);
-        }
+        let addr = servce_manager.get_service(&service_id.to_string()).await?;
+        log::debug!("Try to connect to service <{}> at <{}>", service_id, addr);
 
-        if !connected {
-            return Err(FlameError::InvalidConfig(
-                "failed to connect to service".to_string(),
-            ));
-        }
+        let client = GrpcShimClient::connect(addr).await.map_err(|e| {
+            FlameError::Network(format!("failed to connect to service <{service_id}>: {e}"))
+        })?;
 
         Ok(Arc::new(Mutex::new(Self {
             session_context: None,
@@ -96,8 +93,11 @@ impl GrpcShim {
 #[async_trait]
 impl Shim for GrpcShim {
     async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
+        trace_fn!("GrpcShim::on_session_enter");
+
         let req = Request::new(rpc::SessionContext::from(ctx.clone()));
         self.client.on_session_enter(req).await?;
+
         Ok(())
     }
 
@@ -105,6 +105,8 @@ impl Shim for GrpcShim {
         &mut self,
         ctx: &TaskContext,
     ) -> Result<Option<TaskOutput>, FlameError> {
+        trace_fn!("GrpcShim::on_task_invoke");
+
         let req = Request::new(rpc::TaskContext::from(ctx.clone()));
         let resp = self.client.on_task_invoke(req).await?;
         let output = resp.into_inner();
@@ -113,12 +115,11 @@ impl Shim for GrpcShim {
     }
 
     async fn on_session_leave(&mut self) -> Result<(), FlameError> {
-        let _ = self
-            .client
+        trace_fn!("GrpcShim::on_session_leave");
+
+        self.client
             .on_session_leave(Request::new(EmptyRequest::default()))
             .await?;
-
-        self.child.kill();
 
         Ok(())
     }
