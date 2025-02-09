@@ -65,6 +65,16 @@ pub struct Application {
     pub working_directory: String,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct ApplicationAttributes {
+    pub shim: Shim,
+    pub url: Option<String>,
+    pub command: Option<String>,
+    pub arguments: Vec<String>,
+    pub environments: Vec<String>,
+    pub working_directory: String,
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum SessionState {
     #[default]
@@ -477,6 +487,19 @@ impl From<&Application> for rpc::Application {
             metadata,
             spec,
             status,
+        }
+    }
+}
+
+impl From<rpc::ApplicationSpec> for ApplicationAttributes {
+    fn from(spec: rpc::ApplicationSpec) -> Self {
+        Self {
+            shim: spec.shim().into(),
+            url: spec.url.clone(),
+            command: spec.command.clone(),
+            arguments: spec.arguments.clone(),
+            environments: spec.environments.clone(),
+            working_directory: spec.working_directory.clone().unwrap_or_default(),
         }
     }
 }

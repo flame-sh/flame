@@ -17,8 +17,9 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use common::apis::{
-    Application, ApplicationID, CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID,
-    SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
+    Application, ApplicationAttributes, ApplicationID, CommonData, Executor, ExecutorID,
+    ExecutorPtr, Session, SessionID, SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput,
+    TaskPtr, TaskState,
 };
 
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
@@ -96,6 +97,14 @@ impl Controller {
 
     pub async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError> {
         self.storage.get_application(id).await
+    }
+
+    pub async fn register_application(
+        &self,
+        name: String,
+        attr: ApplicationAttributes,
+    ) -> Result<(), FlameError> {
+        self.storage.register_application(name, attr).await
     }
 
     pub async fn list_application(&self) -> Result<Vec<Application>, FlameError> {

@@ -16,8 +16,9 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use common::apis::{
-    Application, ApplicationID, CommonData, Executor, ExecutorID, ExecutorPtr, Session, SessionID,
-    SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
+    Application, ApplicationAttributes, ApplicationID, CommonData, Executor, ExecutorID,
+    ExecutorPtr, Session, SessionID, SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput,
+    TaskOutput, TaskPtr, TaskState,
 };
 use common::ptr::{self, MutexPtr};
 use common::{lock_ptr, FlameError};
@@ -197,6 +198,14 @@ impl Storage {
 
     pub async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError> {
         self.engine.get_application(id).await
+    }
+
+    pub async fn register_application(
+        &self,
+        name: String,
+        attr: ApplicationAttributes,
+    ) -> Result<(), FlameError> {
+        self.engine.register_application(name, attr).await
     }
 
     pub async fn list_application(&self) -> Result<Vec<Application>, FlameError> {

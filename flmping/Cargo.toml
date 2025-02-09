@@ -9,7 +9,6 @@ edition = "2021"
 flame-client = { path = "../sdk/rust/client" }
 flame-service = { path = "../sdk/rust/service" }
 
-rpc = { path = "../rpc" }
 common = { path = "../common" }
 
 tokio = { workspace = true }

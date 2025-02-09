@@ -17,6 +17,7 @@ use ::rpc::flame::{
     UnregisterApplicationRequest, UpdateApplicationRequest,
 };
 use async_trait::async_trait;
+use common::apis::ApplicationAttributes;
 use futures::Stream;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -30,7 +31,7 @@ use self::rpc::{
 };
 use rpc::flame as rpc;
 
-use common::apis;
+use common::{apis, FlameError};
 use common::{trace::TraceFn, trace_fn};
 
 use crate::apiserver::Flame;
@@ -43,7 +44,27 @@ impl Frontend for Flame {
         &self,
         req: Request<RegisterApplicationRequest>,
     ) -> Result<Response<rpc::Result>, Status> {
-        todo!()
+        trace_fn!("Frontend::register_application");
+
+        let req = req.into_inner();
+        let spec = req.application.ok_or(FlameError::InvalidConfig(
+            "applilcation spec is missed".to_string(),
+        ))?;
+        let res = self
+            .controller
+            .register_application(req.name, ApplicationAttributes::from(spec))
+            .await;
+
+        match res {
+            Ok(..) => Ok(Response::new(rpc::Result {
+                return_code: 0,
+                message: None,
+            })),
+            Err(e) => Ok(Response::new(rpc::Result {
+                return_code: -1,
+                message: Some(e.to_string()),
+            })),
+        }
     }
     async fn unregister_application(
         &self,

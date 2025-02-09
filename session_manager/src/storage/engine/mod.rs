@@ -17,8 +17,8 @@ use async_trait::async_trait;
 
 use crate::FlameError;
 use common::apis::{
-    Application, ApplicationID, CommonData, Session, SessionID, Task, TaskGID, TaskInput,
-    TaskOutput, TaskState,
+    Application, ApplicationAttributes, ApplicationID, CommonData, Session, SessionID, Task,
+    TaskGID, TaskInput, TaskOutput, TaskState,
 };
 
 mod sqlite;
@@ -27,6 +27,11 @@ pub type EnginePtr = Arc<dyn Engine>;
 
 #[async_trait]
 pub trait Engine: Send + Sync + 'static {
+    async fn register_application(
+        &self,
+        name: String,
+        attr: ApplicationAttributes,
+    ) -> Result<(), FlameError>;
     async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError>;
     async fn find_application(&self) -> Result<Vec<Application>, FlameError>;
 
