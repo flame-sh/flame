@@ -15,10 +15,13 @@ use std::sync::{Arc, Mutex};
 
 use futures::future::try_join_all;
 
-use self::flame::{lock_ptr, new_ptr, Task, TaskInformer, TaskState};
-use flame_client as flame;
+use flame_rs as flame;
 
-use self::flame::{FlameError, SessionAttributes, SessionState};
+use flame::{
+    apis::{FlameError, SessionState, TaskState},
+    client::{SessionAttributes, Task, TaskInformer},
+    lock_ptr, new_ptr,
+};
 
 const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:30080";
 
@@ -46,7 +49,7 @@ impl TaskInformer for DefaultTaskInformer {
 
 #[tokio::test]
 async fn test_create_session() -> Result<(), FlameError> {
-    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
+    let conn = flame::client::connect(FLAME_DEFAULT_ADDR).await?;
 
     let ssn_attr = SessionAttributes {
         application: FLAME_DEFAULT_APP.to_string(),
@@ -64,7 +67,7 @@ async fn test_create_session() -> Result<(), FlameError> {
 
 #[tokio::test]
 async fn test_create_multiple_sessions() -> Result<(), FlameError> {
-    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
+    let conn = flame::client::connect(FLAME_DEFAULT_ADDR).await?;
 
     let ssn_num = 10;
 
@@ -86,7 +89,7 @@ async fn test_create_multiple_sessions() -> Result<(), FlameError> {
 
 #[tokio::test]
 async fn test_create_session_with_tasks() -> Result<(), FlameError> {
-    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
+    let conn = flame::client::connect(FLAME_DEFAULT_ADDR).await?;
 
     let ssn_attr = SessionAttributes {
         application: FLAME_DEFAULT_APP.to_string(),
@@ -124,7 +127,7 @@ async fn test_create_session_with_tasks() -> Result<(), FlameError> {
 
 #[tokio::test]
 async fn test_create_multiple_sessions_with_tasks() -> Result<(), FlameError> {
-    let conn = flame::connect(FLAME_DEFAULT_ADDR).await?;
+    let conn = flame::client::connect(FLAME_DEFAULT_ADDR).await?;
 
     let ssn_attr = SessionAttributes {
         application: FLAME_DEFAULT_APP.to_string(),

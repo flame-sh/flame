@@ -19,9 +19,9 @@ use chrono::Local;
 use clap::Parser;
 use indicatif::HumanCount;
 
-use self::flame::FlameError;
-use common::ctx::FlameContext;
-use flame_client as flame;
+use flame_rs as flame;
+use flame_rs::apis::{FlameContext, FlameError};
+use flame_rs::client::{SessionAttributes, Task, TaskInformer};
 
 #[derive(Parser)]
 #[command(name = "flmexec")]
@@ -54,10 +54,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let slots = cli.slots.unwrap_or(DEFAULT_SLOTS);
     let task_num = cli.task_num.unwrap_or(DEFAULT_TASK_NUM);
 
-    let conn = flame::connect(&ctx.endpoint).await?;
+    let conn = flame::client::connect(&ctx.endpoint).await?;
 
     let ssn_creation_start_time = Local::now();
-    let ssn_attr = flame::SessionAttributes {
+    let ssn_attr = SessionAttributes {
         application: DEFAULT_APP.to_string(),
         slots,
         common_data: None,
@@ -97,8 +97,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 struct ExecInfo {}
 
-impl flame::TaskInformer for ExecInfo {
-    fn on_update(&mut self, task: flame::Task) {
+impl TaskInformer for ExecInfo {
+    fn on_update(&mut self, task: Task) {
         if task.is_completed() {
             println!(
                 "Task {:<10}: {:?}",

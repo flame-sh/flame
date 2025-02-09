@@ -6,10 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-flame-client = { path = "../sdk/rust/client" }
-flame-service = { path = "../sdk/rust/service" }
-
-common = { path = "../common" }
+flame-rs = { path = "../sdk/rust" }
 
 tokio = { workspace = true }
 tonic = { workspace = true }

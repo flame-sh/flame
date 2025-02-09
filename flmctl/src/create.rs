@@ -13,13 +13,11 @@ limitations under the License.
 
 use std::error::Error;
 
-use common::ctx::FlameContext;
-
-use self::flame::SessionAttributes;
-use flame_client as flame;
+use flame_rs as flame;
+use flame_rs::{apis::FlameContext, client::SessionAttributes};
 
 pub async fn run(ctx: &FlameContext, app: &str, slots: &i32) -> Result<(), Box<dyn Error>> {
-    let conn = flame::connect(&ctx.endpoint).await?;
+    let conn = flame::client::connect(&ctx.endpoint).await?;
     let attr = SessionAttributes {
         application: app.to_owned(),
         slots: *slots,

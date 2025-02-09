@@ -21,7 +21,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .protoc_arg("--experimental_allow_proto3_optional")
         .compile_protos(
-            &["protos/types.proto", "protos/frontend.proto"],
+            &[
+                "protos/types.proto",
+                "protos/frontend.proto",
+                "protos/shim.proto",
+            ],
             &["protos"],
         )?;
 

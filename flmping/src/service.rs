@@ -12,13 +12,17 @@ limitations under the License.
 */
 use gethostname::gethostname;
 
-use flame_service::{self as flame, FlameError, SessionContext, TaskContext, TaskOutput};
+use flame_rs::{
+    self as flame,
+    apis::{FlameError, TaskOutput},
+    service::{SessionContext, TaskContext},
+};
 
 #[derive(Clone)]
 pub struct FlmpingService {}
 
 #[tonic::async_trait]
-impl flame::FlameService for FlmpingService {
+impl flame::service::FlameService for FlmpingService {
     async fn on_session_enter(&self, _: SessionContext) -> Result<(), FlameError> {
         Ok(())
     }
@@ -41,7 +45,7 @@ impl flame::FlameService for FlmpingService {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    flame_service::run(FlmpingService {}).await?;
+    flame::service::run(FlmpingService {}).await?;
 
     log::debug!("FlmpingService was stopped.");
 

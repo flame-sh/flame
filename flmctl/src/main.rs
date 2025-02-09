@@ -14,7 +14,7 @@ limitations under the License.
 use std::error::Error;
 
 use clap::{Parser, Subcommand};
-use common::ctx::FlameContext;
+use flame_rs::apis::FlameContext;
 
 mod create;
 mod helper;
