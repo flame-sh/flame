@@ -13,10 +13,14 @@ limitations under the License.
 
 use std::{fs, path::Path};
 
-use serde_derive::{Deserialize, Serialize};
+use flame_rs as flame;
+use flame_rs::apis::Shim;
+use flame_rs::{
+    apis::{FlameContext, FlameError},
+    client::ApplicationAttributes,
+};
 
-use common::ctx::FlameContext;
-use flame_client::{self as flame, ApplicationAttributes, FlameError, Shim};
+use serde_derive::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct MetadataYaml {
@@ -53,7 +57,7 @@ pub async fn run(ctx: &FlameContext, path: &String) -> Result<(), FlameError> {
 
     let app_attr = ApplicationAttributes::try_from(&app)?;
 
-    let conn = flame::connect(&ctx.endpoint).await?;
+    let conn = flame::client::connect(&ctx.endpoint).await?;
 
     conn.register_application(app.metadata.name, app_attr)
         .await?;

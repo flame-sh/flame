@@ -11,10 +11,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tonic_build::configure().compile_protos(
-        &["protos/shim.proto"],
-        &["protos/"], // Proto file location
-    )?;
-    Ok(())
-}
+pub mod apis;
+pub mod client;
+pub mod service;

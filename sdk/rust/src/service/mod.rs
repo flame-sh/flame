@@ -13,44 +13,21 @@ limitations under the License.
 
 use std::{env, process, sync::Arc, time::Duration};
 
-use bytes::Bytes;
-use flame::{grpc_service_manager_client::GrpcServiceManagerClient, RegisterServiceRequest};
 use futures::future::join_all;
-use thiserror::Error;
+use rpc::{grpc_service_manager_client::GrpcServiceManagerClient, RegisterServiceRequest};
+
 use tokio::net::TcpListener;
 use tonic::{
     transport::{server::TcpIncoming, Server},
     Request, Response, Status,
 };
 
-mod flame {
-    tonic::include_proto!("flame");
-}
-
 use self::rpc::grpc_shim_server::{GrpcShim, GrpcShimServer};
-use crate::flame as rpc;
+use crate::apis::flame as rpc;
 
-type Message = Bytes;
-pub type TaskInput = Message;
-pub type TaskOutput = Message;
-pub type CommonData = Message;
+use crate::apis::{CommonData, FlameError, TaskInput, TaskOutput};
 
 const FLAME_SERVICE_MANAGER: &str = "FLAME_SERVICE_MANAGER";
-
-#[derive(Error, Debug, Clone)]
-pub enum FlameError {
-    #[error("'{0}' not found")]
-    NotFound(String),
-
-    #[error("'{0}'")]
-    Internal(String),
-
-    #[error("'{0}'")]
-    Network(String),
-
-    #[error("'{0}'")]
-    InvalidConfig(String),
-}
 
 pub struct ApplicationContext {
     pub name: String,

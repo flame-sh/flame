@@ -920,27 +920,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
-name = "flame-client"
-version = "0.3.1"
-dependencies = [
- "async-trait",
- "bytes",
- "chrono",
- "clap",
- "env_logger",
- "futures",
- "log",
- "prost",
- "strum",
- "strum_macros",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tonic",
- "tonic-build",
-]
-
-[[package]]
 name = "flame-executor-manager"
 version = "0.3.0"
 dependencies = [
@@ -965,13 +944,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "flame-service"
-version = "0.1.0"
+name = "flame-rs"
+version = "0.2.0"
 dependencies = [
  "bytes",
+ "chrono",
  "futures",
  "log",
  "prost",
+ "serde",
+ "serde_derive",
+ "serde_yaml",
+ "stdng",
+ "strum",
+ "strum_macros",
  "thiserror",
  "tokio",
  "tokio-stream",
@@ -1012,9 +998,8 @@ version = "0.3.0"
 dependencies = [
  "chrono",
  "clap",
- "common",
  "env_logger",
- "flame-client",
+ "flame-rs",
  "log",
  "serde",
  "serde_derive",
@@ -1031,13 +1016,11 @@ version = "0.3.0"
 dependencies = [
  "chrono",
  "clap",
- "common",
  "env_logger",
- "flame-client",
+ "flame-rs",
  "futures",
  "indicatif",
  "log",
- "rpc",
  "tokio",
  "tonic",
 ]
@@ -1048,10 +1031,8 @@ version = "0.3.0"
 dependencies = [
  "chrono",
  "clap",
- "common",
  "env_logger",
- "flame-client",
- "flame-service",
+ "flame-rs",
  "futures",
  "gethostname",
  "indicatif",

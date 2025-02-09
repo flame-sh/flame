@@ -13,17 +13,13 @@ limitations under the License.
 
 use std::sync::{Arc, Mutex};
 
-use bytes::Bytes;
 use chrono::{DateTime, TimeZone, Utc};
-
 use futures::TryFutureExt;
-use prost::Enumeration;
-use thiserror::Error;
+use stdng::{logs::TraceFn, trace_fn};
 use tokio_stream::StreamExt;
 use tonic::transport::Channel;
 use tonic::transport::Endpoint;
 use tonic::Request;
-use tonic::Status;
 
 use self::rpc::frontend_client::FrontendClient as FlameFrontendClient;
 use self::rpc::{
@@ -31,40 +27,15 @@ use self::rpc::{
     ListApplicationRequest, ListSessionRequest, RegisterApplicationRequest, SessionSpec, TaskSpec,
     WatchTaskRequest,
 };
-use crate::flame as rpc;
-use crate::trace::TraceFn;
-
-mod trace;
-
-mod flame {
-    tonic::include_proto!("flame");
-}
+use crate::apis::flame as rpc;
+use crate::apis::Shim;
+use crate::apis::{
+    ApplicationID, ApplicationState, CommonData, FlameError, SessionID, SessionState, TaskID,
+    TaskInput, TaskOutput, TaskState,
+};
+use crate::lock_ptr;
 
 type FlameClient = FlameFrontendClient<Channel>;
-type TaskID = String;
-type SessionID = String;
-type ApplicationID = String;
-
-type Message = Bytes;
-pub type TaskInput = Message;
-pub type TaskOutput = Message;
-pub type CommonData = Message;
-
-#[macro_export]
-macro_rules! lock_ptr {
-    ( $mutex_arc:expr ) => {
-        $mutex_arc
-            .lock()
-            .map_err(|_| FlameError::Internal("mutex ptr".to_string()))
-    };
-}
-
-#[macro_export]
-macro_rules! new_ptr {
-    ( $mutex_arc:expr ) => {
-        Arc::new(Mutex::new($mutex_arc))
-    };
-}
 
 pub async fn connect(addr: &str) -> Result<Connection, FlameError> {
     let endpoint = Endpoint::from_shared(addr.to_string())
@@ -76,50 +47,6 @@ pub async fn connect(addr: &str) -> Result<Connection, FlameError> {
         .map_err(|_| FlameError::InvalidConfig("failed to connect".to_string()))?;
 
     Ok(Connection { channel })
-}
-
-#[derive(Error, Debug, Clone)]
-pub enum FlameError {
-    #[error("'{0}' not found")]
-    NotFound(String),
-
-    #[error("'{0}'")]
-    Internal(String),
-
-    #[error("'{0}'")]
-    Network(String),
-
-    #[error("'{0}'")]
-    InvalidConfig(String),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
-pub enum SessionState {
-    Open = 0,
-    Closed = 1,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
-pub enum TaskState {
-    Pending = 0,
-    Running = 1,
-    Succeed = 2,
-    Failed = 3,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
-pub enum ApplicationState {
-    Enabled = 0,
-    Disabled = 1,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Enumeration, strum_macros::Display)]
-pub enum Shim {
-    Log = 0,
-    Stdio = 1,
-    Wasm = 2,
-    Shell = 3,
-    Grpc = 4,
 }
 
 #[derive(Clone)]
@@ -365,12 +292,6 @@ impl Session {
     }
 }
 
-impl From<Status> for FlameError {
-    fn from(value: Status) -> Self {
-        FlameError::Network(value.code().to_string())
-    }
-}
-
 impl From<&rpc::Task> for Task {
     fn from(task: &rpc::Task) -> Self {
         let metadata = task.metadata.clone().unwrap();
@@ -452,27 +373,6 @@ impl From<ApplicationSpec> for ApplicationAttributes {
             arguments: app.arguments.clone(),
             environments: app.environments.clone(),
             working_directory: app.working_directory.clone(),
-        }
-    }
-}
-
-impl From<rpc::Shim> for Shim {
-    fn from(shim: rpc::Shim) -> Self {
-        match shim {
-            rpc::Shim::Log => Shim::Log,
-            rpc::Shim::Stdio => Shim::Stdio,
-            rpc::Shim::Wasm => Shim::Wasm,
-            rpc::Shim::Shell => Shim::Shell,
-            rpc::Shim::Grpc => Shim::Grpc,
-        }
-    }
-}
-
-impl From<rpc::ApplicationState> for ApplicationState {
-    fn from(s: rpc::ApplicationState) -> Self {
-        match s {
-            rpc::ApplicationState::Disabled => Self::Disabled,
-            rpc::ApplicationState::Enabled => Self::Enabled,
         }
     }
 }

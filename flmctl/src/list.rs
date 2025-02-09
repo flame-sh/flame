@@ -14,16 +14,16 @@ limitations under the License.
 use std::cmp::Ordering;
 use std::error::Error;
 
-use common::ctx::FlameContext;
-use flame_client::SessionState;
-use flame_client::{self as flame, Connection, FlameError};
+use flame_rs as flame;
+use flame_rs::apis::{FlameContext, FlameError, SessionState};
+use flame_rs::client::Connection;
 
 pub async fn run(
     ctx: &FlameContext,
     application: bool,
     session: bool,
 ) -> Result<(), Box<dyn Error>> {
-    let conn = flame::connect(&ctx.endpoint).await?;
+    let conn = flame::client::connect(&ctx.endpoint).await?;
     match (application, session) {
         (true, false) => list_application(conn).await,
         (false, true) => list_session(conn).await,

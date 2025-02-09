@@ -13,10 +13,9 @@ limitations under the License.
 
 use std::error::Error;
 
+use flame_rs::apis::FlameContext;
 use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
 use url::Url;
-
-use common::ctx::FlameContext;
 
 pub async fn run(_: &FlameContext, url: &str, sql: &str) -> Result<(), Box<dyn Error>> {
     let uri = Url::parse(url)?;
