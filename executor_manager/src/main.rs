@@ -21,6 +21,7 @@ mod client;
 mod executor;
 mod shims;
 mod states;
+mod svcmgr;
 
 #[derive(Parser)]
 #[command(name = "flame-executor-manager")]
@@ -46,7 +47,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Run executor.
     // TODO(k82cn): 1. enable gracefully exit, 2. build ExecutorManager for multiple executors.
-    let mut exec = Executor::from_context(&ctx, cli.slots).await?;
+    let service_manager = svcmgr::new().await?;
+    let mut exec = Executor::from_context(&ctx, cli.slots, service_manager).await?;
 
     // TODO(k82cn): Replace the following loop with `exec.run().await?;`.
     loop {

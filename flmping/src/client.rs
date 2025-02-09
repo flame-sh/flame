@@ -11,17 +11,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use futures::future::try_join_all;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
 
 use chrono::Local;
 use clap::Parser;
-use indicatif::{HumanCount, ProgressBar, ProgressStyle};
+use futures::future::try_join_all;
+use indicatif::HumanCount;
 
 use self::flame::FlameError;
 use common::ctx::FlameContext;
-use flame_client as flame;
+use flame_client::{self as flame, new_ptr};
 
 #[derive(Parser)]
 #[command(name = "flmping")]
@@ -39,7 +39,7 @@ struct Cli {
 
 const DEFAULT_APP: &str = "flmping";
 const DEFAULT_SLOTS: i32 = 1;
-const DEFAULT_TASK_NUM: i32 = 100;
+const DEFAULT_TASK_NUM: i32 = 10;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut tasks = vec![];
     let tasks_creations_start_time = Local::now();
 
-    let info = Arc::new(Mutex::new(BarInfo::new(task_num as u64)));
+    let info = new_ptr!(OutputInfor::new());
 
     for _ in 0..task_num {
         tasks.push(ssn.run_task(None, info.clone()));
@@ -77,11 +77,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     try_join_all(tasks).await?;
     let tasks_creation_end_time = Local::now();
-
-    {
-        let mut informer = flame::lock_ptr!(info)?;
-        informer.finish();
-    }
 
     let tasks_creation_time =
         tasks_creation_end_time.timestamp_millis() - tasks_creations_start_time.timestamp_millis();
@@ -97,30 +92,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-struct BarInfo {
-    bar: ProgressBar,
-}
+struct OutputInfor {}
 
-impl BarInfo {
-    pub fn new(n: u64) -> Self {
-        let bar = ProgressBar::new(n);
-        bar.set_style(
-            ProgressStyle::with_template("[{percent}%] {bar:45.cyan/blue} {pos:>7}/{len:7} {msg}")
-                .unwrap()
-                .progress_chars("=> "),
-        );
+impl OutputInfor {
+    fn new() -> Self {
+        println!("{:<10}{:<10}{:<15}{}", "Session", "Task", "State", "Output");
 
-        BarInfo { bar }
-    }
-    pub fn finish(&mut self) {
-        self.bar.finish();
+        Self {}
     }
 }
 
-impl flame::TaskInformer for BarInfo {
+impl flame::TaskInformer for OutputInfor {
     fn on_update(&mut self, task: flame::Task) {
         if task.is_completed() {
-            self.bar.inc(1)
+            let output = task.output.unwrap_or_default();
+            println!(
+                "{:<10}{:<10}{:<15}{:?}",
+                task.ssn_id, task.id, task.state, output
+            );
         }
     }
 
