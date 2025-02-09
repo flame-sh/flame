@@ -20,6 +20,8 @@ mod create;
 mod helper;
 mod list;
 mod migrate;
+mod register;
+mod unregister;
 mod view;
 
 #[derive(Parser)]
@@ -77,6 +79,18 @@ enum Commands {
         #[arg(short, long)]
         sql: String,
     },
+    /// Register an application
+    Register {
+        /// The yaml file of the application
+        #[arg(short, long)]
+        file: String,
+    },
+    /// Unregister the application from Flame
+    Unregister {
+        /// The name of the application
+        #[arg(short, long)]
+        name: String,
+    },
 }
 
 #[tokio::main]
@@ -97,6 +111,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Some(Commands::Create { app, slots }) => create::run(&ctx, app, slots).await?,
         Some(Commands::View { session }) => view::run(&ctx, session).await?,
         Some(Commands::Migrate { url, sql }) => migrate::run(&ctx, url, sql).await?,
+        Some(Commands::Register { file }) => register::run(&ctx, file).await?,
+        Some(Commands::Unregister { name }) => unregister::run(&ctx, name).await?,
         _ => helper::run().await?,
     };
 

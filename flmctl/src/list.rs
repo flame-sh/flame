@@ -45,10 +45,10 @@ async fn list_application(conn: Connection) -> Result<(), Box<dyn Error>> {
         println!(
             "{:<15}{:<15}{:<15}{:<15}{:<30}",
             app.name,
-            app.shim.to_string(),
+            app.attributes.shim.to_string(),
             app.state.to_string(),
             app.creation_time.format("%T"),
-            app.command.clone().unwrap_or("-".to_string())
+            app.attributes.command.clone().unwrap_or("-".to_string())
         );
     }
 

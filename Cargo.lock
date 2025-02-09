@@ -1016,6 +1016,9 @@ dependencies = [
  "env_logger",
  "flame-client",
  "log",
+ "serde",
+ "serde_derive",
+ "serde_yaml",
  "sqlx",
  "tokio",
  "tonic",
@@ -1053,7 +1056,6 @@ dependencies = [
  "gethostname",
  "indicatif",
  "log",
- "rpc",
  "tokio",
  "tonic",
 ]

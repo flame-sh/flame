@@ -15,18 +15,21 @@ use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
 use chrono::{DateTime, TimeZone, Utc};
+
 use futures::TryFutureExt;
 use prost::Enumeration;
 use thiserror::Error;
 use tokio_stream::StreamExt;
 use tonic::transport::Channel;
 use tonic::transport::Endpoint;
+use tonic::Request;
 use tonic::Status;
 
 use self::rpc::frontend_client::FrontendClient as FlameFrontendClient;
 use self::rpc::{
-    CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest,
-    ListApplicationRequest, ListSessionRequest, SessionSpec, TaskSpec, WatchTaskRequest,
+    ApplicationSpec, CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest,
+    ListApplicationRequest, ListSessionRequest, RegisterApplicationRequest, SessionSpec, TaskSpec,
+    WatchTaskRequest,
 };
 use crate::flame as rpc;
 use crate::trace::TraceFn;
@@ -132,11 +135,23 @@ pub struct SessionAttributes {
 }
 
 #[derive(Clone)]
+pub struct ApplicationAttributes {
+    pub shim: Shim,
+
+    pub url: Option<String>,
+    pub command: Option<String>,
+    pub arguments: Vec<String>,
+    pub environments: Vec<String>,
+    pub working_directory: Option<String>,
+}
+
+#[derive(Clone)]
 pub struct Application {
     pub name: ApplicationID,
+
+    pub attributes: ApplicationAttributes,
+
     pub state: ApplicationState,
-    pub shim: Shim,
-    pub command: Option<String>,
     pub creation_time: DateTime<Utc>,
 }
 
@@ -212,6 +227,30 @@ impl Connection {
             .iter()
             .map(Session::from)
             .collect())
+    }
+
+    pub async fn register_application(
+        &self,
+        name: String,
+        app: ApplicationAttributes,
+    ) -> Result<(), FlameError> {
+        let mut client = FlameClient::new(self.channel.clone());
+
+        let req = RegisterApplicationRequest {
+            name,
+            application: Some(ApplicationSpec::from(app)),
+        };
+
+        let res = client
+            .register_application(Request::new(req))
+            .await?
+            .into_inner();
+
+        if res.return_code < 0 {
+            Err(FlameError::Network(res.message.unwrap_or_default()))
+        } else {
+            Ok(())
+        }
     }
 
     pub async fn list_application(&self) -> Result<Vec<Application>, FlameError> {
@@ -384,10 +423,35 @@ impl From<&rpc::Application> for Application {
 
         Self {
             name: metadata.name,
-            shim: Shim::from(spec.shim()),
+            attributes: ApplicationAttributes::from(spec),
             state: ApplicationState::from(status.state()),
-            command: spec.command.clone(),
             creation_time,
+        }
+    }
+}
+
+impl From<ApplicationAttributes> for ApplicationSpec {
+    fn from(app: ApplicationAttributes) -> Self {
+        Self {
+            shim: app.shim.into(),
+            url: app.url.clone(),
+            command: app.command.clone(),
+            arguments: app.arguments.clone(),
+            environments: app.environments.clone(),
+            working_directory: app.working_directory.clone(),
+        }
+    }
+}
+
+impl From<ApplicationSpec> for ApplicationAttributes {
+    fn from(app: ApplicationSpec) -> Self {
+        Self {
+            shim: app.shim().into(),
+            url: app.url.clone(),
+            command: app.command.clone(),
+            arguments: app.arguments.clone(),
+            environments: app.environments.clone(),
+            working_directory: app.working_directory.clone(),
         }
     }
 }

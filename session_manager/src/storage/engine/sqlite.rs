@@ -20,9 +20,14 @@ use chrono::{DateTime, Utc};
 use sqlx::{migrate::MigrateDatabase, FromRow, Sqlite, SqlitePool};
 
 use crate::FlameError;
-use common::apis::{
-    Application, ApplicationID, ApplicationState, CommonData, Session, SessionID, SessionState,
-    SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskState,
+use common::{
+    apis::{
+        Application, ApplicationAttributes, ApplicationID, ApplicationState, CommonData, Session,
+        SessionID, SessionState, SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskOutput,
+        TaskState,
+    },
+    trace::TraceFn,
+    trace_fn,
 };
 
 use crate::storage::engine::{Engine, EnginePtr};
@@ -98,6 +103,35 @@ impl SqliteEngine {
 
 #[async_trait]
 impl Engine for SqliteEngine {
+    async fn register_application(
+        &self,
+        name: String,
+        attr: ApplicationAttributes,
+    ) -> Result<(), FlameError> {
+        trace_fn!("Sqlite::register_application");
+
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| FlameError::Storage(format!("failed to begin TX: {e}")))?;
+
+        let sql = "INSERT INTO applications (name, shim, command, creation_time, state) VALUES (?, ?, ?, strftime ('%s', 'now'), 0) RETURNING *";
+        let app: ApplicationDao = sqlx::query_as(sql)
+            .bind(name)
+            .bind::<i32>(attr.shim.into())
+            .bind(attr.command)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(|e| FlameError::Storage(format!("failed to execute SQL: {e}")))?;
+
+        tx.commit()
+            .await
+            .map_err(|e| FlameError::Storage(format!("failed to commit TX: {e}")))?;
+
+        Ok(())
+    }
+
     async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError> {
         let mut tx = self
             .pool
