@@ -1,0 +1,23 @@
+[package]
+name = "pi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+flame-rs = { path = "../../sdk/rust" }
+tokio = { workspace = true }
+tonic = { workspace = true }
+env_logger = { workspace = true }
+log = { workspace = true }
+rand_distr = "*"
+rand="*"
+futures = "0.3"
+clap = { version = "4.1", features = ["derive"] }
+
+[[bin]]
+name = "pi-service"
+path = "src/service.rs"
+
+[[bin]]
+name = "pi"
+path = "src/client.rs"

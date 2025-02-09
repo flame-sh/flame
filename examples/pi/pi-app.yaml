@@ -1,0 +1,5 @@
+metadata:
+  name: pi-app
+spec:
+  shim: grpc
+  command: /usr/local/flame/bin/pi-service

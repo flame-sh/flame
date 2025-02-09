@@ -13,6 +13,8 @@ limitations under the License.
 
 use clap::Parser;
 use futures::future::join_all;
+use std::io::Write;
+use std::process;
 
 use common::ctx::FlameContext;
 use common::FlameError;
@@ -35,7 +37,7 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<(), FlameError> {
-    env_logger::init();
+    common::init_logger();
 
     let cli = Cli::parse();
     let ctx = FlameContext::from_file(cli.flame_conf)?;
