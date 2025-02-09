@@ -17,7 +17,7 @@ use rand::distr::{Distribution, Uniform};
 
 use flame_rs::{
     self as flame,
-    apis::{FlameError, TaskOutput},
+    apis::{FlameError, TaskOutput, TaskInput},
     service::{SessionContext, TaskContext},
 };
 
@@ -34,7 +34,7 @@ impl flame::service::FlameService for PiService {
         let mut rng = rand::rng();
         let die = Uniform::try_from(0.0..1.0).unwrap();
 
-        let input = ctx.input.unwrap_or(util::zero_u32());
+        let input = ctx.input.unwrap_or(TaskInput::from(util::zero_u32()));
         let total = util::bytes_to_u32(input.to_vec())?;
         let mut sum = 0u32;
 

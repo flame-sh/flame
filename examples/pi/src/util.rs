@@ -11,10 +11,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use flame_rs::apis::{FlameError, TaskOutput};
+use flame_rs::apis::FlameError;
 
-pub fn zero_u32() -> TaskOutput {
-    TaskOutput::from(vec![0u8, 0u8, 0u8, 0u8])
+#[allow(dead_code)]
+pub fn zero_u32() -> Vec<u8> {
+    vec![0u8, 0u8, 0u8, 0u8]
 }
 
 pub fn u32_to_bytes(i: u32) -> Vec<u8> {
