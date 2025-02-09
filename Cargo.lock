@@ -2165,6 +2165,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "pi"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "env_logger",
+ "flame-rs",
+ "futures",
+ "log",
+ "rand 0.9.0",
+ "rand_distr",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
 name = "pin-project"
 version = "1.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2386,6 +2401,16 @@ checksum = "b08f3c9802962f7e1b25113931d94f43ed9725bebc59db9d0c3e9a23b67e15ff"
 dependencies = [
  "getrandom 0.3.1",
  "zerocopy 0.8.17",
+]
+
+[[package]]
+name = "rand_distr"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ddc3b5afe4c995c44540865b8ca5c52e6a59fa362da96c5d30886930ddc8da1c"
+dependencies = [
+ "num-traits",
+ "rand 0.9.0",
 ]
 
 [[package]]

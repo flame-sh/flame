@@ -9,6 +9,7 @@ members = [
     "executor_manager",
     "rpc",
     "sdk/rust",
+    "examples/pi",
 ]
 
 [workspace.dependencies]
