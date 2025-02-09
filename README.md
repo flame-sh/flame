@@ -21,7 +21,7 @@ those intelligent workloads by following aspects:
 
 ## Overall Architecture
 
-![flame-architecture](https://github.com/flame-sh/flame/blob/main/docs/images/flame-architecture.jpg)
+![flame-architecture](https://raw.githubusercontent.com/flame-sh/flame/refs/heads/main/docs/images/flame-architecture.jpg)
 
 ### Terminologies
 
