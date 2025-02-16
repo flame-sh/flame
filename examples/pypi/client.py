@@ -11,7 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flame
+import flame.client as flame
+
 import argparse
 
 parser = argparse.ArgumentParser(description='Flame Pi Python Example.')
@@ -25,7 +26,6 @@ area = 0.0
 def get_circle_area(task):
     global area
     area += float(task.output)
-
 
 conn = flame.connect("127.0.0.1:8080")
 ssn = conn.create_session(application="pi", slots=1)

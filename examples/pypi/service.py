@@ -10,14 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import flame
+from flame.service import FlameService
+from flame.service import start_service
 
-def PiService(flame.FlameService):
+def PiService(FlameService):
     def __init__(self):
         self.area = 0.0
 
-
-
-
 # Start Flame Pi Service
-flame.start_service(PiService)
+start_service(PiService)

@@ -10,3 +10,6 @@ dependencies = [
   "grpcio==1.70",
   "protobuf==5.29",
 ]
+
+[tool.setuptools]
+packages = ["flame"]
