@@ -9,18 +9,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 from enum import Enum
-from concurrent import futures
-from urllib.parse import urlparse
 import grpc
-import logging
 
-import frontend_pb2_grpc
-import frontend_pb2
-import types_pb2
-import shim_pb2_grpc
-import shim_pb2
+from rpc import *
 
 def connect(addr):
     channel = grpc.insecure_channel(addr)
@@ -91,58 +83,3 @@ class Task:
         self.input = task.spec.input
         self.output = task.spec.output
         self.state = TaskState(task.status.state)
-
-class TaskInput:
-    pass
-
-class TaskOutput:
-    pass
-
-class CommonData:
-    pass
-
-class ApplicationContext:
-    def __init__(self, app_context):
-        self.name = app_context.name
-
-class SessonContext:
-    def __init__(self, ssn_context):
-        self.session_id = ssn_context.id,
-        self.application = ApplicationContext(ssn_context.application),
-        self.common_data = ssn_context.common_data,
-
-class TaskContext:
-    pass
-
-
-class FlameService:
-    def on_session_enter(self, ssn_context):
-        pass
-
-    def on_session_enter(self):
-        pass
-
-    def on_task_invoke(self, task_context) -> TaskOutput:
-        pass
-
-class GrpcShimService(shim_pb2_grpc.GrpcShimServicer):
-    def __init__(self, service):
-        self.service = service
-
-    def OnSessionEnter(self, ctx):
-        ssn_ctx = SessonContext(ctx)
-        self.service.on_session_enter(ssn_ctx)
-        
-
-
-def start_service(service):
-    log = logging.getLogger(__name__)
-    url = os.environ['FLAME_SERVICE_MANAGER']
-    o = urlparse(url)
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    shim_pb2_grpc.add_GrpcShimServicer_to_server(GrpcShimService(service), server)
-    server.add_insecure_port("[::]:" + o.port)
-    log.info("The Flame service was started at " + url)
-
-    server.start()
-    server.wait_for_termination()

@@ -10,4 +10,3 @@
 # limitations under the License.
 
 __all__ = ["flame"]
-__path__ = ["rpc"]
