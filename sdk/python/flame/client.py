@@ -12,7 +12,9 @@
 from enum import Enum
 import grpc
 
-from rpc import *
+import frontend_pb2_grpc
+import frontend_pb2
+import types_pb2
 
 def connect(addr):
     channel = grpc.insecure_channel(addr)

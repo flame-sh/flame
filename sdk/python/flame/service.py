@@ -15,8 +15,8 @@ from urllib.parse import urlparse
 import logging
 import grpc
 
-from rpc import shim_pb2_grpc
-from rpc import shim_pb2
+import shim_pb2_grpc
+import shim_pb2
 
 class ApplicationContext:
     def __init__(self, app_context):

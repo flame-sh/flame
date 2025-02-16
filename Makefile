@@ -1,7 +1,7 @@
 FSM_TAG=`cargo get --entry session_manager/ package.version --pretty`
 FEM_TAG=`cargo get --entry executor_manager/ package.version --pretty`
 
-PY_RPC_OUT=sdk/python/flame/rpc
+PY_RPC_OUT=sdk/python/flame
 RPC_DIR=rpc/protos
 
 .PHONY: update_protos
