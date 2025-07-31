@@ -1,11 +1,11 @@
-FROM rust:1.82-slim-bookworm as builder
+FROM rust:1.88 AS builder
 
 WORKDIR /usr/src/flame
 COPY . .
 RUN apt-get update && apt-get install -y protobuf-compiler pkg-config libssl-dev
 RUN cargo install --path ./session_manager
 
-FROM ubuntu:22.04
+FROM alpine:3.22
 WORKDIR /opt
 
 COPY session_manager/migrations /opt/migrations
