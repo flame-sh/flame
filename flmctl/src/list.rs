@@ -65,7 +65,9 @@ async fn list_session(conn: Connection) -> Result<(), Box<dyn Error>> {
 
     ssn_list.sort_by(|l, r| {
         if l.state == r.state {
-            l.creation_time.cmp(&r.creation_time)
+            let lid: u32 = l.id.trim().parse().unwrap_or(0);
+            let rid: u32 = r.id.trim().parse().unwrap_or(0);
+            lid.cmp(&rid)
         } else if l.state == SessionState::Open {
             Ordering::Less
         } else {

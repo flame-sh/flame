@@ -14,6 +14,8 @@ RUN mkdir -p /usr/local/flame/bin
 RUN mkdir -p /usr/local/flame/work
 WORKDIR /usr/local/flame/work
 
+COPY --from=ghcr.io/astral-sh/uv:0.8.4 /uv /uvx /bin/
+
 COPY --from=builder /usr/local/cargo/bin/flame-executor-manager /usr/local/flame/bin/flame-executor-manager
 COPY --from=builder /usr/local/cargo/bin/flmping-service /usr/local/flame/bin/flmping-service
 COPY --from=builder /usr/local/cargo/bin/flmexec-service /usr/local/flame/bin/flmexec-service
