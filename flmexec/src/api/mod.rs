@@ -11,9 +11,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub mod apis;
-pub mod client;
-pub mod service;
+use std::collections::HashMap;
 
-pub mod trace;
-pub use trace::*;
+use serde_derive::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Script {
+    pub language: String,
+    pub code: String,
+    pub input: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScriptRuntime {
+    pub entrypoint: String,
+    pub work_dir: String,
+    pub input: Option<Vec<u8>>,
+    pub env: HashMap<String, String>,
+}

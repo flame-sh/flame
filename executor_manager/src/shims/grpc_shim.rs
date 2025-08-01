@@ -52,6 +52,8 @@ impl GrpcShim {
         app: &ApplicationContext,
         servce_manager: ServiceManagerPtr,
     ) -> Result<ShimPtr, FlameError> {
+        trace_fn!("GrpcShim::new_ptr");
+
         // Spawn child process
         let mut cmd = tokio::process::Command::new(&app.command.clone().unwrap());
         let log_level = env::var(RUST_LOG).unwrap_or(String::from(DEFAULT_SVC_LOG_LEVEL));

@@ -2,12 +2,19 @@ FROM rust:1.88 AS builder
 
 WORKDIR /usr/src/flame
 COPY . .
+
 RUN apt-get update && apt-get install -y protobuf-compiler pkg-config libssl-dev
 RUN cargo install --path ./session_manager
 
-FROM alpine:3.22
-WORKDIR /opt
+FROM ubuntu:24.04
 
-COPY session_manager/migrations /opt/migrations
-COPY --from=builder /usr/local/cargo/bin/flame-session-manager /opt/flame-session-manager
-ENTRYPOINT ["/opt/flame-session-manager"]
+RUN mkdir -p /usr/local/flame/bin
+RUN mkdir -p /usr/local/flame/work
+WORKDIR /usr/local/flame/work   
+
+COPY session_manager/migrations /usr/local/flame/work/migrations
+COPY --from=builder /usr/local/cargo/bin/flame-session-manager /usr/local/flame/bin/flame-session-manager
+
+RUN chmod +x /usr/local/flame/bin/*
+
+ENTRYPOINT ["/usr/local/flame/bin/flame-session-manager"]

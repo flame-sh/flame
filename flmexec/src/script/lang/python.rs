@@ -11,9 +11,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub mod apis;
-pub mod client;
-pub mod service;
+use flame_rs::apis::FlameError;
 
-pub mod trace;
-pub use trace::*;
+use crate::api::Script;
+use crate::script::ScriptEngine;
+
+pub struct PythonScript {}
+
+impl PythonScript {
+    pub fn new(_script: &Script) -> Result<Self, FlameError> {
+        todo!()
+    }
+}
+
+impl ScriptEngine for PythonScript {
+    fn run(&self) -> Result<Option<Vec<u8>>, FlameError> {
+        todo!()
+    }
+}

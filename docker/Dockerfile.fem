@@ -2,15 +2,22 @@ FROM rust:1.88 AS builder
 
 WORKDIR /usr/src/flame
 COPY . .
+
 RUN apt-get update && apt-get install -y protobuf-compiler pkg-config libssl-dev
 RUN cargo install --path ./executor_manager
 RUN cargo install --path ./flmping
+RUN cargo install --path ./flmexec
 
-FROM alpine:3.22
-WORKDIR /opt
+FROM ubuntu:24.04
 
 RUN mkdir -p /usr/local/flame/bin
-COPY --from=builder /usr/local/cargo/bin/flame-executor-manager /opt/flame-executor-manager
-COPY --from=builder /usr/local/cargo/bin/flmping-service /usr/local/flame/bin/flmping-service
+RUN mkdir -p /usr/local/flame/work
+WORKDIR /usr/local/flame/work
 
-ENTRYPOINT ["/opt/flame-executor-manager"]
+COPY --from=builder /usr/local/cargo/bin/flame-executor-manager /usr/local/flame/bin/flame-executor-manager
+COPY --from=builder /usr/local/cargo/bin/flmping-service /usr/local/flame/bin/flmping-service
+COPY --from=builder /usr/local/cargo/bin/flmexec-service /usr/local/flame/bin/flmexec-service
+
+RUN chmod +x /usr/local/flame/bin/*
+
+ENTRYPOINT ["/usr/local/flame/bin/flame-executor-manager"]

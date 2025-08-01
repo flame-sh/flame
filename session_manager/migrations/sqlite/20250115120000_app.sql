@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS applications (
 
 INSERT OR IGNORE INTO applications (name, command, shim, creation_time, state)
     VALUES ('flmping', '/usr/local/flame/bin/flmping-service', 4, strftime ('%s', 'now'), 0);
-INSERT OR IGNORE INTO applications (name, shim, creation_time, state)
-    VALUES ('flmexec', 3, strftime ('%s', 'now'), 0);
+INSERT OR IGNORE INTO applications (name, command, shim, creation_time, state)
+    VALUES ('flmexec', '/usr/local/flame/bin/flmexec-service', 4, strftime ('%s', 'now'), 0);
 INSERT OR IGNORE INTO applications (name, shim, creation_time, state)
     VALUES ('flmtest', 0, strftime ('%s', 'now'), 0);

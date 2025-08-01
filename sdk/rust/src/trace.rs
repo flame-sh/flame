@@ -11,9 +11,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub mod apis;
-pub mod client;
-pub mod service;
+pub struct TraceFn {
+    pub fn_name: String,
+}
 
-pub mod trace;
-pub use trace::*;
+impl TraceFn {
+    pub fn new(n: String) -> Self {
+        log::debug!("{} Enter", n);
+        TraceFn { fn_name: n }
+    }
+}
+
+impl Drop for TraceFn {
+    fn drop(&mut self) {
+        log::debug!("{} Leaving", self.fn_name);
+    }
+}
+
+#[macro_export]
+macro_rules! trace_fn {
+    ($e:expr) => {
+        let _trace_fn = TraceFn::new($e.to_string());
+        // let _scope_call = TraceFn { fn_name: $e.to_string() };
+    };
+}

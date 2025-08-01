@@ -1,0 +1,25 @@
+services:
+  flame-session-manager:
+    image: xflops/flame-session-manager:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.fsm
+    environment:
+      - RUST_LOG=debug
+    volumes:
+      - ./ci/flame-conf.yaml:/root/.flame/flame-conf.yaml
+    ports:
+      - 8080:8080
+
+  flame-executor-manager:
+    image: xflops/flame-executor-manager:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.fem
+    environment:
+      - RUST_LOG=debug
+    deploy:
+      mode: replicated
+      replicas: 2
+    volumes:
+      - ./ci/flame-conf.yaml:/root/.flame/flame-conf.yaml
