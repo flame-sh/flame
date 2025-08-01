@@ -1,0 +1,4 @@
+target/
+ci/
+.git/
+flame.db*

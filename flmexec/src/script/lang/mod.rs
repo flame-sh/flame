@@ -11,9 +11,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-pub mod apis;
-pub mod client;
-pub mod service;
-
-pub mod trace;
-pub use trace::*;
+pub mod python;
+pub mod shell;

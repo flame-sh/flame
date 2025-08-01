@@ -38,20 +38,18 @@ struct ApiserverRunner {
     controller: ControllerPtr,
 }
 
+const DEFAULT_PORT: u16 = 8080;
+const ALL_HOST_ADDRESS: &str = "0.0.0.0";
+
 #[async_trait::async_trait]
 impl FlameThread for ApiserverRunner {
     async fn run(&self, ctx: FlameContext) -> Result<(), FlameError> {
         let url = url::Url::parse(&ctx.endpoint)
             .map_err(|_| FlameError::InvalidConfig("invalid endpoint".to_string()))?;
-        let port = url.port().unwrap_or(8080);
+        let port = url.port().unwrap_or(DEFAULT_PORT);
 
-        let host = match env::var("FLM_SM_IP") {
-            Ok(ip) => ip,
-            Err(_) => url.host_str().unwrap_or("127.0.0.1").to_string(),
-        };
-
-        // The fsm will bind to localhost address directly.
-        let address_str = format!("{}:{}", host, port);
+        // The fsm will bind to all addresses of host directly.
+        let address_str = format!("{}:{}", ALL_HOST_ADDRESS, port);
         log::info!("Listening apiserver at {}", address_str);
         let address = address_str
             .parse()

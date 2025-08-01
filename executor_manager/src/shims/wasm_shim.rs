@@ -22,7 +22,7 @@ use wasmtime_wasi::preview2::{command, Table, WasiCtx, WasiCtxBuilder, WasiView}
 
 use crate::shims::wasm_shim::exports::component::flame::service;
 use crate::shims::{Shim, ShimPtr};
-use common::{self, apis, FlameError};
+use common::{self, apis, trace::TraceFn, trace_fn, FlameError};
 
 wasmtime::component::bindgen!({
     path: "wit/flame.wit",
@@ -38,6 +38,8 @@ pub struct WasmShim {
 
 impl WasmShim {
     pub async fn new_ptr(app: &apis::ApplicationContext) -> Result<ShimPtr, common::FlameError> {
+        trace_fn!("WasmShim::new_ptr");
+
         let mut config = Config::default();
         config.wasm_component_model(true);
         config.async_support(true);
@@ -78,6 +80,8 @@ impl Shim for WasmShim {
         &mut self,
         ctx: &apis::SessionContext,
     ) -> Result<(), common::FlameError> {
+        trace_fn!("WasmShim::on_session_enter");
+
         let ssn_ctx = service::SessionContext {
             session_id: ctx.session_id.clone(),
             common_data: ctx.common_data.clone().map(apis::CommonData::into),
@@ -100,6 +104,8 @@ impl Shim for WasmShim {
         &mut self,
         ctx: &apis::TaskContext,
     ) -> Result<Option<apis::TaskOutput>, common::FlameError> {
+        trace_fn!("WasmShim::on_task_invoke");
+
         let task_ctx = service::TaskContext {
             session_id: ctx.session_id.clone(),
             task_id: ctx.task_id.clone(),
@@ -121,6 +127,8 @@ impl Shim for WasmShim {
     }
 
     async fn on_session_leave(&mut self) -> Result<(), common::FlameError> {
+        trace_fn!("WasmShim::on_session_leave");
+
         let ssn_ctx = service::SessionContext {
             session_id: self.session_context.clone().unwrap().session_id.clone(),
             common_data: None,

@@ -22,7 +22,7 @@ use tokio::sync::Mutex;
 
 use crate::shims::{Shim, ShimPtr};
 use common::apis::{ApplicationContext, SessionContext, TaskContext, TaskOutput};
-use common::FlameError;
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 const FLAME_TASK_ID: &str = "FLAME_TASK_ID";
 const FLAME_SESSION_ID: &str = "FLAME_SESSION_ID";
@@ -35,6 +35,8 @@ pub struct StdioShim {
 
 impl StdioShim {
     pub fn new_ptr(app: &ApplicationContext) -> ShimPtr {
+        trace_fn!("StdioShim::new_ptr");
+
         Arc::new(Mutex::new(Self {
             application: app.clone(),
             session_context: None,
@@ -45,6 +47,8 @@ impl StdioShim {
 #[async_trait]
 impl Shim for StdioShim {
     async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
+        trace_fn!("StdioShim::on_session_enter");
+
         self.session_context = Some(ctx.clone());
 
         Ok(())
@@ -54,6 +58,8 @@ impl Shim for StdioShim {
         &mut self,
         ctx: &TaskContext,
     ) -> Result<Option<TaskOutput>, FlameError> {
+        trace_fn!("StdioShim::on_task_invoke");
+
         let mut cmd = self
             .application
             .command
@@ -126,6 +132,8 @@ impl Shim for StdioShim {
     }
 
     async fn on_session_leave(&mut self) -> Result<(), FlameError> {
+        trace_fn!("StdioShim::on_session_leave");
+
         Ok(())
     }
 }

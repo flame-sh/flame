@@ -1,5 +1,5 @@
 /*
-Copyright 2023 The Flame Authors.
+Copyright 2025 The Flame Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -18,15 +18,24 @@ use std::sync::{Arc, Mutex};
 use chrono::Local;
 use clap::Parser;
 use indicatif::HumanCount;
+use serde_derive::{Deserialize, Serialize};
+use serde_json;
 
 use flame_rs as flame;
 use flame_rs::apis::{FlameContext, FlameError};
 use flame_rs::client::{SessionAttributes, Task, TaskInformer};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct Script {
+    language: String,
+    code: String,
+    input: Option<Vec<u8>>,
+}
+
 #[derive(Parser)]
 #[command(name = "flmexec")]
 #[command(author = "Klaus Ma <klaus1982.cn@gmail.com>")]
-#[command(version = "0.1.0")]
+#[command(version = "0.2.0")]
 #[command(about = "Flame Executor CLI", long_about = None)]
 struct Cli {
     #[arg(long)]
@@ -35,9 +44,23 @@ struct Cli {
     slots: Option<i32>,
     #[arg(short, long)]
     task_num: Option<i32>,
-    /// The command of service instance
+    /// The code to execute on worker nodes
     #[arg(short, long)]
-    command: String,
+    code: String,
+    /// The language of the code
+    #[arg(short, long, default_value = "shell", value_parser = parse_language)]
+    language: String,
+    /// The input to the code slice
+    #[arg(short, long)]
+    input: Option<Vec<u8>>,
+}
+
+fn parse_language(s: &str) -> Result<String, String> {
+    if s.to_lowercase() == "shell" || s.to_lowercase() == "python" {
+        Ok(s.to_string())
+    } else {
+        Err(format!("Invalid language: {}", s))
+    }
 }
 
 const DEFAULT_APP: &str = "flmexec";
@@ -74,8 +97,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let info = Arc::new(Mutex::new(ExecInfo {}));
 
+    let script = Script {
+        language: cli.language.clone(),
+        code: cli.code.clone(),
+        input: cli.input.clone(),
+    };
+
+    let input = serde_json::to_string(&script)?;
+
     for _ in 0..task_num {
-        tasks.push(ssn.run_task(Some(cli.command.clone().into()), info.clone()));
+        tasks.push(ssn.run_task(Some(input.clone().into()), info.clone()));
     }
 
     try_join_all(tasks).await?;
@@ -109,6 +140,6 @@ impl TaskInformer for ExecInfo {
     }
 
     fn on_error(&mut self, e: FlameError) {
-        print!("Got an error: {e}")
+        println!("Got an error: {e}")
     }
 }

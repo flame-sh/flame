@@ -18,7 +18,7 @@ use tokio::sync::Mutex;
 
 use crate::shims::{Shim, ShimPtr};
 use common::apis::{ApplicationContext, SessionContext, TaskContext, TaskOutput};
-use common::FlameError;
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
 pub struct LogShim {
@@ -27,6 +27,8 @@ pub struct LogShim {
 
 impl LogShim {
     pub fn new_ptr(_: &ApplicationContext) -> ShimPtr {
+        trace_fn!("LogShim::new_ptr");
+
         Arc::new(Mutex::new(Self {
             session_context: None,
         }))
@@ -36,6 +38,8 @@ impl LogShim {
 #[async_trait]
 impl Shim for LogShim {
     async fn on_session_enter(&mut self, ctx: &SessionContext) -> Result<(), FlameError> {
+        trace_fn!("LogShim::on_session_enter");
+
         log::info!(
             "on_session_enter: Session: <{}>, Application: <{}>, Slots: <{}>",
             ctx.session_id,
@@ -51,6 +55,8 @@ impl Shim for LogShim {
         &mut self,
         ctx: &TaskContext,
     ) -> Result<Option<TaskOutput>, FlameError> {
+        trace_fn!("LogShim::on_task_invoke");
+
         log::info!(
             "on_task_invoke: Task: <{}>, Session: <{}>",
             ctx.task_id,
@@ -60,6 +66,8 @@ impl Shim for LogShim {
     }
 
     async fn on_session_leave(&mut self) -> Result<(), FlameError> {
+        trace_fn!("LogShim::on_session_leave");
+
         match &self.session_context {
             None => {
                 log::info!("on_session_leave")

@@ -23,7 +23,7 @@ use flame::{
     lock_ptr, new_ptr,
 };
 
-const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:30080";
+const FLAME_DEFAULT_ADDR: &str = "http://127.0.0.1:8080";
 
 const FLAME_DEFAULT_APP: &str = "flmtest";
 

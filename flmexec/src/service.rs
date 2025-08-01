@@ -11,47 +11,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-mod util;
+mod api;
+mod script;
 
-use rand::distr::{Distribution, Uniform};
+use serde_json;
 
 use flame_rs::{
     self as flame,
-    apis::{FlameError, TaskInput, TaskOutput},
+    apis::{FlameError, TaskOutput},
     service::{SessionContext, TaskContext},
+    trace::TraceFn,
+    trace_fn,
 };
 
+use api::Script;
+
 #[derive(Clone)]
-pub struct PiService {}
+pub struct FlmexecService {}
 
 #[tonic::async_trait]
-impl flame::service::FlameService for PiService {
+impl flame::service::FlameService for FlmexecService {
     async fn on_session_enter(&self, _: SessionContext) -> Result<(), FlameError> {
+        trace_fn!("FlmexecService::on_session_enter");
         Ok(())
     }
 
     async fn on_task_invoke(&self, ctx: TaskContext) -> Result<Option<TaskOutput>, FlameError> {
-        let mut rng = rand::rng();
-        let die = Uniform::try_from(0.0..1.0).unwrap();
+        trace_fn!("FlmexecService::on_task_invoke");
 
-        let input = ctx.input.unwrap_or(TaskInput::from(util::zero_u32()));
-        let total = util::bytes_to_u32(input.to_vec())?;
-        let mut sum = 0u32;
+        let input = ctx
+            .input
+            .as_ref()
+            .ok_or(FlameError::Internal("No task input".to_string()))?;
+        let script: Script =
+            serde_json::from_slice(&input).map_err(|e| FlameError::Internal(e.to_string()))?;
+        let engine = script::new(&script)?;
+        let output = engine.run()?;
 
-        for _ in 0..total {
-            let x: f64 = die.sample(&mut rng);
-            let y: f64 = die.sample(&mut rng);
-            let dist = (x * x + y * y).sqrt();
-
-            if dist <= 1.0 {
-                sum += 1;
-            }
-        }
-
-        Ok(Some(TaskOutput::from(util::u32_to_bytes(sum))))
+        Ok(output.map(TaskOutput::from))
     }
 
     async fn on_session_leave(&self) -> Result<(), FlameError> {
+        trace_fn!("FlmexecService::on_session_leave");
+
         Ok(())
     }
 }
@@ -60,9 +62,9 @@ impl flame::service::FlameService for PiService {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
-    flame::service::run(PiService {}).await?;
+    flame::service::run(FlmexecService {}).await?;
 
-    log::debug!("PiService was stopped.");
+    log::debug!("FlmexecService was stopped.");
 
     Ok(())
 }
