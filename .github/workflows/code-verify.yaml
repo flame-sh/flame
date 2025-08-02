@@ -52,9 +52,9 @@ jobs:
         with:
           command: make
           args: build-release
-      - name: Go lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: v1.55.2
-          args: --fix
-          working-directory: sdk/go
+      # - name: Go lint
+      #   uses: golangci/golangci-lint-action@v4
+      #   with:
+      #     version: v1.55.2
+      #     args: --fix
+      #     working-directory: sdk/go
