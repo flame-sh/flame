@@ -4,6 +4,8 @@ import "types.proto";
 
 package flame;
 
+option go_package = "github.com/flame-sh/flame/sdk/go/rpc";
+
 /*
   The frontend service of Flame, which is used to communicate with client sdk,
   e.g. create connection/session/task and so on.
