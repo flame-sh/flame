@@ -1,72 +1,66 @@
-# Flame: A Distributed System for Intelligent Workload
+# Flame: A Distributed System for Elastic Workloads
 
 [![license](https://img.shields.io/github/license/flame-sh/flame)](http://github.com/flame-sh/flame)
 [![RepoSize](https://img.shields.io/github/repo-size/flame-sh/flame)](http://github.com/flame-sh/flame)
 [![Release](https://img.shields.io/github/release/flame-sh/flame)](https://github.com/flame-sh/flame/releases)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/7299/badge)](https://bestpractices.coreinfrastructure.org/projects/7299)
 
-Flame is a distributed system for intelligent workloads; it provides a suite of mechanisms that are commonly required by many classes of intelligent workload, 
-including AI/ML, HPC, BigData and so on. Flame builds upon a decade and a half of experience running a wide variety of high performance workloads
-at scale using several systems and platforms, combined with best-of-breed ideas and practices from the open source community.
+Flame is a distributed system designed for elastic workloads, providing a comprehensive suite of mechanisms commonly required by various classes of elastic workloads, including AI/ML, HPC, Big Data, and more. Built upon over a decade and a half of experience running diverse high-performance workloads at scale across multiple systems and platforms, Flame incorporates best-of-breed ideas and practices from the open source community.
 
 ## Motivation
 
-As more and more intelligent workload patten are adopted for the innovation, a common workload runtime is helpful to speed up 
-those intelligent workloads by following aspects:  
+As elastic workload patterns become increasingly adopted for innovation, a common workload runtime is essential to accelerate these elastic workloads through the following key aspects:
 
-* **Scale**: Compared to the application in a single node, the Flame will scale up the workload to multiple nodes as much as possible to speed up it, e.g. distributed training; and it makes sure the resources are shared fairly between multiple tenants.   
-* **Data sharing**: Data is one of key factor for intelligent workload; the Flame will schedule not only the workload, but also the data. A distributed cached will be introduced in Flame, and it will schedule data & resources together to improve data sharing.  
-* **Mix workloads**: Batch (e.g. MPI) and Elastic are two major pattern for intelligent workloads, the Flame will manage those two kind of workload together by migrating 'message passing' to 'data driven'.
-* **Roundtrip/Throughput**: Usually, intelligent workload includes tens of thousands of short tasks; the Flame leverages the latest features (e.g. Future, CondVar) to improve roundtrip and throughput in a large scale environment.
+* **Scale**: Unlike applications running on a single node, Flame scales workloads across multiple nodes to maximize performance acceleration while ensuring fair resource sharing across multiple tenants and sessions.
+* **Performance**: Elastic workloads typically involve tens of thousands of short tasks. Flame leverages cutting-edge features to improve roundtrip times and throughput in large-scale environments, while intelligently sharing runtime within sessions to minimize startup time.
+* **Security**: Flame utilizes microVM as a runtime for enhanced security, with each runtime environment (executor) dedicated to a single session to prevent data leakage. All Flame components communicate using mTLS for secure inter-component communication.
+* **Flexibility**: Flame defines a comprehensive set of general APIs to support multiple user scenarios. Additionally, Flame supports applications across multiple programming languages through gRPC, including Rust, Go, and Python.
 
-## Overall Architecture
+## Architecture Overview
 
-![flame-architecture](https://raw.githubusercontent.com/flame-sh/flame/refs/heads/main/docs/images/flame-architecture.jpg)
+![Flame Architecture](docs/images/flame-arch.jpg)
 
-### Terminologies
+### Core Concepts
 
-**Session:** One `Session` represents a group of tasks of a job, the `Session Scheduler` will allocate resources to each session based on scheduling configurations, by asking for resource manager (e.g. Kubernetes) to launch executors.
+**Session:** A `Session` represents a group of related tasks. The `Session Scheduler` allocates resources to each session based on scheduling configurations by requesting the resource manager (e.g., Kubernetes) to launch executors. Clients can continuously create tasks until the session is closed.
 
-**Task:** The task of `Session` which includes the major algorithm of the job by task's metadata and input/output info, e.g. volume path.
+**Task:** A task within a `Session` contains the main algorithm defined by the task's metadata and input/output information (e.g., volume paths).
 
-**Executor:** The Executor will handle the lifecycle management of Application/Service which is user's code to execute tasks. Usually, the applications are not reused between sessions, but the image maybe reused to avoid download.
+**Executor:** The Executor manages the lifecycle of Applications/Services, which contain the user's code for executing tasks. Applications are typically not reused between sessions, though images may be reused to avoid repeated downloads.
 
-**Shim:** The protocol implementation of Executor to manage application, e.g. gRPC, Restful, stdio and so on. 
+**Shim:** The protocol implementation used by the Executor to manage applications, supporting various protocols such as gRPC, RESTful APIs, stdio, and more.
 
-**Cache:** As the data is the key factor of intelligent workload, a distributed cache will be introduced in Flame to schedule data & resources together for better performance.
+### How It Works
 
-### Functionality
+Flame accepts connections from user clients and creates `Session`s for jobs. Clients can continuously submit tasks to a session until it's closed, with no predefined replica requirements.
 
-The Flame will accept connection from user's client, and create `Session`s for the job; the client keeps submit tasks to the session until closing it, pre-defined replica is not necessary.
-The `Session Scheduler` will allocate resources to each session based on scheduling configurations, by asking for resource manager (e.g. Kubernetes) to launch executor.
-The Executor will connect back to Flame by `gRPC` to pull tasks from related `Session` to reuse executor. The executor will be released/deleted if no more tasks in related session.
+The `Session Scheduler` allocates resources to each session based on scheduling configurations by requesting the resource manager (e.g., Kubernetes) to launch executors.
 
-The service will get the notification when it's bound or unbound to the related session, so it can take action accordingly, e.g. connecting to database; and then, the service can pull tasks from `Session`,
-and reuse those data to speed up execution.
+Executors connect back to Flame via `gRPC` to pull tasks from their related `Session` and reuse the executor. Executors are released/deleted when no more tasks remain in the related session.
 
-In the future, the `Session scheduler` will provide several features to improve the performance and usage, e.g. proportion, delay release, min/max and so on.
+Services receive notifications when they're bound or unbound to related sessions, allowing them to take appropriate actions (e.g., connecting to databases). Services can then pull tasks from the `Session` and reuse data to accelerate execution.
+
+Future enhancements to the `Session Scheduler` will include features to improve performance and usage, such as proportional allocation, delayed release, and min/max constraints.
 
 ## Quick Start Guide
 
-In this guidance, [minikube](https://minikube.sigs.k8s.io/docs/) and [skaffold](https://skaffold.dev/) are used to start a local kuberentes
-with Flame. After installing minikube and skaffold, we can start a local Flame cluster by the following steps: 
+This guide uses [minikube](https://minikube.sigs.k8s.io/docs/) and [skaffold](https://skaffold.dev/) to start a local Kubernetes cluster with Flame. After installing minikube and skaffold, you can start a local Flame cluster with the following steps:
 
 ```shell
 $ minikube start --driver=docker
 $ skaffold run
 ```
 
-After the Flame clsuter was launched, use the following steps to login into `flame-console` pod which is a debug tool for
-both developer and SRE.
+After the Flame cluster is launched, use the following steps to log into the `flame-console` pod, which serves as a debug tool for both developers and SREs:
 
 ```shell
-$ CONSOLE_POD=`kubectl get pod -n flame-system | grep flame-console | cut  -d" " -f 1`
+$ CONSOLE_POD=`kubectl get pod -n flame-system | grep flame-console | cut -d" " -f1`
 $ kubectl exec -it ${CONSOLE_POD} -n flame-system -- /bin/bash
 ```
 
-And then, let's verify it with `flmping` in the pod. In addition, there are also more meaningful examples [here](example).
+Then, verify the installation with `flmping` in the pod. Additionally, you can explore more meaningful examples [here](examples):
 
-```
+```shell
 # flmping -t 10000
 Session <4> was created in <0 ms>, start to run <10,000> tasks in the session:
 
@@ -75,9 +69,9 @@ Session <4> was created in <0 ms>, start to run <10,000> tasks in the session:
 <10,000> tasks was completed in <1,603 ms>.
 ```
 
-We can check sessions' status by `flmctl` as follow, it also includes several sub-commands, e.g. `view`.
+You can check session status using `flmctl` as follows. It also includes several sub-commands, such as `view`:
 
-```
+```shell
 # flmctl list
 ID        State     App            Slots     Pending   Running   Succeed   Failed    Created
 1         Closed    pi             1         0         0         100       0         07:33:58
@@ -86,12 +80,21 @@ ID        State     App            Slots     Pending   Running   Succeed   Faile
 4         Closed    flmexec        1         0         0         10000     0         08:34:20
 ```
 
-## Blogs
+## Documentation
 
 * [Estimating the value of Pi using Monte Carlo](docs/blogs/evaluating-pi-by-monte-carlo.md)
-* [Estimating the value of Pi by Flame Python Client](docs/blogs/evaluating-pi-by-flame-python.md)
+* [Estimating the value of Pi using Flame Python Client](docs/blogs/evaluating-pi-by-flame-python.md)
 
-## Reference
+## API Reference
 
-* **API**: https://github.com/flame-sh/flame/blob/main/rpc/protos/flame.proto
+* **Frontend API**: [frontend.proto](rpc/protos/frontend.proto)
+* **Shim API**: [shim.proto](rpc/protos/shim.proto)
+
+## Contributing
+
+We welcome contributions! Please see our [contributing guidelines](CONTRIBUTING.md) for more information.
+
+## License
+
+This project is licensed under the terms specified in the [LICENSE](LICENSE) file.
 
