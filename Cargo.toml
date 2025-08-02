@@ -10,6 +10,7 @@ members = [
     "rpc",
     "sdk/rust",
     "examples/pi",
+    "examples/mcp",
 ]
 
 [workspace.dependencies]

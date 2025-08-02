@@ -4,6 +4,8 @@ import "types.proto";
 
 package flame;
 
+option go_package = "github.com/flame-sh/flame/sdk/go/rpc";
+
 message ApplicationContext {
     string name = 1;
     Shim shim = 2;

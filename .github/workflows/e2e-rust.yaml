@@ -14,22 +14,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      # - name: Setup Kind Cluster
-      #   uses: helm/kind-action@v1
-      #   with:
-      #     config: ci/kind.yaml
-      #     cluster_name: flame-ci-cluster
-      # - name: Build images
-      #   run: |
-      #     make ci-image
-      # - name: Load images
-      #   run: |
-      #     kind load docker-image --name flame-ci-cluster xflops/flame-session-manager:latest
-      #     kind load docker-image --name flame-ci-cluster xflops/flame-executor-manager:latest
-      #     kind load docker-image --name flame-ci-cluster xflops/flame-console:latest
-      # - name: Deploy Flame
-      #   run: |
-      #     kubectl apply -k installer/
       - name: Start Flame
         uses: hoverkraft-tech/compose-action@v2.0.1
         with:
@@ -43,6 +27,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           profile: minimal
           override: true
-      - name: Run E2E Test
+      - name: Run Rust E2E Test
         run: |
           cargo test -- --nocapture
+

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package flame;
 
+option go_package = "github.com/flame-sh/flame/sdk/go/rpc";
+
 message Metadata {
   string id = 1;
   string name = 2;
