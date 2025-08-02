@@ -57,3 +57,4 @@ jobs:
         with:
           version: v1.55.2
           args: --fix
+          working-directory: sdk/go

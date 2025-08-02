@@ -4,7 +4,7 @@ env:
   CLICOLOR_FORCE: 1
 jobs:
   ci:
-    name: E2E Test
+    name: Go E2E Test
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
