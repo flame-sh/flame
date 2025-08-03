@@ -21,5 +21,10 @@ services:
     deploy:
       mode: replicated
       replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
     volumes:
       - ./ci/flame-conf.yaml:/root/.flame/flame-conf.yaml
