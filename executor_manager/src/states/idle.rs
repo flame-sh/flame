@@ -18,7 +18,6 @@ use crate::states::State;
 use crate::{client, shims};
 use common::ctx::FlameContext;
 use common::{trace::TraceFn, trace_fn, FlameError};
-// use common::apis::Application;
 
 #[derive(Clone)]
 pub struct IdleState {
@@ -31,11 +30,19 @@ impl State for IdleState {
         trace_fn!("IdleState::execute");
 
         let ssn = client::bind_executor(ctx, &self.executor.clone()).await?;
+
+        log::debug!(
+            "Try to bind Executor <{}> to <{}>.",
+            &self.executor.id.clone(),
+            &ssn.session_id.clone()
+        );
+
         let shim_ptr = shims::new(&ssn.application, self.executor.service_manager.clone()).await?;
         {
             // TODO(k82cn): if on_session_enter failed, add retry limits.
             let mut shim = shim_ptr.lock().await;
             shim.on_session_enter(&ssn).await?;
+            log::debug!("Shim on_session_enter completed.");
         };
 
         client::bind_executor_completed(ctx, &self.executor.clone()).await?;

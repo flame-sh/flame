@@ -20,7 +20,7 @@ services:
       - RUST_LOG=debug
     deploy:
       mode: replicated
-      replicas: 2
+      replicas: 3
       restart_policy:
         condition: on-failure
         delay: 5s
