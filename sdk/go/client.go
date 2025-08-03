@@ -281,20 +281,24 @@ func (s *Session) WatchTask(ctx context.Context, taskID TaskID, informer TaskInf
 	for {
 		task, err := stream.Recv()
 		if err != nil {
-			informer.OnError(FlameError{
-				Code:    FlameErrorCodesInternal,
-				Message: err.Error(),
-			})
+			if informer != nil {
+				informer.OnError(FlameError{
+					Code:    FlameErrorCodesInternal,
+					Message: err.Error(),
+				})
+			}
 			return err
 		}
 
-		informer.OnUpdate(&Task{
-			ID:     TaskID(task.Metadata.Id),
-			SsnID:  s.ID,
-			State:  TaskState(task.Status.State),
-			Input:  task.Spec.Input,
-			Output: task.Spec.Output,
-		})
+		if informer != nil {
+			informer.OnUpdate(&Task{
+				ID:     TaskID(task.Metadata.Id),
+				SsnID:  s.ID,
+				State:  TaskState(task.Status.State),
+				Input:  task.Spec.Input,
+				Output: task.Spec.Output,
+			})
+		}
 
 		if task.Status.State == rpc.TaskState_Succeed || task.Status.State == rpc.TaskState_Failed {
 			break
