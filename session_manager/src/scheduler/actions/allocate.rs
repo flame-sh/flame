@@ -43,6 +43,8 @@ impl Action for AllocateAction {
 
         let ssn_list = ss.find_sessions(OPEN_SESSION)?;
         for ssn in ssn_list.values() {
+            // TODO(k82cn): check if the application of the session exists in the database and
+            // if not, ignore it and log a message.
             open_ssns.push(ssn.clone());
         }
 
