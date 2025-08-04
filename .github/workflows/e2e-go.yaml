@@ -33,3 +33,6 @@ jobs:
       - name: Run Go E2E Test
         run: |
           make sdk-go-test
+      - name: Run MCP E2E Test
+        run: |
+          cd examples/mcp && make test
