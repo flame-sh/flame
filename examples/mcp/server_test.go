@@ -79,5 +79,11 @@ func TestRunScript(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	fmt.Println(response)
+	for _, content := range response.Content {
+		json, err := content.MarshalJSON()
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(string(json))
+	}
 }
