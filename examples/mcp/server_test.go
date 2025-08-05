@@ -15,9 +15,10 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -69,21 +70,44 @@ func TestRunScript(t *testing.T) {
 	}
 
 	tool := tools.Tools[0]
-	params := &mcp.CallToolParams{
-		Name:      tool.Name,
-		Arguments: map[string]any{"session_id": "test", "language": "python", "code": "print('Hello, World!')"},
+
+	cases := []struct {
+		language string
+		code     string
+		expected string
+	}{
+		{"python", "print('Hello, Python!')", "Hello, Python!"},
+		{"shell", "echo 'Hello, Shell!'", "Hello, Shell!"},
+		{"python", "print(1+1)", "2"},
+		{"shell", "echo $((1+2))", "3"},
 	}
 
-	response, err := session.CallTool(ctx, params)
-	if err != nil {
-		log.Fatal(err)
-	}
+	for _, c := range cases {
+		params := &mcp.CallToolParams{
+			Name:      tool.Name,
+			Arguments: map[string]any{"session_id": "test", "language": c.language, "code": c.code},
+		}
 
-	for _, content := range response.Content {
-		json, err := content.MarshalJSON()
+		response, err := session.CallTool(ctx, params)
 		if err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println(string(json))
+
+		for _, content := range response.Content {
+			data, err := content.MarshalJSON()
+			if err != nil {
+				log.Fatal(err)
+			}
+			textContent := mcp.TextContent{}
+			err = json.Unmarshal(data, &textContent)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if !strings.Contains(textContent.Text, c.expected) {
+				t.Fatalf("Expected %s, got %s", c.expected, textContent.Text)
+			}
+		}
 	}
+
 }
