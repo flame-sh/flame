@@ -37,7 +37,7 @@ impl State for IdleState {
             &ssn.session_id.clone()
         );
 
-        let shim_ptr = shims::new(&ssn.application, self.executor.service_manager.clone()).await?;
+        let shim_ptr = shims::new(&ssn.application).await?;
         {
             // TODO(k82cn): if on_session_enter failed, add retry limits.
             let mut shim = shim_ptr.lock().await;
