@@ -38,6 +38,22 @@ update_protos: ## Update protobuf files
 	@cp rpc/protos/shim.proto sdk/rust/protos
 	@echo "Copied protobuf files to sdk/rust/protos"
 
+	@cp rpc/protos/frontend.proto sdk/python/flame/protos
+	@cp rpc/protos/types.proto sdk/python/flame/protos
+	@cp rpc/protos/shim.proto sdk/python/flame/protos
+	@echo "Copied protobuf files to sdk/python/flame/protos"
+
+sdk-python-generate: update_protos ## Generate the Python protobuf files
+	cd sdk/python && make build-protos
+
+sdk-python-test: update_protos ## Test the Python SDK
+	cd sdk/python && make test
+
+sdk-python-clean: ## Clean Python SDK build artifacts
+	cd sdk/python && make clean
+
+sdk-python: sdk-python-generate sdk-python-test ## Build and test the Python SDK
+
 # Go SDK targets
 sdk-go-generate: update_protos ## Generate the Go protobuf files
 	@export PATH="$(go env GOPATH)/bin:${PATH}"

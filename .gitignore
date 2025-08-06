@@ -21,3 +21,4 @@ ci/logs/
 ci/supervisord.log
 supervisord.pid
 flame.db*
+__pycache__/
