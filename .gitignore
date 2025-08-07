@@ -22,3 +22,12 @@ ci/supervisord.log
 supervisord.pid
 flame.db*
 __pycache__/
+*.egg-info/
+build/
+
+frontend_pb2.py
+frontend_pb2_grpc.py
+shim_pb2.py
+shim_pb2_grpc.py
+types_pb2.py
+types_pb2_grpc.py

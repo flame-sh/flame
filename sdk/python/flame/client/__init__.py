@@ -1,17 +1,5 @@
-"""
-Copyright 2025 The Flame Authors.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
 
-from .client import (
+from .types import (
     # Type aliases
     TaskID,
     SessionID,
@@ -24,8 +12,8 @@ from .client import (
     # Enums
     SessionState,
     TaskState,
-    ApplicationState,
     Shim,
+
     FlameErrorCode,
     
     # Classes
@@ -37,16 +25,7 @@ from .client import (
     FlameContext,
     TaskInformer,
 )
-
-
 from .client import Connection, Session, TaskWatcher, connect
-from .service import (
-    FlameService,
-    ApplicationContext, SessionContext, TaskContext, TaskOutput,
-    run
-)
-
-__version__ = "0.1.0"
 
 __all__ = [
     # Type aliases
@@ -84,12 +63,4 @@ __all__ = [
     "TaskInput",
     "TaskOutput",
     "CommonData",
-    
-    # Service classes
-    "FlameService",
-    "ApplicationContext",
-    "SessionContext",
-    "TaskContext",
-    "TaskOutput",
-    "run",
 ] 

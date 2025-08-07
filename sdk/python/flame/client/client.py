@@ -19,14 +19,14 @@ import grpc.aio
 
 from datetime import datetime
 from .types import (
-    Session, Task, Application, SessionAttributes, ApplicationAttributes,
+    Task, Application, SessionAttributes, ApplicationAttributes,
     SessionID, TaskID, ApplicationID, TaskInput, TaskOutput, CommonData,
     SessionState, TaskState, ApplicationState, Shim, FlameError, FlameErrorCode,
     TaskInformer
 )
-from .protos import placeholder as frontend_pb2
-from .protos.placeholder import FrontendStub as frontend_pb2_grpc
-from .protos import placeholder as types_pb2
+
+from .frontend_pb2 import ApplicationSpec, SessionSpec, TaskSpec
+from .frontend_pb2_grpc import FrontendStub
 
 def connect(addr: str) -> "Connection":
     """Connect to the Flame service."""
@@ -35,7 +35,7 @@ def connect(addr: str) -> "Connection":
 class Connection:
     """Connection to the Flame service."""
     
-    def __init__(self, addr: str, channel: grpc.aio.Channel, frontend: frontend_pb2_grpc.FrontendStub):
+    def __init__(self, addr: str, channel: grpc.aio.Channel, frontend: FrontendStub):
         self.addr = addr
         self._channel = channel
         self._frontend = frontend
@@ -61,7 +61,7 @@ class Connection:
             await channel.channel_ready()
             
             # Create frontend stub
-            frontend = frontend_pb2_grpc.FrontendStub(channel)
+            frontend = FrontendStub(channel)
             
             return cls(addr, channel, frontend)
             
@@ -84,7 +84,7 @@ class Connection:
         if isinstance(app_attrs, dict):
             app_attrs = ApplicationAttributes(**app_attrs)
         
-        app_spec = types_pb2.ApplicationSpec(
+        app_spec = ApplicationSpec(
             shim=app_attrs.shim,
             url=app_attrs.url,
             command=app_attrs.command,
@@ -93,7 +93,7 @@ class Connection:
             working_directory=app_attrs.working_directory
         )
         
-        request = frontend_pb2.RegisterApplicationRequest(
+        request = RegisterApplicationRequest(
             name=name,
             application=app_spec
         )
@@ -108,7 +108,7 @@ class Connection:
     
     async def unregister_application(self, name: str) -> None:
         """Unregister an application."""
-        request = frontend_pb2.UnregisterApplicationRequest(name=name)
+        request = UnregisterApplicationRequest(name=name)
         
         try:
             await self._frontend.UnregisterApplication(request)
@@ -120,7 +120,7 @@ class Connection:
     
     async def list_applications(self) -> List[Application]:
         """List all applications."""
-        request = frontend_pb2.ListApplicationRequest()
+        request = ListApplicationRequest()
         
         try:
             response = await self._frontend.ListApplication(request)
@@ -150,13 +150,13 @@ class Connection:
     
     async def create_session(self, attrs: SessionAttributes) -> Session:
         """Create a new session."""
-        session_spec = types_pb2.SessionSpec(
+        session_spec = SessionSpec(
             application=attrs.application,
             slots=attrs.slots,
             common_data=attrs.common_data
         )
         
-        request = frontend_pb2.CreateSessionRequest(session=session_spec)
+        request = CreateSessionRequest(session=session_spec)
         
         try:
             response = await self._frontend.CreateSession(request)
@@ -183,7 +183,7 @@ class Connection:
     
     async def list_sessions(self) -> List[Session]:
         """List all sessions."""
-        request = frontend_pb2.ListSessionRequest()
+        request = ListSessionRequest()
         
         try:
             response = await self._frontend.ListSession(request)
@@ -214,7 +214,7 @@ class Connection:
     
     async def get_session(self, session_id: SessionID) -> Session:
         """Get a session by ID."""
-        request = frontend_pb2.GetSessionRequest(session_id=session_id)
+        request = GetSessionRequest(session_id=session_id)
         
         try:
             response = await self._frontend.GetSession(request)
@@ -241,7 +241,7 @@ class Connection:
     
     async def close_session(self, session_id: SessionID) -> Session:
         """Close a session."""
-        request = frontend_pb2.CloseSessionRequest(session_id=session_id)
+        request = CloseSessionRequest(session_id=session_id)
         
         try:
             response = await self._frontend.CloseSession(request)
@@ -288,12 +288,12 @@ class Session:
     
     async def create_task(self, input_data: TaskInput) -> Task:
         """Create a new task in the session."""
-        task_spec = types_pb2.TaskSpec(
+        task_spec = TaskSpec(
             session_id=self._session_id,
             input=input_data
         )
         
-        request = frontend_pb2.CreateTaskRequest(task=task_spec)
+        request = CreateTaskRequest(task=task_spec)
         
         try:
             response = await self._connection._frontend.CreateTask(request)

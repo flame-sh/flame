@@ -4,10 +4,9 @@ Example usage of the Flame Python SDK.
 """
 
 import asyncio
-from flame import Connection, SessionAttributes, Shim, TaskInformer
+import flame.client as flame
 
-
-class MyTaskInformer(TaskInformer):
+class MyTaskInformer(flame.TaskInformer):
     """Example task informer that prints task updates."""
     
     def on_update(self, task):
@@ -22,25 +21,20 @@ async def main():
     try:
         # Connect to Flame service
         print("Connecting to Flame service...")
-        conn = await Connection.connect("http://127.0.0.1:8080")
+        conn = await flame.connect("http://127.0.0.1:8080")
 
         # Create a session
         print("Creating session...")
-        session = await conn.create_session(SessionAttributes(
-            application="flmexec",
+        session = await conn.create_session(flame.SessionAttributes(
+            application="flmtest",
             slots=1,
             common_data=b"shared data"
         ))
         
         print(f"Created session: {session.id}")
-        # Create and run a task
-        print("Creating task...")
-        task = await session.create_task(b"task input data")
-        
-        print(f"Created task: {task.id}")
         
         # Watch task progress
-        print("Watching task progress...")
+        print("Running task...")
         await session.run_task(b"task input data", MyTaskInformer())
         
         # Close session

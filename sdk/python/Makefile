@@ -4,7 +4,7 @@ help: ## Show this help message
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-install: ## Install the package in development mode
+install: generate-protos ## Install the package in development mode
 	pip install -e .[dev]
 
 test: ## Run tests
@@ -16,6 +16,9 @@ clean: ## Clean up generated files
 	find . -name "*.egg-info" -type d -exec rm -rf {} + 2>/dev/null || true
 
 build-protos: ## Generate protobuf Python files
+	python build_protos.py
+
+generate-protos: ## Generate protobuf Python files
 	python build_protos.py
 
 format: ## Format code with black and isort
