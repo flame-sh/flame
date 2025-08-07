@@ -12,7 +12,7 @@ limitations under the License.
 */
 
 use std::env;
-use std::fs::File;
+use std::fs::{self, File};
 use std::future::Future;
 use std::pin::Pin;
 use std::process::{self, Stdio};
@@ -179,17 +179,11 @@ impl Future for WaitForSvcSocketFuture {
     type Output = Result<String, FlameError>;
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        let path = self.path.clone();
-        let file = File::open(&path).map_err(|e| {
-            FlameError::Network(format!("failed to open service socket <{}>: {e}", path))
-        });
-
-        match file {
-            Err(e) => {
-                ctx.waker().wake_by_ref();
-                Poll::Pending
-            }
-            Ok(_) => Poll::Ready(Ok(path.clone())),
+        if fs::exists(&self.path).unwrap_or(false) {
+            Poll::Ready(Ok(self.path.clone()))
+        } else {
+            ctx.waker().wake_by_ref();
+            Poll::Pending
         }
     }
 }
