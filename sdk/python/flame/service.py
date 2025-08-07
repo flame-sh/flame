@@ -12,6 +12,7 @@ limitations under the License.
 """
 
 import asyncio
+import os
 import grpc
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, Union
@@ -171,9 +172,8 @@ class GrpcShimServicer(shim_pb2.GrpcShimServicer):
 class GrpcShimServer:
     """Server for gRPC shim services."""
     
-    def __init__(self, service: FlameService, port: int = 50051):
+    def __init__(self, service: FlameService):
         self._service = service
-        self._port = port
         self._server = None
     
     async def start(self):
@@ -186,14 +186,14 @@ class GrpcShimServer:
             shim_servicer = GrpcShimServicer(self._service)
             shim_pb2.add_GrpcShimServicer_to_server(shim_servicer, self._server)
             
-            # Listen on port
-            listen_addr = f"[::]:{self._port}"
-            self._server.add_insecure_port(listen_addr)
+            # Listen on Unix socket
+            socket_path = f"/tmp/flame/shim/{os.getpid()}.sock"
+            self._server.add_insecure_port(f"unix://{socket_path}")
             
             # Start server
             await self._server.start()
             
-            print(f"Flame Python service started on port {self._port}")
+            print(f"Flame Python service started on Unix socket: {socket_path}")
 
             # Keep server running
             await self._server.wait_for_termination()
@@ -211,14 +211,14 @@ class GrpcShimServer:
             print("gRPC shim server stopped")
 
 
-async def run(service: FlameService, port: int = 50051):
+async def run(service: FlameService):
     """
     Run a gRPC shim server.
     
     Args:
         service: The shim service implementation
-        port: Port to listen on
     """
-    server = GrpcShimServer(service, port)
+
+    server = GrpcShimServer(service)
     await server.start()
 
