@@ -21,7 +21,6 @@ mod client;
 mod executor;
 mod shims;
 mod states;
-mod svcmgr;
 
 #[derive(Parser)]
 #[command(name = "flame-executor-manager")]
@@ -45,10 +44,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Setup Flame backend client.
     client::install(&ctx).await?;
 
+    // Create the Flame directory.
+    std::fs::create_dir_all("/tmp/flame/shim")?;
+
     // Run executor.
     // TODO(k82cn): 1. enable gracefully exit, 2. build ExecutorManager for multiple executors.
-    let service_manager = svcmgr::new().await?;
-    let mut exec = Executor::from_context(&ctx, cli.slots, service_manager).await?;
+        let mut exec = Executor::from_context(&ctx, cli.slots).await?;
 
     // TODO(k82cn): Replace the following loop with `exec.run().await?;`.
     loop {

@@ -12,9 +12,12 @@ limitations under the License.
 */
 
 use std::env;
-use std::fs::File;
+use std::fs::{self, File};
+use std::future::Future;
+use std::pin::Pin;
 use std::process::{self, Stdio};
 use std::sync::Arc;
+use std::task::{Context, Poll};
 use std::time::Duration;
 use std::{thread, time};
 
@@ -33,7 +36,6 @@ use rpc::EmptyRequest;
 use uuid::Uuid;
 
 use crate::shims::{Shim, ShimPtr};
-use crate::svcmgr::ServiceManagerPtr;
 use common::apis::{ApplicationContext, SessionContext, TaskContext, TaskOutput};
 use common::{trace::TraceFn, trace_fn, FlameError};
 
@@ -41,16 +43,15 @@ pub struct GrpcShim {
     session_context: Option<SessionContext>,
     client: GrpcShimClient<Channel>,
     child: tokio::process::Child,
+    service_socket: String,
 }
 
-const FLAME_SERVICE_MANAGER: &str = "FLAME_SERVICE_MANAGER";
 const RUST_LOG: &str = "RUST_LOG";
 const DEFAULT_SVC_LOG_LEVEL: &str = "info";
 
 impl GrpcShim {
     pub async fn new_ptr(
         app: &ApplicationContext,
-        servce_manager: ServiceManagerPtr,
     ) -> Result<ShimPtr, FlameError> {
         trace_fn!("GrpcShim::new_ptr");
 
@@ -59,7 +60,6 @@ impl GrpcShim {
         let log_level = env::var(RUST_LOG).unwrap_or(String::from(DEFAULT_SVC_LOG_LEVEL));
 
         let mut child = cmd
-            .env(FLAME_SERVICE_MANAGER, &servce_manager.get_address())
             .env(RUST_LOG, log_level)
             .kill_on_drop(true)
             .spawn()
@@ -77,18 +77,51 @@ impl GrpcShim {
             service_id
         );
 
-        let addr = servce_manager.get_service(&service_id.to_string()).await?;
-        log::debug!("Try to connect to service <{}> at <{}>", service_id, addr);
+        let service_socket = get_service_socket(service_id).await?;
+        log::debug!(
+            "Try to connect to service <{}> at <{}>",
+            service_id,
+            service_socket
+        );
 
-        let client = GrpcShimClient::connect(addr).await.map_err(|e| {
-            FlameError::Network(format!("failed to connect to service <{service_id}>: {e}"))
-        })?;
+        let channel = Endpoint::try_from("http://[::]:50051")
+            .unwrap()
+            .connect_with_connector({
+                let service_addr = service_socket.clone();
+
+                service_fn(move |_: Uri| {
+                    let service_addr = service_addr.clone();
+                    async move {
+                        UnixStream::connect(service_addr)
+                            .await
+                            .map(TokioIo::new)
+                            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+                    }
+                })
+            })
+            .await.map_err(|e| {
+                FlameError::Network(format!("failed to connect to service <{service_id}>: {e}"))
+            })?;
+
+        let client = GrpcShimClient::new(channel);
 
         Ok(Arc::new(Mutex::new(Self {
             session_context: None,
             client,
             child,
+            service_socket,
         })))
+    }
+}
+
+impl Drop for GrpcShim {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = std::fs::remove_file(&self.service_socket);
+        log::debug!(
+            "The service <{}> was stopped",
+            self.child.id().unwrap_or_default()
+        );
     }
 }
 
@@ -124,5 +157,33 @@ impl Shim for GrpcShim {
             .await?;
 
         Ok(())
+    }
+}
+
+async fn get_service_socket(service_id: u32) -> Result<String, FlameError> {
+    let path = format!("/tmp/flame/shim/{service_id}.sock");
+    WaitForSvcSocketFuture::new(path).await
+}
+
+struct WaitForSvcSocketFuture {
+    path: String,
+}
+
+impl WaitForSvcSocketFuture {
+    pub fn new(path: String) -> Self {
+        Self { path }
+    }
+}
+
+impl Future for WaitForSvcSocketFuture {
+    type Output = Result<String, FlameError>;
+
+    fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        if fs::exists(&self.path).unwrap_or(false) {
+            Poll::Ready(Ok(self.path.clone()))
+        } else {
+            ctx.waker().wake_by_ref();
+            Poll::Pending
+        }
     }
 }

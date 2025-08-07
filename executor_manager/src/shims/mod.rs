@@ -23,8 +23,6 @@ use async_trait::async_trait;
 use grpc_shim::GrpcShim;
 use tokio::sync::Mutex;
 
-use crate::svcmgr::ServiceManagerPtr;
-
 use self::log_shim::LogShim;
 use self::shell_shim::ShellShim;
 use self::stdio_shim::StdioShim;
@@ -38,13 +36,12 @@ pub type ShimPtr = Arc<Mutex<dyn Shim>>;
 
 pub async fn new(
     app: &ApplicationContext,
-    service_manager: ServiceManagerPtr,
 ) -> Result<ShimPtr, FlameError> {
     match app.shim {
         ShimType::Stdio => Ok(StdioShim::new_ptr(app)),
         ShimType::Wasm => Ok(WasmShim::new_ptr(app).await?),
         ShimType::Shell => Ok(ShellShim::new_ptr(app)),
-        ShimType::Grpc => Ok(GrpcShim::new_ptr(app, service_manager).await?),
+        ShimType::Grpc => Ok(GrpcShim::new_ptr(app).await?),
         _ => Ok(LogShim::new_ptr(app)),
     }
 }

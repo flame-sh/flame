@@ -11,14 +11,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::{env, process, sync::Arc, time::Duration};
+use std::{process, sync::Arc};
 
-use futures::future::join_all;
-use rpc::{grpc_service_manager_client::GrpcServiceManagerClient, RegisterServiceRequest};
-
-use tokio::net::TcpListener;
+use tokio::net::UnixListener;
+use tokio_stream::wrappers::UnixListenerStream;
 use tonic::{
-    transport::{server::TcpIncoming, Server},
+    transport::Server,
     Request, Response, Status,
 };
 
@@ -26,8 +24,6 @@ use self::rpc::grpc_shim_server::{GrpcShim, GrpcShimServer};
 use crate::apis::flame as rpc;
 
 use crate::apis::{CommonData, FlameError, TaskInput, TaskOutput};
-
-const FLAME_SERVICE_MANAGER: &str = "FLAME_SERVICE_MANAGER";
 
 pub struct ApplicationContext {
     pub name: String,
@@ -58,7 +54,6 @@ pub type FlameServicePtr = Arc<dyn FlameService>;
 
 struct ShimService {
     service: FlameServicePtr,
-    // client: GrpcServiceManagerClient<Channel>,
 }
 
 #[tonic::async_trait]
@@ -108,47 +103,19 @@ impl GrpcShim for ShimService {
 }
 
 pub async fn run(service: impl FlameService) -> Result<(), Box<dyn std::error::Error>> {
-    let listener = TcpListener::bind("127.0.0.1:0").await?;
-    let addr = listener.local_addr()?;
-
     let shim_service = ShimService {
         service: Arc::new(service),
     };
 
-    let incoming = TcpIncoming::from_listener(listener, true, Some(Duration::from_secs(1)))
-        .map_err(|e| {
-            FlameError::Network(format!("failed to create TCP incomming from listener: {e}"))
-        })?;
-    let handler = tokio::spawn(async move {
-        Server::builder()
-            .add_service(GrpcShimServer::new(shim_service))
-            .serve_with_incoming(incoming)
-            .await
-    });
+    let service_id = process::id().to_string();
 
-    log::debug!("Start service on {}", addr.to_string());
+    let uds = UnixListener::bind(format!("/tmp/flame/shim/{service_id}.sock"))?;
+    let uds_stream = UnixListenerStream::new(uds);
 
-    let exec_addr = env::var(FLAME_SERVICE_MANAGER)?;
-    log::debug!(
-        "Try to connect to service manager {}",
-        exec_addr.to_string()
-    );
-
-    let mut client = GrpcServiceManagerClient::connect(exec_addr).await?;
-    client
-        .register_service(Request::new(RegisterServiceRequest {
-            address: format!("http://127.0.0.1:{}", addr.port()),
-            service_id: process::id().to_string(),
-        }))
+    Server::builder()
+        .add_service(GrpcShimServer::new(shim_service))
+        .serve_with_incoming(uds_stream)
         .await?;
-
-    let status = join_all(vec![handler]).await;
-    for s in status {
-        match s {
-            Err(e) => log::error!("Failed to join flame service: {}", e),
-            Ok(res) => log::debug!("Service was stopped with: {:?}", res),
-        }
-    }
 
     Ok(())
 }
