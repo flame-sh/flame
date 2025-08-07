@@ -25,7 +25,8 @@ from .types import (
     TaskInformer
 )
 
-from .frontend_pb2 import ApplicationSpec, SessionSpec, TaskSpec
+from .types_pb2 import ApplicationSpec, SessionSpec, TaskSpec
+from .frontend_pb2 import RegisterApplicationRequest, UnregisterApplicationRequest, ListApplicationRequest, CreateSessionRequest, ListSessionRequest, GetSessionRequest, CloseSessionRequest, CreateTaskRequest, WatchTaskRequest, GetTaskRequest
 from .frontend_pb2_grpc import FrontendStub
 
 def connect(addr: str) -> "Connection":
@@ -148,7 +149,7 @@ class Connection:
                 f"failed to list applications: {e.details()}"
             )
     
-    async def create_session(self, attrs: SessionAttributes) -> Session:
+    async def create_session(self, attrs: SessionAttributes) -> "Session":
         """Create a new session."""
         session_spec = SessionSpec(
             application=attrs.application,
@@ -162,7 +163,7 @@ class Connection:
             response = await self._frontend.CreateSession(request)
             
             session = Session(
-                _connection=self,
+                connection=self,
                 id=response.metadata.id,
                 application=response.spec.application,
                 slots=response.spec.slots,
@@ -181,7 +182,7 @@ class Connection:
                 f"failed to create session: {e.details()}"
             )
     
-    async def list_sessions(self) -> List[Session]:
+    async def list_sessions(self) -> List["Session"]:
         """List all sessions."""
         request = ListSessionRequest()
         
@@ -191,7 +192,7 @@ class Connection:
             sessions = []
             for session in response.sessions:
                 sessions.append(Session(
-                    _connection=self,
+                    connection=self,
                     id=session.metadata.id,
                     application=session.spec.application,
                     slots=session.spec.slots,
@@ -212,7 +213,7 @@ class Connection:
                 f"failed to list sessions: {e.details()}"
             )
     
-    async def get_session(self, session_id: SessionID) -> Session:
+    async def get_session(self, session_id: SessionID) -> "Session":
         """Get a session by ID."""
         request = GetSessionRequest(session_id=session_id)
         
@@ -220,7 +221,7 @@ class Connection:
             response = await self._frontend.GetSession(request)
             
             return Session(
-                _connection=self,
+                connection=self,
                 id=response.metadata.id,
                 application=response.spec.application,
                 slots=response.spec.slots,
@@ -239,7 +240,7 @@ class Connection:
                 f"failed to get session: {e.details()}"
             )
     
-    async def close_session(self, session_id: SessionID) -> Session:
+    async def close_session(self, session_id: SessionID) -> "Session":
         """Close a session."""
         request = CloseSessionRequest(session_id=session_id)
         
@@ -247,7 +248,7 @@ class Connection:
             response = await self._frontend.CloseSession(request)
             
             return Session(
-                _connection=self,
+                connection=self,
                 id=response.metadata.id,
                 application=response.spec.application,
                 slots=response.spec.slots,
@@ -267,7 +268,7 @@ class Connection:
             )
 
 class Session:
-    _connection: Connection
+    connection: Connection
     
     """Represents a computing session."""
     id: SessionID
@@ -283,24 +284,34 @@ class Session:
 
     """Client for session-specific operations."""
     
-    def __init__(self, connection: Connection):
-        self._connection = connection
-    
+    def __init__(self, connection: Connection, id: SessionID, application: str, slots: int, state: SessionState, creation_time: datetime, pending: int, running: int, succeed: int, failed: int, completion_time: Optional[datetime]):
+        self.connection = connection
+        self.id = id
+        self.application = application
+        self.slots = slots
+        self.state = state
+        self.creation_time = creation_time
+        self.pending = pending
+        self.running = running
+        self.succeed = succeed
+        self.failed = failed
+        self.completion_time = completion_time
+
     async def create_task(self, input_data: TaskInput) -> Task:
         """Create a new task in the session."""
         task_spec = TaskSpec(
-            session_id=self._session_id,
+            session_id=self.id,
             input=input_data
         )
         
         request = CreateTaskRequest(task=task_spec)
         
         try:
-            response = await self._connection._frontend.CreateTask(request)
+            response = await self.connection._frontend.CreateTask(request)
             
             return Task(
                 id=response.metadata.id,
-                session_id=self._session_id,
+                session_id=self.id,
                 state=TaskState(response.status.state),
                 creation_time=datetime.fromtimestamp(response.status.creation_time),
                 input=input_data,
@@ -315,17 +326,17 @@ class Session:
     
     async def get_task(self, task_id: TaskID) -> Task:
         """Get a task by ID."""
-        request = frontend_pb2.GetTaskRequest(
+        request = GetTaskRequest(
             task_id=task_id,
-            session_id=self._session_id
+            session_id=self.id
         )
         
         try:
-            response = await self._connection._frontend.GetTask(request)
+            response = await self.connection._frontend.GetTask(request)
             
             return Task(
                 id=response.metadata.id,
-                session_id=self._session_id,
+                session_id=self.id,
                 state=TaskState(response.status.state),
                 creation_time=datetime.fromtimestamp(response.status.creation_time),
                 input=response.spec.input,
@@ -341,13 +352,13 @@ class Session:
     
     async def watch_task(self, task_id: TaskID) -> "TaskWatcher":
         """Watch a task for updates."""
-        request = frontend_pb2.WatchTaskRequest(
+        request = WatchTaskRequest(
             task_id=task_id,
-            session_id=self._session_id
+            session_id=self.id
         )
         
         try:
-            stream = self._connection._frontend.WatchTask(request)
+            stream = self.connection._frontend.WatchTask(request)
             return TaskWatcher(stream)
             
         except grpc.RpcError as e:
@@ -356,11 +367,12 @@ class Session:
                 f"failed to watch task: {e.details()}"
             )
     
-    async def run_task(self, input_data: TaskInput, informer: Optional[TaskInformer] = None) -> Task:
-        """Run a task with the given input and optional informer."""
+    async def invoke(self, input_data: TaskInput, informer: Optional[TaskInformer] = None) -> Task:
+        """Invoke a task with the given input and optional informer."""
         task = await self.create_task(input_data)
+        watcher = await self.watch_task(task.id)
         
-        async for update in self.watch_task(task.id):
+        async for update in watcher:
             if informer:
                 informer.on_update(update)
             if update.is_completed():

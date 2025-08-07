@@ -4,7 +4,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="flame-sdk",
+    name="flame",
     version="0.1.0",
     author="Flame Authors",
     author_email="klaus1982.cn@gmail.com",

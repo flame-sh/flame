@@ -19,8 +19,9 @@ from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
 
 from .types import Shim, FlameError, FlameErrorCode
-from .protos import placeholder as shim_pb2
-from .protos import placeholder as types_pb2
+from .shim_pb2_grpc import GrpcShimServicer
+from .types_pb2 import Result, EmptyRequest
+from .shim_pb2_grpc import add_GrpcShimServicer_to_server
 
 
 @dataclass
@@ -94,7 +95,7 @@ class FlameService:
         pass
 
 
-class GrpcShimServicer(shim_pb2.GrpcShimServicer):
+class GrpcShimServicer(GrpcShimServicer):
     """gRPC servicer implementation for GrpcShim service."""
     
     def __init__(self, service: FlameService):
@@ -121,13 +122,13 @@ class GrpcShimServicer(shim_pb2.GrpcShimServicer):
             success = await self._service.on_session_enter(session_context)
             
             # Return result
-            return types_pb2.Result(
+            return Result(
                 return_code=0 if success else 1,
                 message="Session enter successful" if success else "Session enter failed"
             )
             
         except Exception as e:
-            return types_pb2.Result(
+            return Result(
                 return_code=1,
                 message=f"Session enter error: {str(e)}"
             )
@@ -158,13 +159,13 @@ class GrpcShimServicer(shim_pb2.GrpcShimServicer):
             success = await self._service.on_session_leave()
             
             # Return result
-            return types_pb2.Result(
+            return Result(
                 return_code=0 if success else 1,
                 message="Session leave successful" if success else "Session leave failed"
             )
             
         except Exception as e:
-            return types_pb2.Result(
+            return Result(
                 return_code=1,
                 message=f"Session leave error: {str(e)}"
             )
@@ -184,7 +185,7 @@ class GrpcShimServer:
             
             # Add servicer to server
             shim_servicer = GrpcShimServicer(self._service)
-            shim_pb2.add_GrpcShimServicer_to_server(shim_servicer, self._server)
+            add_GrpcShimServicer_to_server(shim_servicer, self._server)
             
             # Listen on Unix socket
             socket_path = f"/tmp/flame/shim/{os.getpid()}.sock"

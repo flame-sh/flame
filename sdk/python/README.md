@@ -5,18 +5,18 @@ Python SDK for the Flame distributed computing framework.
 ## Installation
 
 ```bash
-pip install flame-sdk
+pip install flame
 ```
 
 ## Quick Start
 
 ```python
 import asyncio
-from flame import Connection, SessionAttributes, Shim
+from flame import SessionAttributes, connect
 
 async def main():
     # Connect to Flame service
-    conn = await Connection.connect("http://localhost:8080")
+    conn = await connect("http://localhost:8080")
     # Create a session
     session = await conn.create_session(SessionAttributes(
         application="flmlog",
@@ -48,10 +48,10 @@ if __name__ == "__main__":
 The main entry point for connecting to Flame services.
 
 ```python
-from flame import Connection
+from flame import connect
 
 # Connect to a Flame service
-conn = await Connection.connect("http://localhost:8080")
+conn = await connect("http://localhost:8080")
 ```
 
 ### Session

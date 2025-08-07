@@ -19,21 +19,22 @@ def main():
     protos_dir.mkdir(parents=True, exist_ok=True)
     
     # Generate Python files from protobuf definitions
-    proto_files = {
-        "client": "frontend.proto", 
-        "service": "shim.proto"
-    }
+    proto_files = [
+        "frontend.proto", 
+        "shim.proto", 
+        "types.proto"
+    ]
     
-    for proto_dir, proto_file in proto_files.items():
+    for proto_file in proto_files:
         proto_path = protos_dir / proto_file
         if proto_path.exists():
-            print(f"Generating Python files from {proto_dir}/{proto_file}...")
+            print(f"Generating Python files from {proto_file}...")
             
             # Generate Python files
             cmd = [
                 sys.executable, "-m", "grpc_tools.protoc",
-                f"--python_out={script_dir}/flame/{proto_dir}/",
-                f"--grpc_python_out={script_dir}/flame/{proto_dir}/",
+                f"--python_out={script_dir}/flame/",
+                f"--grpc_python_out={script_dir}/flame/",
                 f"--proto_path={protos_dir}",
                 str(proto_path)
             ]

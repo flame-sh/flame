@@ -38,15 +38,10 @@ update_protos: ## Update protobuf files
 	@cp rpc/protos/shim.proto sdk/rust/protos
 	@echo "Copied protobuf files to sdk/rust/protos"
 
-	@sed "s/import \"types.proto\";//" rpc/protos/frontend.proto > sdk/python/protos/frontend.proto
-	@sed "s/import \"types.proto\";//" rpc/protos/shim.proto > sdk/python/protos/shim.proto
-	@sed "s/syntax = \"proto3\";//" rpc/protos/types.proto  | \
-		sed "s/package flame;//" | \
-		sed "s/option go_package = \"github.com\/flame-sh\/flame\/sdk\/go\/rpc\";//" >> sdk/python/protos/frontend.proto
-	@sed "s/syntax = \"proto3\";//" rpc/protos/types.proto  | \
-		sed "s/package flame;//" | \
-		sed "s/option go_package = \"github.com\/flame-sh\/flame\/sdk\/go\/rpc\";//" >> sdk/python/protos/shim.proto
-	@echo "Copied protobuf files to sdk/python/flame/protos"
+	@cp rpc/protos/frontend.proto sdk/python/protos
+	@cp rpc/protos/types.proto sdk/python/protos
+	@cp rpc/protos/shim.proto sdk/python/protos
+	@echo "Copied protobuf files to sdk/python/protos"
 
 sdk-python-generate: update_protos ## Generate the Python protobuf files
 	cd sdk/python && make build-protos
