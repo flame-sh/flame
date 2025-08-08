@@ -12,10 +12,12 @@ limitations under the License.
 """
 
 import asyncio
+import threading
 from typing import Optional, List, Dict, Any, Union
 from urllib.parse import urlparse
 import grpc
 import grpc.aio
+import os
 
 from datetime import datetime
 from .types import (
@@ -29,10 +31,27 @@ from .types_pb2 import ApplicationSpec, SessionSpec, TaskSpec
 from .frontend_pb2 import RegisterApplicationRequest, UnregisterApplicationRequest, ListApplicationRequest, CreateSessionRequest, ListSessionRequest, GetSessionRequest, CloseSessionRequest, CreateTaskRequest, WatchTaskRequest, GetTaskRequest
 from .frontend_pb2_grpc import FrontendStub
 
-def connect(addr: str) -> "Connection":
+async def connect(addr: str) -> "Connection":
     """Connect to the Flame service."""
-    return Connection.connect(addr)
-    
+    return await Connection.connect(addr)
+
+async def create_session(application: str, common_data: Dict[str, Any], slots: int = 1) -> "Session":
+    conn = await ConnectionInstance().instance()
+    session = await conn.create_session(SessionAttributes(application=application, common_data=common_data, slots=slots))
+    return session
+
+class ConnectionInstance:
+    """Connection instance."""
+    _connection = None
+    _lock = threading.Lock()
+
+    async def instance(self) -> "Connection":
+        """Get the connection instance."""
+        with self._lock:
+            if not self._connection:
+                self._connection = await connect(os.getenv("FLAME_ENDPOINT", "http://127.0.0.1:8080"))
+            return self._connection
+
 class Connection:
     """Connection to the Flame service."""
     
@@ -380,6 +399,9 @@ class Session:
         
         return task
 
+    async def close(self) -> None:
+        """Close the session."""
+        await self.connection.close_session(self.id)
 
 class TaskWatcher:
     """Async iterator for watching task updates."""
