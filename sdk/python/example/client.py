@@ -10,7 +10,7 @@ class MyTaskInformer(flame.TaskInformer):
     """Example task informer that prints task updates."""
     
     def on_update(self, task):
-        print(f"Task {task.id}: {task.state}")
+        print(f"Task {task.id}: {task.state.name}")
     
     def on_error(self, error):
         print(f"Error: {error}")
@@ -19,18 +19,12 @@ class MyTaskInformer(flame.TaskInformer):
 async def main():
     """Example main function."""
     try:
-        # Connect to Flame service
-        print("Connecting to Flame service...")
-        conn = await flame.connect("http://127.0.0.1:8080")
-
         # Create a session
         print("Creating session...")
-        session = await conn.create_session(flame.SessionAttributes(
+        session = await flame.create_session(
             application="flmtest",
-            slots=1,
             common_data=b"shared data"
-        ))
-        
+        )
         print(f"Created session: {session.id}")
         
         # Invoke task
@@ -39,10 +33,7 @@ async def main():
         
         # Close session
         print("Closing session...")
-        await conn.close_session(session.id)
-        
-        # Close connection
-        await conn.close()
+        await session.close()
         
         print("Example completed successfully!")
         

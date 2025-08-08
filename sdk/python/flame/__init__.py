@@ -26,7 +26,7 @@ from .types import (
     TaskInformer,
 )
 
-from .client import Connection, Session, TaskWatcher, connect
+from .client import Connection, Session, TaskWatcher, connect, create_session
 from .service import (
     FlameService,
     ApplicationContext, SessionContext, TaskContext, TaskOutput,
@@ -72,6 +72,7 @@ __all__ = [
     # Client classes
     "Connection",
     "connect",
+    "create_session",
     "TaskWatcher",
     "Session", 
     "Task",
