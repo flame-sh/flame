@@ -34,16 +34,3 @@ service GrpcShim{
     rpc OnTaskInvoke(TaskContext) returns (TaskOutput) {}
     rpc OnSessionLeave(EmptyRequest) returns (Result) {}
 }
-
-service GrpcServiceManager {
-    rpc RegisterService(RegisterServiceRequest) returns (RegisterServiceResponse) {}
-}
-
-message RegisterServiceRequest {
-    string address = 1;
-    string service_id = 2;
-}
-
-message RegisterServiceResponse {
-    
-}

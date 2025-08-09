@@ -44,7 +44,10 @@ enum Commands {
     View {
         /// The id of session
         #[arg(short, long)]
-        session: String,
+        session: Option<String>,
+        /// The name of application
+        #[arg(short, long)]
+        application: Option<String>,
     },
     /// List the objects of Flame
     List {
@@ -109,7 +112,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             todo!()
         }
         Some(Commands::Create { app, slots }) => create::run(&ctx, app, slots).await?,
-        Some(Commands::View { session }) => view::run(&ctx, session).await?,
+        Some(Commands::View {
+            session,
+            application,
+        }) => view::run(&ctx, session, application).await?,
         Some(Commands::Migrate { url, sql }) => migrate::run(&ctx, url, sql).await?,
         Some(Commands::Register { file }) => register::run(&ctx, file).await?,
         Some(Commands::Unregister { name }) => unregister::run(&ctx, name).await?,

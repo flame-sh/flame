@@ -20,7 +20,7 @@ services:
       - RUST_LOG=debug
     deploy:
       mode: replicated
-      replicas: 3
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -28,3 +28,4 @@ services:
         window: 120s
     volumes:
       - ./ci/flame-conf.yaml:/root/.flame/flame-conf.yaml
+      - ./examples:/opt/examples

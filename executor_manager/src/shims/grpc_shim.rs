@@ -50,23 +50,34 @@ const RUST_LOG: &str = "RUST_LOG";
 const DEFAULT_SVC_LOG_LEVEL: &str = "info";
 
 impl GrpcShim {
-    pub async fn new_ptr(
-        app: &ApplicationContext,
-    ) -> Result<ShimPtr, FlameError> {
+    pub async fn new_ptr(app: &ApplicationContext) -> Result<ShimPtr, FlameError> {
         trace_fn!("GrpcShim::new_ptr");
 
-        // Spawn child process
-        let mut cmd = tokio::process::Command::new(&app.command.clone().unwrap());
+        let command = app.command.clone().unwrap_or_default();
+        let args = app.arguments.clone();
         let log_level = env::var(RUST_LOG).unwrap_or(String::from(DEFAULT_SVC_LOG_LEVEL));
+        let mut envs = app.environments.clone();
+        envs.insert(RUST_LOG.to_string(), log_level);
+
+        log::debug!(
+            "Try to start service by command <{}> with args <{:?}> and envs <{:?}>",
+            command,
+            args,
+            envs
+        );
+
+        // Spawn child process
+        let mut cmd = tokio::process::Command::new(&command);
 
         let mut child = cmd
-            .env(RUST_LOG, log_level)
+            .envs(envs)
+            .args(args)
             .kill_on_drop(true)
             .spawn()
             .map_err(|e| {
                 FlameError::InvalidConfig(format!(
                     "failed to start service by command <{}>: {e}",
-                    app.command.clone().unwrap_or_default()
+                    command
                 ))
             })?;
 
@@ -77,7 +88,7 @@ impl GrpcShim {
             service_id
         );
 
-        let service_socket = get_service_socket(service_id).await?;
+        let service_socket = get_service_socket().await?;
         log::debug!(
             "Try to connect to service <{}> at <{}>",
             service_id,
@@ -99,7 +110,8 @@ impl GrpcShim {
                     }
                 })
             })
-            .await.map_err(|e| {
+            .await
+            .map_err(|e| {
                 FlameError::Network(format!("failed to connect to service <{service_id}>: {e}"))
             })?;
 
@@ -160,8 +172,8 @@ impl Shim for GrpcShim {
     }
 }
 
-async fn get_service_socket(service_id: u32) -> Result<String, FlameError> {
-    let path = format!("/tmp/flame/shim/{service_id}.sock");
+async fn get_service_socket() -> Result<String, FlameError> {
+    let path = format!("/tmp/flame/shim/fsi.sock");
     WaitForSvcSocketFuture::new(path).await
 }
 

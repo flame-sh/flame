@@ -10,8 +10,11 @@ RUN cargo install --path ./flmexec
 
 FROM ubuntu:24.04
 
-RUN mkdir -p /usr/local/flame/bin
-RUN mkdir -p /usr/local/flame/work
+RUN apt-get update && apt-get install -y python3-pip
+
+RUN mkdir -p /usr/local/flame/bin /usr/local/flame/work /usr/local/flame/sdk
+COPY ./sdk/python /usr/local/flame/sdk/python
+
 WORKDIR /usr/local/flame/work
 
 COPY --from=ghcr.io/astral-sh/uv:0.8.4 /uv /uvx /bin/
@@ -21,5 +24,6 @@ COPY --from=builder /usr/local/cargo/bin/flmping-service /usr/local/flame/bin/fl
 COPY --from=builder /usr/local/cargo/bin/flmexec-service /usr/local/flame/bin/flmexec-service
 
 RUN chmod +x /usr/local/flame/bin/*
+
 
 ENTRYPOINT ["/usr/local/flame/bin/flame-executor-manager"]

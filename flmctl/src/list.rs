@@ -37,13 +37,13 @@ async fn list_application(conn: Connection) -> Result<(), Box<dyn Error>> {
     let app_list = conn.list_application().await?;
 
     println!(
-        "{:<15}{:<15}{:<15}{:<15}{:<30}",
+        "{:<20}{:<10}{:<12}{:<15}{:<30}",
         "Name", "Shim", "State", "Created", "Command"
     );
 
     for app in &app_list {
         println!(
-            "{:<15}{:<15}{:<15}{:<15}{:<30}",
+            "{:<20}{:<10}{:<12}{:<15}{:<30}",
             app.name,
             app.attributes.shim.to_string(),
             app.state.to_string(),

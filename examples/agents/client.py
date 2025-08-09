@@ -3,14 +3,12 @@
 import flame
 import asyncio
 
-LANGCHAIN_APP_NAME = "langchain-agent"
-
+OPENAI_APP_NAME = "openai-agent"
 
 async def main():
-    conn = await flame.connect("http://127.0.0.1:8080")
-    session = await conn.create_session(LANGCHAIN_APP_NAME, 1)
-    task = await session.run_task(b"task input data", flame.TaskInformer())
-    print(task)
+    session = await flame.create_session(OPENAI_APP_NAME, b"You are a weather forecaster.")
+    task = await session.invoke(b"Who are you?")
+    print(task.output.decode("utf-8"))
 
 if __name__ == "__main__":
     asyncio.run(main())

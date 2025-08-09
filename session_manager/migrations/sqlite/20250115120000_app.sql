@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS applications (
     image           TEXT,
     url             TEXT,
     command         TEXT,
+    arguments       TEXT,
+    environments    TEXT,
     shim            INTEGER NOT NULL,
 
     creation_time   INTEGER NOT NULL,

@@ -1,4 +1,10 @@
-#!/usr/bin/env python3
+# /// script
+# dependencies = [
+#   "flame",
+# ]
+# [tool.uv.sources]
+# flame = { path = ".." }
+# ///
 """
 Example usage of the Flame Python SDK service functionality.
 """

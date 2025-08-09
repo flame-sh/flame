@@ -15,10 +15,7 @@ use std::{process, sync::Arc};
 
 use tokio::net::UnixListener;
 use tokio_stream::wrappers::UnixListenerStream;
-use tonic::{
-    transport::Server,
-    Request, Response, Status,
-};
+use tonic::{transport::Server, Request, Response, Status};
 
 use self::rpc::grpc_shim_server::{GrpcShim, GrpcShimServer};
 use crate::apis::flame as rpc;
@@ -109,7 +106,7 @@ pub async fn run(service: impl FlameService) -> Result<(), Box<dyn std::error::E
 
     let service_id = process::id().to_string();
 
-    let uds = UnixListener::bind(format!("/tmp/flame/shim/{service_id}.sock"))?;
+    let uds = UnixListener::bind(format!("/tmp/flame/shim/fsi.sock"))?;
     let uds_stream = UnixListenerStream::new(uds);
 
     Server::builder()

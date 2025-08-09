@@ -1,0 +1,10 @@
+metadata:
+  name: openai-agent
+spec:
+  shim: grpc
+  command: /usr/bin/uv
+  arguments:
+    - run
+    - /opt/examples/agents/openai/main.py
+  environments:
+    DEEPSEEK_API_KEY: sk-xxxxxxxxxxxxxxxxx
