@@ -106,7 +106,7 @@ pub async fn run(service: impl FlameService) -> Result<(), Box<dyn std::error::E
 
     let service_id = process::id().to_string();
 
-    let uds = UnixListener::bind(format!("/tmp/flame/shim/{service_id}.sock"))?;
+    let uds = UnixListener::bind(format!("/tmp/flame/shim/fsi.sock"))?;
     let uds_stream = UnixListenerStream::new(uds);
 
     Server::builder()
