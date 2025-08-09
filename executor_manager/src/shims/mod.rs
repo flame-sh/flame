@@ -34,9 +34,7 @@ use common::FlameError;
 
 pub type ShimPtr = Arc<Mutex<dyn Shim>>;
 
-pub async fn new(
-    app: &ApplicationContext,
-) -> Result<ShimPtr, FlameError> {
+pub async fn new(app: &ApplicationContext) -> Result<ShimPtr, FlameError> {
     match app.shim {
         ShimType::Stdio => Ok(StdioShim::new_ptr(app)),
         ShimType::Wasm => Ok(WasmShim::new_ptr(app).await?),

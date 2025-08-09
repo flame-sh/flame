@@ -84,7 +84,14 @@ impl Frontend for Flame {
         &self,
         req: tonic::Request<GetApplicationRequest>,
     ) -> Result<Response<rpc::Application>, Status> {
-        todo!()
+        trace_fn!("Frontend::get_application");
+
+        let app = self
+            .controller
+            .get_application(req.into_inner().name)
+            .await
+            .map_err(Status::from)?;
+        Ok(Response::new(rpc::Application::from(&app)))
     }
 
     async fn list_application(

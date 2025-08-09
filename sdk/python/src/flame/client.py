@@ -391,13 +391,11 @@ class Session:
         task = await self.create_task(input_data)
         watcher = await self.watch_task(task.id)
         
-        async for update in watcher:
+        async for task in watcher:
             if informer:
-                informer.on_update(update)
-            if update.is_completed():
-                break
-        
-        return task
+                informer.on_update(task)
+            if task.is_completed():
+                return task
 
     async def close(self) -> None:
         """Close the session."""

@@ -15,10 +15,7 @@ use std::{process, sync::Arc};
 
 use tokio::net::UnixListener;
 use tokio_stream::wrappers::UnixListenerStream;
-use tonic::{
-    transport::Server,
-    Request, Response, Status,
-};
+use tonic::{transport::Server, Request, Response, Status};
 
 use self::rpc::grpc_shim_server::{GrpcShim, GrpcShimServer};
 use crate::apis::flame as rpc;

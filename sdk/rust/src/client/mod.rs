@@ -11,6 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, TimeZone, Utc};
@@ -23,9 +24,9 @@ use tonic::Request;
 
 use self::rpc::frontend_client::FrontendClient as FlameFrontendClient;
 use self::rpc::{
-    ApplicationSpec, CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, GetTaskRequest,
-    ListApplicationRequest, ListSessionRequest, RegisterApplicationRequest, SessionSpec, TaskSpec,
-    WatchTaskRequest,
+    ApplicationSpec, CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, Environment,
+    GetApplicationRequest, GetTaskRequest, ListApplicationRequest, ListSessionRequest,
+    RegisterApplicationRequest, SessionSpec, TaskSpec, WatchTaskRequest,
 };
 use crate::apis::flame as rpc;
 use crate::apis::Shim;
@@ -68,7 +69,7 @@ pub struct ApplicationAttributes {
     pub url: Option<String>,
     pub command: Option<String>,
     pub arguments: Vec<String>,
-    pub environments: Vec<String>,
+    pub environments: HashMap<String, String>,
     pub working_directory: Option<String>,
 }
 
@@ -190,6 +191,14 @@ impl Connection {
             .iter()
             .map(Application::from)
             .collect())
+    }
+
+    pub async fn get_application(&self, name: &String) -> Result<Application, FlameError> {
+        let mut client = FlameClient::new(self.channel.clone());
+        let app = client
+            .get_application(GetApplicationRequest { name: name.clone() })
+            .await?;
+        Ok(Application::from(&app.into_inner()))
     }
 }
 
@@ -358,7 +367,15 @@ impl From<ApplicationAttributes> for ApplicationSpec {
             url: app.url.clone(),
             command: app.command.clone(),
             arguments: app.arguments.clone(),
-            environments: app.environments.clone(),
+            environments: app
+                .environments
+                .clone()
+                .into_iter()
+                .map(|(key, value)| Environment {
+                    name: key,
+                    value: value,
+                })
+                .collect(),
             working_directory: app.working_directory.clone(),
         }
     }
@@ -371,7 +388,12 @@ impl From<ApplicationSpec> for ApplicationAttributes {
             url: app.url.clone(),
             command: app.command.clone(),
             arguments: app.arguments.clone(),
-            environments: app.environments.clone(),
+            environments: app
+                .environments
+                .clone()
+                .into_iter()
+                .map(|env| (env.name, env.value))
+                .collect(),
             working_directory: app.working_directory.clone(),
         }
     }

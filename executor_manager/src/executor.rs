@@ -85,10 +85,7 @@ impl Executor {
         self.shim = next.shim.clone();
     }
 
-    pub async fn from_context(
-        ctx: &FlameContext,
-        slots: Option<i32>,
-    ) -> Result<Self, FlameError> {
+    pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
         // let applications = ctx.applications.iter().map(Application::from).collect();
 
         let exec = Executor {

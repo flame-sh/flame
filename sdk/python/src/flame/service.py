@@ -17,12 +17,14 @@ import grpc
 from abc import ABC, abstractmethod
 from typing import Optional, Dict, Any, Union
 from dataclasses import dataclass
+import logging
 
 from .types import Shim, FlameError, FlameErrorCode
-from .shim_pb2_grpc import GrpcShimServicer
+from .shim_pb2_grpc import GrpcShimServicer, add_GrpcShimServicer_to_server
 from .types_pb2 import Result, EmptyRequest
-from .shim_pb2_grpc import add_GrpcShimServicer_to_server
+from .shim_pb2 import TaskOutput as TaskOutputProto
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ApplicationContext:
@@ -59,7 +61,7 @@ class FlameService:
     """Base class for implementing Flame services."""
     
     @abstractmethod
-    async def on_session_enter(self, context: SessionContext) -> bool:
+    async def on_session_enter(self, context: SessionContext):
         """
         Called when entering a session.
         
@@ -85,7 +87,7 @@ class FlameService:
         pass
     
     @abstractmethod
-    async def on_session_leave(self) -> bool:
+    async def on_session_leave(self):
         """
         Called when leaving a session.
         
@@ -119,12 +121,11 @@ class GrpcShimServicer(GrpcShimServicer):
             )
             
             # Call the service implementation
-            success = await self._service.on_session_enter(session_context)
+            await self._service.on_session_enter(session_context)
             
             # Return result
             return Result(
-                return_code=0 if success else 1,
-                message="Session enter successful" if success else "Session enter failed"
+                return_code=0,
             )
             
         except Exception as e:
@@ -147,21 +148,20 @@ class GrpcShimServicer(GrpcShimServicer):
             output = await self._service.on_task_invoke(task_context)
             
             # Return task output
-            return shim_pb2.TaskOutput(data=output.data)
+            return TaskOutputProto(data=output.data)
             
         except Exception as e:
-            return shim_pb2.TaskOutput(data=None)
+            return TaskOutputProto(data=None)
     
     async def OnSessionLeave(self, request, context):
         """Handle OnSessionLeave RPC call."""
         try:
             # Call the service implementation
-            success = await self._service.on_session_leave()
+            await self._service.on_session_leave()
             
             # Return result
             return Result(
-                return_code=0 if success else 1,
-                message="Session leave successful" if success else "Session leave failed"
+                return_code=0,
             )
             
         except Exception as e:
@@ -188,7 +188,7 @@ class GrpcShimServer:
             add_GrpcShimServicer_to_server(shim_servicer, self._server)
             
             # Listen on Unix socket
-            socket_path = f"/tmp/flame/shim/{os.getpid()}.sock"
+            socket_path = f"/tmp/flame/shim/fsi.sock"
             self._server.add_insecure_port(f"unix://{socket_path}")
             
             # Start server

@@ -85,12 +85,17 @@ message ApplicationStatus {
   int64 creation_time = 2;
 }
 
+message Environment {
+  string name = 1;
+  string value = 2;
+}
+
 message ApplicationSpec {
   Shim shim = 1;
   optional string url = 2;
   optional string command = 3;
   repeated string arguments = 4;
-  repeated string environments = 5;
+  repeated Environment environments = 5;
   optional string working_directory = 6;
 }
 

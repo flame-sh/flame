@@ -13,8 +13,45 @@ limitations under the License.
 
 use std::error::Error;
 
-use flame_rs::apis::FlameContext;
+use flame_rs::apis::{FlameContext, FlameError};
+use flame_rs::client;
 
-pub async fn run(_: &FlameContext, _: &String) -> Result<(), Box<dyn Error>> {
+pub async fn run(
+    ctx: &FlameContext,
+    session: &Option<String>,
+    application: &Option<String>,
+) -> Result<(), Box<dyn Error>> {
+    let conn = client::connect(&ctx.endpoint).await?;
+    match (session, application) {
+        (Some(session), None) => view_session(conn, session).await,
+        (None, Some(application)) => view_application(conn, application).await,
+        _ => Err(Box::new(FlameError::InvalidConfig(
+            "unsupported parameters".to_string(),
+        ))),
+    }
+}
+
+async fn view_session(_: client::Connection, _: &String) -> Result<(), Box<dyn Error>> {
     todo!()
+}
+
+async fn view_application(
+    conn: client::Connection,
+    application: &String,
+) -> Result<(), Box<dyn Error>> {
+    let application = conn.get_application(application).await?;
+    println!("Name: {}", application.name);
+    println!("Shim: {}", application.attributes.shim);
+    println!("URL: {}", application.attributes.url.unwrap_or_default());
+    println!(
+        "Command: {}",
+        application.attributes.command.unwrap_or_default()
+    );
+    println!("Arguments: {:?}", application.attributes.arguments);
+    println!("Environments: {:?}", application.attributes.environments);
+    println!(
+        "Working Directory: {:?}",
+        application.attributes.working_directory
+    );
+    Ok(())
 }

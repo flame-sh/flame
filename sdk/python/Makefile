@@ -19,12 +19,12 @@ build-protos: ## Generate protobuf Python files
 	python build_protos.py
 
 format: ## Format code with black and isort
-	black . test_flame.py example.py
-	isort . test_flame.py example.py
+	black . test_flame.py
+	isort . test_flame.py
 
 lint: ## Run linting checks
-	black --check . test_flame.py example.py
-	isort --check-only . test_flame.py example.py
+	black --check . test_flame.py
+	isort --check-only . test_flame.py
 	mypy .
 
 check: format lint test ## Run all checks (format, lint, test)

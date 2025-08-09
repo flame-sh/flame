@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use flame_rs as flame;
 use flame_rs::apis::Shim;
@@ -32,7 +32,7 @@ struct SpecYaml {
     pub url: Option<String>,
     pub command: Option<String>,
     pub arguments: Option<Vec<String>>,
-    pub environments: Option<Vec<String>>,
+    pub environments: Option<HashMap<String, String>>,
     pub working_directory: Option<String>,
 }
 

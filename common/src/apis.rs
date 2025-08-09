@@ -61,7 +61,7 @@ pub struct Application {
     pub url: Option<String>,
     pub command: Option<String>,
     pub arguments: Vec<String>,
-    pub environments: Vec<String>,
+    pub environments: HashMap<String, String>,
     pub working_directory: String,
 }
 
@@ -71,7 +71,7 @@ pub struct ApplicationAttributes {
     pub url: Option<String>,
     pub command: Option<String>,
     pub arguments: Vec<String>,
-    pub environments: Vec<String>,
+    pub environments: HashMap<String, String>,
     pub working_directory: String,
 }
 
@@ -183,6 +183,9 @@ pub struct ApplicationContext {
     pub name: String,
     pub url: Option<String>,
     pub command: Option<String>,
+    pub arguments: Vec<String>,
+    pub environments: HashMap<String, String>,
+
     pub shim: Shim,
 }
 
@@ -278,6 +281,13 @@ impl TryFrom<rpc::Application> for ApplicationContext {
             name: metadata.name.clone(),
             url: spec.url.clone(),
             command: spec.command.clone(),
+            arguments: spec.arguments.clone(),
+            environments: spec
+                .environments
+                .clone()
+                .into_iter()
+                .map(|e| (e.name, e.value))
+                .collect(),
             shim: Shim::try_from(spec.shim)
                 .map_err(|_| FlameError::InvalidConfig("shim".to_string()))?,
         })
@@ -451,7 +461,12 @@ impl TryFrom<&rpc::Application> for Application {
             url: spec.url.clone(),
             command: spec.command.clone(),
             arguments: spec.arguments.to_vec(),
-            environments: spec.environments.to_vec(),
+            environments: spec
+                .environments
+                .clone()
+                .into_iter()
+                .map(|e| (e.name, e.value))
+                .collect(),
             working_directory: spec.working_directory.unwrap_or(String::default()),
         })
     }
@@ -470,7 +485,12 @@ impl From<&Application> for rpc::Application {
             url: app.url.clone(),
             command: app.command.clone(),
             arguments: app.arguments.to_vec(),
-            environments: app.environments.to_vec(),
+            environments: app
+                .environments
+                .clone()
+                .into_iter()
+                .map(|(k, v)| rpc::Environment { name: k, value: v })
+                .collect(),
             working_directory: Some(app.working_directory.clone()),
         });
         let metadata = Some(rpc::Metadata {
@@ -498,7 +518,12 @@ impl From<rpc::ApplicationSpec> for ApplicationAttributes {
             url: spec.url.clone(),
             command: spec.command.clone(),
             arguments: spec.arguments.clone(),
-            environments: spec.environments.clone(),
+            environments: spec
+                .environments
+                .clone()
+                .into_iter()
+                .map(|e| (e.name, e.value))
+                .collect(),
             working_directory: spec.working_directory.clone().unwrap_or_default(),
         }
     }

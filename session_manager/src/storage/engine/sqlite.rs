@@ -17,7 +17,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use sqlx::{migrate::MigrateDatabase, FromRow, Sqlite, SqlitePool};
+use sqlx::{migrate::MigrateDatabase, types::Json, FromRow, Sqlite, SqlitePool};
 
 use crate::FlameError;
 use common::{
@@ -39,6 +39,8 @@ struct ApplicationDao {
     pub name: ApplicationID,
     pub url: Option<String>,
     pub command: Option<String>,
+    pub arguments: Option<Json<Vec<String>>>,
+    pub environments: Option<Json<HashMap<String, String>>>,
 
     pub shim: i32,
     pub creation_time: i64,
@@ -116,11 +118,13 @@ impl Engine for SqliteEngine {
             .await
             .map_err(|e| FlameError::Storage(format!("failed to begin TX: {e}")))?;
 
-        let sql = "INSERT INTO applications (name, shim, command, creation_time, state) VALUES (?, ?, ?, strftime ('%s', 'now'), 0) RETURNING *";
+        let sql = "INSERT INTO applications (name, shim, command, arguments, environments, creation_time, state) VALUES (?, ?, ?, ?, ?, strftime ('%s', 'now'), 0) RETURNING *";
         let app: ApplicationDao = sqlx::query_as(sql)
             .bind(name)
             .bind::<i32>(attr.shim.into())
             .bind(attr.command)
+            .bind(Json(attr.arguments))
+            .bind(Json(attr.environments))
             .fetch_one(&mut *tx)
             .await
             .map_err(|e| FlameError::Storage(format!("failed to execute SQL: {e}")))?;
@@ -551,8 +555,12 @@ impl TryFrom<&ApplicationDao> for Application {
                 .ok_or(FlameError::Storage("invalid creation time".to_string()))?,
             url: app.url.clone(),
             command: app.command.clone(),
-            arguments: vec![],
-            environments: vec![],
+            arguments: app.arguments.clone().map(|args| args.0).unwrap_or_default(),
+            environments: app
+                .environments
+                .clone()
+                .map(|envs| envs.0)
+                .unwrap_or_default(),
             // TODO: make application configurable for work_dir.
             working_directory: String::from("/tmp"),
         })

@@ -17,28 +17,22 @@ class MyTaskInformer(flame.TaskInformer):
 
 
 async def main():
-    """Example main function."""
-    try:
-        # Create a session
-        print("Creating session...")
-        session = await flame.create_session(
-            application="flmtest",
-            common_data=b"shared data"
-        )
-        print(f"Created session: {session.id}")
+    print("Creating session...")
+    session = await flame.create_session(
+        application="flmtest",
+        common_data=b"shared data"
+    )
+    print(f"Created session: {session.id}")
+
+    # Invoke task
+    print("Running task...")
+    await session.invoke(b"task input data", MyTaskInformer())
         
-        # Invoke task
-        print("Running task...")
-        await session.invoke(b"task input data", MyTaskInformer())
+    # Close session
+    print("Closing session...")
+    await session.close()
         
-        # Close session
-        print("Closing session...")
-        await session.close()
-        
-        print("Example completed successfully!")
-        
-    except Exception as e:
-        print(f"Error: {e}")
+    print("Example completed successfully!")
 
 
 if __name__ == "__main__":
