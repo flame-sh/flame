@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 class OpenAIAgent(FlameService):
     def __init__(self):
-        self.session = None
         self.client = None
         self.system_prompt = None
 
