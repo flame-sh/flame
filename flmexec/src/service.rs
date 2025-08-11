@@ -14,7 +14,6 @@ limitations under the License.
 mod api;
 mod script;
 
-use serde_json;
 
 use flame_rs::{
     self as flame,
@@ -39,14 +38,21 @@ impl flame::service::FlameService for FlmexecService {
     async fn on_task_invoke(&self, ctx: TaskContext) -> Result<Option<TaskOutput>, FlameError> {
         trace_fn!("FlmexecService::on_task_invoke");
 
+        log::debug!("Try to get task input from context");
         let input = ctx
             .input
             .as_ref()
             .ok_or(FlameError::Internal("No task input".to_string()))?;
+        log::debug!("Try to parse script from input:\n{}", String::from_utf8_lossy(input));
         let script: Script =
-            serde_json::from_slice(&input).map_err(|e| FlameError::Internal(e.to_string()))?;
+            serde_json::from_slice(input).map_err(|e| FlameError::Internal(format!("failed to parse script: {e}")))?;
+        log::debug!("Try to create engine for script: {:?}", script);
         let engine = script::new(&script)?;
+        log::debug!("Created engine for language: {}", script.language);
+        log::debug!("Code:\n{}", script.code);
+        // log::debug!("Input:\n{}", script.input.as_ref().map(|x| String::from_utf8_lossy(x)).unwrap_or("None".to_string()));
         let output = engine.run()?;
+        // log::debug!("Output:\n{}", output.as_ref().map(|x| String::from_utf8_lossy(x)).unwrap_or("None".to_string()));
 
         Ok(output.map(TaskOutput::from))
     }

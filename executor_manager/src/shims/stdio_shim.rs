@@ -73,7 +73,7 @@ impl Shim for StdioShim {
                         log::warn!("Failed to get current directory path string.");
                     }
                     Some(cwd) => {
-                        cmd = format!("{}{}{}", cwd, MAIN_SEPARATOR, cmd);
+                        cmd = format!("{cwd}{MAIN_SEPARATOR}{cmd}");
                     }
                 },
                 Err(e) => {
@@ -103,7 +103,7 @@ impl Shim for StdioShim {
                 match stdin.write_all(&input) {
                     Ok(_) => {}
                     Err(e) => {
-                        log::error!("Failed to send input into shim instance: {}.", e);
+                        log::error!("Failed to send input into shim instance: {e}.");
                     }
                 };
             });
@@ -120,11 +120,11 @@ impl Shim for StdioShim {
         match child.wait() {
             Ok(es) => {
                 if !es.success() {
-                    log::info!("Child process exist with error: {}", es);
+                    log::info!("Child process exist with error: {es}");
                 }
             }
             Err(e) => {
-                log::error!("Failed to wait child process: {}", e)
+                log::error!("Failed to wait child process: {e}")
             }
         };
 

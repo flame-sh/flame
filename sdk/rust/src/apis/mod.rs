@@ -157,7 +157,7 @@ impl FlameContext {
         };
 
         if !Path::new(&fp).is_file() {
-            return Err(FlameError::InvalidConfig(format!("<{}> is not a file", fp)));
+            return Err(FlameError::InvalidConfig(format!("<{fp}> is not a file")));
         }
 
         let contents =
@@ -165,7 +165,7 @@ impl FlameContext {
         let ctx: FlameContext =
             serde_yaml::from_str(&contents).map_err(|e| FlameError::Internal(e.to_string()))?;
 
-        log::debug!("Load FrameContext from <{}>: {}", fp, ctx);
+        log::debug!("Load FrameContext from <{fp}>: {ctx}");
 
         Ok(ctx)
     }

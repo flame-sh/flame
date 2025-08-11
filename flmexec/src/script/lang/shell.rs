@@ -43,7 +43,7 @@ impl ShellScript {
         let work_dir = Path::new(&work_dir_path);
 
         fs::create_dir_all(work_dir).map_err(|e| FlameError::Internal(e.to_string()))?;
-        log::debug!("Created work directory: {}", work_dir_path);
+        log::debug!("Created work directory: {work_dir_path}");
 
         let entrypoint = DEFAULT_ENTRYPOINT;
 
@@ -76,10 +76,10 @@ impl ScriptEngine for ShellScript {
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .current_dir(&self.runtime.work_dir)
-            .args(&[&self.runtime.entrypoint])
+            .args([&self.runtime.entrypoint])
             .envs(self.runtime.env.iter().map(|(k, v)| (k.clone(), v.clone())))
             .spawn()
-            .map_err(|e| FlameError::Internal(format!("failed to start subprocess: {}", e)))?;
+            .map_err(|e| FlameError::Internal(format!("failed to start subprocess: {e}")))?;
 
         log::debug!("Spawned child process: {}", child.id());
         let mut stdin = child.stdin.take().unwrap();
@@ -89,7 +89,7 @@ impl ScriptEngine for ShellScript {
                 match stdin.write_all(&input) {
                     Ok(_) => {}
                     Err(e) => {
-                        log::error!("Failed to send input into shim instance: {}.", e);
+                        log::error!("Failed to send input into shim instance: {e}.");
                     }
                 };
             });
@@ -102,16 +102,16 @@ impl ScriptEngine for ShellScript {
             .read_to_end(&mut data)
             .map_err(|_| FlameError::Internal("failed to read task output".to_string()))?;
 
-        log::debug!("Read <{}> data from child process.", n);
+        log::debug!("Read <{n}> data from child process.");
 
         match child.wait() {
             Ok(es) => {
                 if !es.success() {
-                    log::info!("Child process exist with error: {}", es);
+                    log::info!("Child process exist with error: {es}");
                 }
             }
             Err(e) => {
-                log::error!("Failed to wait child process: {}", e)
+                log::error!("Failed to wait child process: {e}")
             }
         };
 

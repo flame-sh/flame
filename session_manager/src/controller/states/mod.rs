@@ -28,7 +28,7 @@ mod unbinding;
 
 pub fn from(storage: StoragePtr, exe_ptr: ExecutorPtr) -> Result<Arc<dyn States>, FlameError> {
     let exe = lock_ptr!(exe_ptr)?;
-    log::debug!("Build state <{}> for Executor.", exe.state.to_string());
+    log::debug!("Build state <{}> for Executor.", exe.state);
 
     match exe.state {
         ExecutorState::Idle => Ok(Arc::new(IdleState {

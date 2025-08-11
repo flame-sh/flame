@@ -45,8 +45,7 @@ struct ApplicationYaml {
 pub async fn run(ctx: &FlameContext, path: &String) -> Result<(), FlameError> {
     if !Path::new(&path).is_file() {
         return Err(FlameError::InvalidConfig(format!(
-            "<{}> is not a file",
-            path
+            "<{path}> is not a file"
         )));
     }
 

@@ -373,7 +373,7 @@ impl From<ApplicationAttributes> for ApplicationSpec {
                 .into_iter()
                 .map(|(key, value)| Environment {
                     name: key,
-                    value: value,
+                    value,
                 })
                 .collect(),
             working_directory: app.working_directory.clone(),

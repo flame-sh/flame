@@ -60,10 +60,7 @@ impl GrpcShim {
         envs.insert(RUST_LOG.to_string(), log_level);
 
         log::debug!(
-            "Try to start service by command <{}> with args <{:?}> and envs <{:?}>",
-            command,
-            args,
-            envs
+            "Try to start service by command <{command}> with args <{args:?}> and envs <{envs:?}>"
         );
 
         // Spawn child process
@@ -76,23 +73,19 @@ impl GrpcShim {
             .spawn()
             .map_err(|e| {
                 FlameError::InvalidConfig(format!(
-                    "failed to start service by command <{}>: {e}",
-                    command
+                    "failed to start service by command <{command}>: {e}"
                 ))
             })?;
 
         let service_id = child.id().unwrap_or_default();
 
         log::debug!(
-            "The service <{}> was started, waiting for registering.",
-            service_id
+            "The service <{service_id}> was started, waiting for registering."
         );
 
         let service_socket = get_service_socket().await?;
         log::debug!(
-            "Try to connect to service <{}> at <{}>",
-            service_id,
-            service_socket
+            "Try to connect to service <{service_id}> at <{service_socket}>"
         );
 
         let channel = Endpoint::try_from("http://[::]:50051")
@@ -106,7 +99,7 @@ impl GrpcShim {
                         UnixStream::connect(service_addr)
                             .await
                             .map(TokioIo::new)
-                            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+                            .map_err(std::io::Error::other)
                     }
                 })
             })
@@ -173,7 +166,7 @@ impl Shim for GrpcShim {
 }
 
 async fn get_service_socket() -> Result<String, FlameError> {
-    let path = format!("/tmp/flame/shim/fsi.sock");
+    let path = "/tmp/flame/shim/fsi.sock".to_string();
     WaitForSvcSocketFuture::new(path).await
 }
 

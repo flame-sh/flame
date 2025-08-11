@@ -42,7 +42,7 @@ impl FlameThread for ScheduleRunner {
 
             for action in ctx.actions.clone() {
                 if let Err(e) = action.execute(&mut ctx).await {
-                    log::error!("Failed to run scheduling: {}", e);
+                    log::error!("Failed to run scheduling: {e}");
                     break;
                 };
             }

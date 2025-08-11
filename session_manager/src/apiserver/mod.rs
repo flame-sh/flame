@@ -49,7 +49,7 @@ impl FlameThread for ApiserverRunner {
         let port = url.port().unwrap_or(DEFAULT_PORT);
 
         // The fsm will bind to all addresses of host directly.
-        let address_str = format!("{}:{}", ALL_HOST_ADDRESS, port);
+        let address_str = format!("{ALL_HOST_ADDRESS}:{port}");
         log::info!("Listening apiserver at {}", address_str);
         let address = address_str
             .parse()

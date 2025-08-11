@@ -67,7 +67,7 @@ impl Shim for ShellShim {
                 "task input is empty",
             )))?;
         let mut cmd = String::from_utf8(input.to_ascii_lowercase())
-            .map_err(|e| FlameError::Uninitialized(format!("task input is invalid: {}", e)))?;
+            .map_err(|e| FlameError::Uninitialized(format!("task input is invalid: {e}")))?;
 
         let path = Path::new(&cmd);
         if !path.has_root() {
@@ -77,7 +77,7 @@ impl Shim for ShellShim {
                         log::warn!("Failed to get current directory path string.");
                     }
                     Some(cwd) => {
-                        cmd = format!("{}{}{}", cwd, MAIN_SEPARATOR, cmd);
+                        cmd = format!("{cwd}{MAIN_SEPARATOR}{cmd}");
                     }
                 },
                 Err(e) => {
@@ -111,11 +111,11 @@ impl Shim for ShellShim {
         match child.wait() {
             Ok(es) => {
                 if !es.success() {
-                    log::info!("Child process exist with error: {}", es);
+                    log::info!("Child process exist with error: {es}");
                 }
             }
             Err(e) => {
-                log::error!("Failed to wait child process: {}", e)
+                log::error!("Failed to wait child process: {e}")
             }
         };
 
