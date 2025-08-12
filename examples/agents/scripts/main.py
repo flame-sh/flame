@@ -54,13 +54,10 @@ async def main():
 
     tool = message.tool_calls[0]
     messages.append(message)
-    print(f"Tool>\t {tool}")
 
     # 3. Call the tool to run the script and get the result for DeepSeek to see
-    input = json.dumps(tool.function.arguments).encode("utf-8")
-    print(f"Flame>\t {input}")
+    input = tool.function.arguments.encode("utf-8")
     task = await session.invoke(input)
-    print(f"Flame>\t {task.output.decode('utf-8')}")
 
     # 4. Ask DeepSeek to summarize the result
     messages.append({"role": "tool", "tool_call_id": tool.id, "content": task.output.decode("utf-8")})
