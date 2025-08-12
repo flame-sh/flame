@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 exec.update_state(&next_state);
             }
             Err(e) => {
-                log::error!("Failed to execute: {}", e);
+                log::error!("Failed to execute: {e}");
             }
         }
     }

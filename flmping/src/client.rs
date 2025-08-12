@@ -97,7 +97,7 @@ struct OutputInfor {}
 
 impl OutputInfor {
     fn new() -> Self {
-        println!("{:<10}{:<10}{:<15}{}", "Session", "Task", "State", "Output");
+        println!("{:<10}{:<10}{:<15}Output", "Session", "Task", "State");
 
         Self {}
     }

@@ -19,7 +19,6 @@ use chrono::Local;
 use clap::Parser;
 use indicatif::HumanCount;
 use serde_derive::{Deserialize, Serialize};
-use serde_json;
 
 use flame_rs as flame;
 use flame_rs::apis::{FlameContext, FlameError};
@@ -59,7 +58,7 @@ fn parse_language(s: &str) -> Result<String, String> {
     if s.to_lowercase() == "shell" || s.to_lowercase() == "python" {
         Ok(s.to_string())
     } else {
-        Err(format!("Invalid language: {}", s))
+        Err(format!("Invalid language: {s}"))
     }
 }
 

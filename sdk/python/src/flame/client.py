@@ -35,7 +35,7 @@ async def connect(addr: str) -> "Connection":
     """Connect to the Flame service."""
     return await Connection.connect(addr)
 
-async def create_session(application: str, common_data: Dict[str, Any], slots: int = 1) -> "Session":
+async def create_session(application: str, common_data: Dict[str, Any] = None, slots: int = 1) -> "Session":
     conn = await ConnectionInstance().instance()
     session = await conn.create_session(SessionAttributes(application=application, common_data=common_data, slots=slots))
     return session

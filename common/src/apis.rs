@@ -235,7 +235,7 @@ impl Clone for Session {
                     ssn.update_task(&t);
                 }
                 Err(_) => {
-                    log::error!("Failed to lock task: <{}>, ignore it during clone.", id);
+                    log::error!("Failed to lock task: <{id}>, ignore it during clone.");
                 }
             }
         }

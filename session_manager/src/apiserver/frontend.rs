@@ -265,7 +265,7 @@ impl Frontend for Flame {
                     Ok(task) => {
                         log::debug!("Task <{}> state is <{}>", task.id, task.state as i32);
                         if let Err(e) = tx.send(Result::<_, Status>::Ok(Task::from(&task))).await {
-                            log::debug!("Failed to send Task <{}>: {}", gid, e);
+                            log::debug!("Failed to send Task <{gid}>: {e}");
                             break;
                         }
                         if task.is_completed() {
@@ -274,7 +274,7 @@ impl Frontend for Flame {
                         }
                     }
                     Err(e) => {
-                        log::debug!("Failed to watch Task <{}>: {}", gid, e);
+                        log::debug!("Failed to watch Task <{gid}>: {e}");
                         break;
                     }
                 }

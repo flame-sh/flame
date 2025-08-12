@@ -17,7 +17,7 @@ pub struct TraceFn {
 
 impl TraceFn {
     pub fn new(n: String) -> Self {
-        log::debug!("{} Enter", n);
+        log::debug!("{n} Enter");
         TraceFn { fn_name: n }
     }
 }
