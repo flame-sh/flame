@@ -83,6 +83,7 @@ ID        State     App            Slots     Pending   Running   Succeed   Faile
 ## Documentation
 
 * [Building AI Agents with Flame](docs/blogs/run-ai-agent-with-flame.md)
+* [Executing LLM-Generated Code with Flame](docs/blogs/run-generated-script-via-flame.md)
 * [Estimating the value of Pi using Monte Carlo](docs/blogs/evaluating-pi-by-monte-carlo.md)
 * [Estimating the value of Pi using Flame Python Client](docs/blogs/evaluating-pi-by-flame-python.md)
 
