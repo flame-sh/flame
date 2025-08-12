@@ -50,9 +50,7 @@ impl flame::service::FlameService for FlmexecService {
         let engine = script::new(&script)?;
         log::debug!("Created engine for language: {}", script.language);
         log::debug!("Code:\n{}", script.code);
-        // log::debug!("Input:\n{}", script.input.as_ref().map(|x| String::from_utf8_lossy(x)).unwrap_or("None".to_string()));
         let output = engine.run()?;
-        // log::debug!("Output:\n{}", output.as_ref().map(|x| String::from_utf8_lossy(x)).unwrap_or("None".to_string()));
 
         Ok(output.map(TaskOutput::from))
     }
