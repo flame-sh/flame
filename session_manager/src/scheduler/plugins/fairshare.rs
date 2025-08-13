@@ -16,7 +16,8 @@ use std::collections::binary_heap::BinaryHeap;
 use std::collections::HashMap;
 
 use crate::model::{
-    ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot, ALL_EXECUTOR, OPEN_SESSION,
+    ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot, ALL_APPLICATION, ALL_EXECUTOR,
+    OPEN_SESSION,
 };
 use crate::scheduler::plugins::{Plugin, PluginPtr};
 use common::apis::{SessionID, TaskState};
@@ -75,6 +76,8 @@ impl Plugin for FairShare {
     fn setup(&mut self, ss: &SnapShot) -> Result<(), FlameError> {
         let open_ssns = ss.find_sessions(OPEN_SESSION)?;
 
+        let apps = ss.find_applications(ALL_APPLICATION)?;
+
         for ssn in open_ssns.values() {
             let mut desired = 0.0;
             for state in [TaskState::Pending, TaskState::Running] {
@@ -83,15 +86,25 @@ impl Plugin for FairShare {
                 }
             }
 
-            self.ssn_map.insert(
-                ssn.id,
-                SSNInfo {
-                    id: ssn.id,
-                    desired,
-                    slots: ssn.slots,
-                    ..SSNInfo::default()
-                },
-            );
+            if let Some(app) = apps.get(&ssn.application) {
+                desired = desired.min(app.max_instances as f64);
+
+                self.ssn_map.insert(
+                    ssn.id,
+                    SSNInfo {
+                        id: ssn.id,
+                        desired,
+                        slots: ssn.slots,
+                        ..SSNInfo::default()
+                    },
+                );
+            } else {
+                log::warn!(
+                    "Application <{}> not found for session <{}>.",
+                    ssn.application,
+                    ssn.id
+                );
+            }
         }
 
         let mut remaining_slots = 0.0;

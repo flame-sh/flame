@@ -15,12 +15,15 @@ use std::collections::HashMap;
 use std::fmt;
 
 use ::rpc::flame::ApplicationSpec;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 
 use rpc::flame as rpc;
 
 use crate::ptr::MutexPtr;
 use crate::FlameError;
+
+pub const DEFAULT_MAX_INSTANCES: i32 = i32::MAX;
+pub const DEFAULT_DELAY_RELEASE: Duration = Duration::seconds(60);
 
 pub type SessionID = i64;
 pub type TaskID = i64;
@@ -63,9 +66,11 @@ pub struct Application {
     pub arguments: Vec<String>,
     pub environments: HashMap<String, String>,
     pub working_directory: String,
+    pub max_instances: i32,
+    pub delay_release: Duration,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ApplicationAttributes {
     pub shim: Shim,
     pub url: Option<String>,
@@ -73,6 +78,23 @@ pub struct ApplicationAttributes {
     pub arguments: Vec<String>,
     pub environments: HashMap<String, String>,
     pub working_directory: String,
+    pub max_instances: i32,
+    pub delay_release: Duration,
+}
+
+impl Default for ApplicationAttributes {
+    fn default() -> Self {
+        Self {
+            shim: Shim::default(),
+            url: None,
+            command: None,
+            arguments: vec![],
+            environments: HashMap::new(),
+            working_directory: "/tmp".to_string(),
+            max_instances: DEFAULT_MAX_INSTANCES,
+            delay_release: DEFAULT_DELAY_RELEASE,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
@@ -468,6 +490,11 @@ impl TryFrom<&rpc::Application> for Application {
                 .map(|e| (e.name, e.value))
                 .collect(),
             working_directory: spec.working_directory.unwrap_or(String::default()),
+            max_instances: spec.max_instances.unwrap_or(DEFAULT_MAX_INSTANCES),
+            delay_release: spec
+                .delay_release
+                .map(Duration::seconds)
+                .unwrap_or(DEFAULT_DELAY_RELEASE),
         })
     }
 }
@@ -492,6 +519,8 @@ impl From<&Application> for rpc::Application {
                 .map(|(k, v)| rpc::Environment { name: k, value: v })
                 .collect(),
             working_directory: Some(app.working_directory.clone()),
+            max_instances: Some(app.max_instances),
+            delay_release: Some(app.delay_release.num_seconds()),
         });
         let metadata = Some(rpc::Metadata {
             id: app.name.clone(),
@@ -525,6 +554,11 @@ impl From<rpc::ApplicationSpec> for ApplicationAttributes {
                 .map(|e| (e.name, e.value))
                 .collect(),
             working_directory: spec.working_directory.clone().unwrap_or_default(),
+            max_instances: spec.max_instances.unwrap_or(DEFAULT_MAX_INSTANCES),
+            delay_release: spec
+                .delay_release
+                .map(Duration::seconds)
+                .unwrap_or(DEFAULT_DELAY_RELEASE),
         }
     }
 }

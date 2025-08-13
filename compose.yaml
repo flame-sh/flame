@@ -20,7 +20,7 @@ services:
       - RUST_LOG=flame,flmexec
     deploy:
       mode: replicated
-      replicas: 1
+      replicas: 5
       restart_policy:
         condition: on-failure
         delay: 5s

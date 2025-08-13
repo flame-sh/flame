@@ -2,6 +2,7 @@ metadata:
   name: openai-agent
 spec:
   shim: grpc
+  max_instances: 1
   command: /usr/bin/uv
   arguments:
     - run

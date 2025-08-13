@@ -13,6 +13,7 @@ limitations under the License.
 
 use std::{collections::HashMap, fs, path::Path};
 
+use chrono::Duration;
 use flame_rs as flame;
 use flame_rs::apis::Shim;
 use flame_rs::{
@@ -34,6 +35,8 @@ struct SpecYaml {
     pub arguments: Option<Vec<String>>,
     pub environments: Option<HashMap<String, String>>,
     pub working_directory: Option<String>,
+    pub max_instances: Option<i32>,
+    pub delay_release: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -84,6 +87,8 @@ impl TryFrom<&ApplicationYaml> for ApplicationAttributes {
             arguments: yaml.spec.arguments.clone().unwrap_or_default(),
             environments: yaml.spec.environments.clone().unwrap_or_default(),
             working_directory: yaml.spec.working_directory.clone(),
+            max_instances: yaml.spec.max_instances,
+            delay_release: yaml.spec.delay_release.map(Duration::seconds),
         })
     }
 }
