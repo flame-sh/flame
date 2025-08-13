@@ -14,7 +14,6 @@ limitations under the License.
 mod api;
 mod script;
 
-
 use flame_rs::{
     self as flame,
     apis::{FlameError, TaskOutput},
@@ -43,9 +42,12 @@ impl flame::service::FlameService for FlmexecService {
             .input
             .as_ref()
             .ok_or(FlameError::Internal("No task input".to_string()))?;
-        log::debug!("Try to parse script from input:\n{}", String::from_utf8_lossy(input));
-        let script: Script =
-            serde_json::from_slice(input).map_err(|e| FlameError::Internal(format!("failed to parse script: {e}")))?;
+        log::debug!(
+            "Try to parse script from input:\n{}",
+            String::from_utf8_lossy(input)
+        );
+        let script: Script = serde_json::from_slice(input)
+            .map_err(|e| FlameError::Internal(format!("failed to parse script: {e}")))?;
         log::debug!("Try to create engine for script: {:?}", script);
         let engine = script::new(&script)?;
         log::debug!("Created engine for language: {}", script.language);

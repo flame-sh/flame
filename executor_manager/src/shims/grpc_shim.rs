@@ -79,14 +79,10 @@ impl GrpcShim {
 
         let service_id = child.id().unwrap_or_default();
 
-        log::debug!(
-            "The service <{service_id}> was started, waiting for registering."
-        );
+        log::debug!("The service <{service_id}> was started, waiting for registering.");
 
         let service_socket = get_service_socket().await?;
-        log::debug!(
-            "Try to connect to service <{service_id}> at <{service_socket}>"
-        );
+        log::debug!("Try to connect to service <{service_id}> at <{service_socket}>");
 
         let channel = Endpoint::try_from("http://[::]:50051")
             .unwrap()

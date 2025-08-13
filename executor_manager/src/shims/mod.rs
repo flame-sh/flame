@@ -13,8 +13,6 @@ limitations under the License.
 
 mod grpc_shim;
 mod log_shim;
-mod shell_shim;
-mod stdio_shim;
 mod wasm_shim;
 
 use std::sync::Arc;
@@ -24,8 +22,6 @@ use grpc_shim::GrpcShim;
 use tokio::sync::Mutex;
 
 use self::log_shim::LogShim;
-use self::shell_shim::ShellShim;
-use self::stdio_shim::StdioShim;
 use self::wasm_shim::WasmShim;
 
 use common::apis::{ApplicationContext, SessionContext, Shim as ShimType, TaskContext, TaskOutput};
@@ -36,9 +32,7 @@ pub type ShimPtr = Arc<Mutex<dyn Shim>>;
 
 pub async fn new(app: &ApplicationContext) -> Result<ShimPtr, FlameError> {
     match app.shim {
-        ShimType::Stdio => Ok(StdioShim::new_ptr(app)),
         ShimType::Wasm => Ok(WasmShim::new_ptr(app).await?),
-        ShimType::Shell => Ok(ShellShim::new_ptr(app)),
         ShimType::Grpc => Ok(GrpcShim::new_ptr(app).await?),
         _ => Ok(LogShim::new_ptr(app)),
     }
