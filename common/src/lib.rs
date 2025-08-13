@@ -18,10 +18,13 @@ pub mod trace;
 
 use std::io::Write;
 use std::process;
+use std::collections::HashMap;
 
 use chrono::Local;
 use thiserror::Error;
 use tonic::Status;
+
+use crate::apis::{ApplicationAttributes, Shim};
 
 #[derive(Error, Debug)]
 pub enum FlameError {
@@ -146,4 +149,32 @@ pub fn init_logger() {
             )
         })
         .init();
+}
+
+pub fn default_applications() -> HashMap<String, ApplicationAttributes> {
+    HashMap::from([
+        (
+            "flmexec".to_string(),
+            ApplicationAttributes {
+                shim: Shim::Grpc,
+                command: Some("/usr/local/flame/bin/flmexec-service".to_string()),
+                ..ApplicationAttributes::default()
+            },
+        ),
+        (
+            "flmping".to_string(),
+            ApplicationAttributes {
+                shim: Shim::Grpc,
+                command: Some("/usr/local/flame/bin/flmping-service".to_string()),
+                ..ApplicationAttributes::default()
+            },
+        ),
+        (
+            "flmtest".to_string(),
+            ApplicationAttributes {
+                shim: Shim::Log,
+                ..ApplicationAttributes::default()
+            },
+        ),
+    ])
 }

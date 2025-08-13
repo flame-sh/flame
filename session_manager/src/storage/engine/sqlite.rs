@@ -24,7 +24,7 @@ use common::{
     apis::{
         Application, ApplicationAttributes, ApplicationID, ApplicationState, CommonData, Session,
         SessionID, SessionState, SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskOutput,
-        TaskState,
+        TaskState, DEFAULT_DELAY_RELEASE, DEFAULT_MAX_INSTANCES,
     },
     trace::TraceFn,
     trace_fn,
@@ -592,6 +592,11 @@ mod tests {
     fn test_get_application() -> Result<(), FlameError> {
         let url = format!("sqlite:///tmp/flame_test_app_{}.db", Utc::now().timestamp());
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
+
         let app_1 = tokio_test::block_on(storage.get_application("flmexec".to_string()))?;
 
         assert_eq!(app_1.name, "flmexec");
@@ -607,6 +612,9 @@ mod tests {
             Utc::now().timestamp()
         );
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);
@@ -643,6 +651,9 @@ mod tests {
             Utc::now().timestamp()
         );
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);
@@ -701,6 +712,9 @@ mod tests {
             Utc::now().timestamp()
         );
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);
@@ -727,6 +741,9 @@ mod tests {
         );
 
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);

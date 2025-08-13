@@ -84,7 +84,7 @@ async fn main() -> Result<(), FlameError> {
     log::info!("flame-session-manager started.");
 
     // Register default applications.
-    for (name, attr) in default_applications() {
+    for (name, attr) in common::default_applications() {
         controller.register_application(name, attr).await?;
     }
 
@@ -99,30 +99,3 @@ pub trait FlameThread: Send + Sync + 'static {
     async fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
 }
 
-fn default_applications() -> HashMap<String, ApplicationAttributes> {
-    HashMap::from([
-        (
-            "flmexec".to_string(),
-            ApplicationAttributes {
-                shim: Shim::Grpc,
-                command: Some("/usr/local/flame/bin/flmexec-service".to_string()),
-                ..ApplicationAttributes::default()
-            },
-        ),
-        (
-            "flmping".to_string(),
-            ApplicationAttributes {
-                shim: Shim::Grpc,
-                command: Some("/usr/local/flame/bin/flmping-service".to_string()),
-                ..ApplicationAttributes::default()
-            },
-        ),
-        (
-            "flmtest".to_string(),
-            ApplicationAttributes {
-                shim: Shim::Log,
-                ..ApplicationAttributes::default()
-            },
-        ),
-    ])
-}
