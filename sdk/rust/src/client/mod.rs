@@ -193,10 +193,12 @@ impl Connection {
             .collect())
     }
 
-    pub async fn get_application(&self, name: &String) -> Result<Application, FlameError> {
+    pub async fn get_application(&self, name: &str) -> Result<Application, FlameError> {
         let mut client = FlameClient::new(self.channel.clone());
         let app = client
-            .get_application(GetApplicationRequest { name: name.clone() })
+            .get_application(GetApplicationRequest {
+                name: name.to_string(),
+            })
             .await?;
         Ok(Application::from(&app.into_inner()))
     }
@@ -371,10 +373,7 @@ impl From<ApplicationAttributes> for ApplicationSpec {
                 .environments
                 .clone()
                 .into_iter()
-                .map(|(key, value)| Environment {
-                    name: key,
-                    value,
-                })
+                .map(|(key, value)| Environment { name: key, value })
                 .collect(),
             working_directory: app.working_directory.clone(),
         }

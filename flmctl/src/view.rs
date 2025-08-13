@@ -37,7 +37,7 @@ async fn view_session(_: client::Connection, _: &String) -> Result<(), Box<dyn E
 
 async fn view_application(
     conn: client::Connection,
-    application: &String,
+    application: &str,
 ) -> Result<(), Box<dyn Error>> {
     let application = conn.get_application(application).await?;
     println!("Name: {}", application.name);

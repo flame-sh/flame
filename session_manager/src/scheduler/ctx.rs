@@ -49,16 +49,12 @@ impl Context {
         })
     }
 
-    pub fn filter(
-        &self,
-        execs: &Vec<ExecutorInfoPtr>,
-        ssn: &SessionInfoPtr,
-    ) -> Vec<ExecutorInfoPtr> {
+    pub fn filter(&self, execs: &[ExecutorInfoPtr], ssn: &SessionInfoPtr) -> Vec<ExecutorInfoPtr> {
         self.plugins.filter(execs, ssn)
     }
 
     pub fn filter_one(&self, exec: &ExecutorInfoPtr, ssn: &SessionInfoPtr) -> bool {
-        !self.filter(&vec![exec.clone()], ssn).is_empty()
+        !self.filter(&[exec.clone()], ssn).is_empty()
     }
 
     pub fn is_underused(&self, ssn: &SessionInfoPtr) -> Result<bool, FlameError> {

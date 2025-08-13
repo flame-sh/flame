@@ -90,9 +90,9 @@ impl PluginManager {
             .all(|plugin| plugin.is_preemptible(ssn).unwrap_or(false)))
     }
 
-    pub fn filter(&self, execs: &Vec<ExecutorInfoPtr>, _: &SessionInfoPtr) -> Vec<ExecutorInfoPtr> {
+    pub fn filter(&self, execs: &[ExecutorInfoPtr], _: &SessionInfoPtr) -> Vec<ExecutorInfoPtr> {
         // TODO: if application was prepared, select it.
-        execs.clone()
+        execs.to_owned()
     }
 
     pub fn on_session_bind(&self, ssn: SessionInfoPtr) -> Result<(), FlameError> {
