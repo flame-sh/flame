@@ -14,7 +14,7 @@ limitations under the License.
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 
 use common::apis::{
     Application, Executor, ExecutorID, ExecutorState, Session, SessionID, SessionState, Task,
@@ -28,6 +28,8 @@ pub type ExecutorInfoPtr = Arc<ExecutorInfo>;
 
 #[derive(Clone)]
 pub struct SnapShot {
+    pub applications: MutexPtr<HashMap<String, AppInfo>>,
+
     pub sessions: MutexPtr<HashMap<SessionID, SessionInfoPtr>>,
     pub ssn_index: MutexPtr<HashMap<SessionState, HashMap<SessionID, SessionInfoPtr>>>,
 
@@ -40,6 +42,7 @@ pub type SnapShotPtr = Arc<SnapShot>;
 impl SnapShot {
     pub fn new() -> Self {
         SnapShot {
+            applications: Arc::new(Mutex::new(HashMap::new())),
             sessions: Arc::new(Mutex::new(HashMap::new())),
             ssn_index: Arc::new(Mutex::new(HashMap::new())),
             executors: Arc::new(Mutex::new(HashMap::new())),
@@ -104,6 +107,8 @@ pub struct ExecutorInfo {
 #[derive(Clone, Debug, Default)]
 pub struct AppInfo {
     pub name: String,
+    pub max_instances: i32,
+    pub delay_release: Duration,
 }
 
 impl From<Application> for AppInfo {
@@ -116,6 +121,8 @@ impl From<&Application> for AppInfo {
     fn from(app: &Application) -> Self {
         AppInfo {
             name: app.name.to_string(),
+            max_instances: app.max_instances,
+            delay_release: app.delay_release,
         }
     }
 }
@@ -193,7 +200,56 @@ pub const BOUND_EXECUTOR: Option<ExecutorFilter> = Some(ExecutorFilter {
 
 pub const ALL_EXECUTOR: Option<ExecutorFilter> = None;
 
+pub struct AppFilter {
+    pub names: Vec<String>,
+}
+
+pub const ALL_APPLICATION: Option<AppFilter> = None;
+
 impl SnapShot {
+    pub fn find_applications(
+        &self,
+        filter: Option<AppFilter>,
+    ) -> Result<HashMap<String, AppInfo>, FlameError> {
+        match filter {
+            Some(filter) => self.find_applications_by_filter(filter),
+            None => self.find_all_applications(),
+        }
+    }
+
+    fn find_applications_by_filter(
+        &self,
+        filter: AppFilter,
+    ) -> Result<HashMap<String, AppInfo>, FlameError> {
+        let mut appinfos = HashMap::new();
+
+        {
+            let apps = lock_ptr!(self.applications)?;
+
+            for name in filter.names {
+                if let Some(app) = apps.get(&name) {
+                    appinfos.insert(name, app.clone());
+                }
+            }
+        }
+
+        Ok(appinfos)
+    }
+
+    fn find_all_applications(&self) -> Result<HashMap<String, AppInfo>, FlameError> {
+        let mut appinfos = HashMap::new();
+
+        {
+            let mut apps = lock_ptr!(self.applications)?;
+
+            for app in apps.values() {
+                appinfos.insert(app.name.clone(), app.clone());
+            }
+        }
+
+        Ok(appinfos)
+    }
+
     pub fn find_sessions(
         &self,
         filter: Option<SessionFilter>,

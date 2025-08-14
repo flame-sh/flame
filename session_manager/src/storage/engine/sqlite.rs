@@ -16,7 +16,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use sqlx::{migrate::MigrateDatabase, types::Json, FromRow, Sqlite, SqlitePool};
 
 use crate::FlameError;
@@ -24,7 +24,7 @@ use common::{
     apis::{
         Application, ApplicationAttributes, ApplicationID, ApplicationState, CommonData, Session,
         SessionID, SessionState, SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskOutput,
-        TaskState,
+        TaskState, DEFAULT_DELAY_RELEASE, DEFAULT_MAX_INSTANCES,
     },
     trace::TraceFn,
     trace_fn,
@@ -41,6 +41,9 @@ struct ApplicationDao {
     pub command: Option<String>,
     pub arguments: Option<Json<Vec<String>>>,
     pub environments: Option<Json<HashMap<String, String>>>,
+
+    pub max_instances: i32,
+    pub delay_release: i64,
 
     pub shim: i32,
     pub creation_time: i64,
@@ -118,13 +121,15 @@ impl Engine for SqliteEngine {
             .await
             .map_err(|e| FlameError::Storage(format!("failed to begin TX: {e}")))?;
 
-        let sql = "INSERT INTO applications (name, shim, command, arguments, environments, creation_time, state) VALUES (?, ?, ?, ?, ?, strftime ('%s', 'now'), 0) RETURNING *";
+        let sql = "INSERT INTO applications (name, shim, command, arguments, environments, max_instances, delay_release, creation_time, state) VALUES (?, ?, ?, ?, ?, ?, ?, strftime ('%s', 'now'), 0) RETURNING *";
         let app: ApplicationDao = sqlx::query_as(sql)
             .bind(name)
             .bind::<i32>(attr.shim.into())
             .bind(attr.command)
             .bind(Json(attr.arguments))
             .bind(Json(attr.environments))
+            .bind(attr.max_instances)
+            .bind(attr.delay_release.num_seconds())
             .fetch_one(&mut *tx)
             .await
             .map_err(|e| FlameError::Storage(format!("failed to execute SQL: {e}")))?;
@@ -563,6 +568,8 @@ impl TryFrom<&ApplicationDao> for Application {
                 .unwrap_or_default(),
             // TODO: make application configurable for work_dir.
             working_directory: String::from("/tmp"),
+            max_instances: app.max_instances,
+            delay_release: Duration::seconds(app.delay_release),
         })
     }
 }
@@ -585,6 +592,11 @@ mod tests {
     fn test_get_application() -> Result<(), FlameError> {
         let url = format!("sqlite:///tmp/flame_test_app_{}.db", Utc::now().timestamp());
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
+
         let app_1 = tokio_test::block_on(storage.get_application("flmexec".to_string()))?;
 
         assert_eq!(app_1.name, "flmexec");
@@ -600,6 +612,9 @@ mod tests {
             Utc::now().timestamp()
         );
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);
@@ -636,6 +651,9 @@ mod tests {
             Utc::now().timestamp()
         );
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);
@@ -694,6 +712,9 @@ mod tests {
             Utc::now().timestamp()
         );
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);
@@ -720,6 +741,9 @@ mod tests {
         );
 
         let storage = tokio_test::block_on(SqliteEngine::new_ptr(&url))?;
+        for (name, attr) in common::default_applications() {
+            tokio_test::block_on(storage.register_application(name.clone(), attr))?;
+        }
         let ssn_1 = tokio_test::block_on(storage.create_session("flmexec".to_string(), 1, None))?;
 
         assert_eq!(ssn_1.id, 1);

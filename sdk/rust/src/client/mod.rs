@@ -14,7 +14,7 @@ limitations under the License.
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use futures::TryFutureExt;
 use stdng::{logs::TraceFn, trace_fn};
 use tokio_stream::StreamExt;
@@ -71,6 +71,8 @@ pub struct ApplicationAttributes {
     pub arguments: Vec<String>,
     pub environments: HashMap<String, String>,
     pub working_directory: Option<String>,
+    pub max_instances: Option<i32>,
+    pub delay_release: Option<Duration>,
 }
 
 #[derive(Clone)]
@@ -376,6 +378,8 @@ impl From<ApplicationAttributes> for ApplicationSpec {
                 .map(|(key, value)| Environment { name: key, value })
                 .collect(),
             working_directory: app.working_directory.clone(),
+            max_instances: app.max_instances,
+            delay_release: app.delay_release.map(|s| s.num_seconds()),
         }
     }
 }
@@ -394,6 +398,8 @@ impl From<ApplicationSpec> for ApplicationAttributes {
                 .map(|env| (env.name, env.value))
                 .collect(),
             working_directory: app.working_directory.clone(),
+            max_instances: app.max_instances,
+            delay_release: app.delay_release.map(Duration::seconds),
         }
     }
 }

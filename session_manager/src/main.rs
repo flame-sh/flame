@@ -16,6 +16,12 @@ use futures::future::join_all;
 use std::io::Write;
 use std::process;
 
+use chrono::{Duration, Utc};
+use std::collections::HashMap;
+
+use common::apis::{
+    ApplicationAttributes, ApplicationState, Shim, DEFAULT_DELAY_RELEASE, DEFAULT_MAX_INSTANCES,
+};
 use common::ctx::FlameContext;
 use common::FlameError;
 
@@ -77,6 +83,11 @@ async fn main() -> Result<(), FlameError> {
 
     log::info!("flame-session-manager started.");
 
+    // Register default applications.
+    for (name, attr) in common::default_applications() {
+        controller.register_application(name, attr).await?;
+    }
+
     // Waiting for all thread to exit.
     let _ = join_all(handlers).await;
 
@@ -87,3 +98,4 @@ async fn main() -> Result<(), FlameError> {
 pub trait FlameThread: Send + Sync + 'static {
     async fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
 }
+

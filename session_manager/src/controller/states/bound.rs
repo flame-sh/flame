@@ -11,7 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
+use chrono::{DateTime, Duration, Utc};
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll};
+
+use common::apis::{
+    ExecutorPtr, ExecutorState, SessionPtr, Task, TaskID, TaskOutput, TaskPtr, TaskState,
+};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 use crate::controller::states::States;
@@ -47,10 +55,15 @@ impl States for BoundState {
 
     async fn launch_task(&self, ssn_ptr: SessionPtr) -> Result<Option<Task>, FlameError> {
         trace_fn!("BoundState::launch_task");
-        let task_ptr = {
-            let mut ssn = lock_ptr!(ssn_ptr)?;
-            ssn.pop_pending_task()
+
+        let app_name = {
+            let ssn = lock_ptr!(ssn_ptr)?;
+            ssn.application.clone()
         };
+
+        let app_ptr = self.storage.get_application(app_name).await?;
+
+        let task_ptr = WaitForTaskFuture::new(&ssn_ptr, app_ptr.delay_release).await?;
 
         let task_ptr = {
             match task_ptr {
@@ -107,5 +120,44 @@ impl States for BoundState {
         };
 
         Ok(())
+    }
+}
+
+struct WaitForTaskFuture {
+    ssn: SessionPtr,
+    delay_release: Duration,
+    start_time: DateTime<Utc>,
+}
+
+impl WaitForTaskFuture {
+    pub fn new(ssn: &SessionPtr, delay_release: Duration) -> Self {
+        Self {
+            ssn: ssn.clone(),
+            delay_release,
+            start_time: Utc::now(),
+        }
+    }
+}
+
+impl Future for WaitForTaskFuture {
+    type Output = Result<Option<TaskPtr>, FlameError>;
+
+    fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut ssn = lock_ptr!(self.ssn)?;
+
+        match ssn.pop_pending_task() {
+            None => {
+                let now = Utc::now();
+                if now - self.start_time > self.delay_release {
+                    // If the delay release is reached, return None.
+                    Poll::Ready(Ok(None))
+                } else {
+                    // If the delay release is not reached, wait for the next poll.
+                    ctx.waker().wake_by_ref();
+                    Poll::Pending
+                }
+            }
+            Some(task_ptr) => Poll::Ready(Ok(Some(task_ptr))),
+        }
     }
 }
