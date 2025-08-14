@@ -98,4 +98,3 @@ async fn main() -> Result<(), FlameError> {
 pub trait FlameThread: Send + Sync + 'static {
     async fn run(&self, ctx: FlameContext) -> Result<(), FlameError>;
 }
-

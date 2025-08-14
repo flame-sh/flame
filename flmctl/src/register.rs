@@ -30,7 +30,9 @@ struct MetadataYaml {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SpecYaml {
     pub shim: Option<String>,
-    pub url: Option<String>,
+    pub image: Option<String>,
+    pub description: Option<String>,
+    pub labels: Option<Vec<String>>,
     pub command: Option<String>,
     pub arguments: Option<Vec<String>>,
     pub environments: Option<HashMap<String, String>>,
@@ -82,7 +84,9 @@ impl TryFrom<&ApplicationYaml> for ApplicationAttributes {
 
         Ok(Self {
             shim,
-            url: yaml.spec.url.clone(),
+            image: yaml.spec.image.clone(),
+            description: yaml.spec.description.clone(),
+            labels: yaml.spec.labels.clone().unwrap_or_default(),
             command: yaml.spec.command.clone(),
             arguments: yaml.spec.arguments.clone().unwrap_or_default(),
             environments: yaml.spec.environments.clone().unwrap_or_default(),

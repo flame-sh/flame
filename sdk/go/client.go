@@ -72,7 +72,7 @@ type SessionAttributes struct {
 type ApplicationAttributes struct {
 	Name             string
 	Shim             Shim
-	URL              string
+	Image            string
 	Command          string
 	Arguments        []string
 	Environments     []string
@@ -177,7 +177,7 @@ func (c *Connection) ListSession(ctx context.Context) ([]*Session, error) {
 func (c *Connection) RegisterApplication(ctx context.Context, name string, app ApplicationAttributes) error {
 	appSpec := &rpc.ApplicationSpec{
 		Shim:             rpc.Shim(app.Shim),
-		Url:              &app.URL,
+		Image:            &app.Image,
 		Command:          &app.Command,
 		Arguments:        app.Arguments,
 		Environments:     app.Environments,
@@ -204,7 +204,7 @@ func (c *Connection) ListApplication(ctx context.Context) ([]*Application, error
 			Attributes: ApplicationAttributes{
 				Name:             app.Metadata.Name,
 				Shim:             Shim(app.Spec.Shim),
-				URL:              *app.Spec.Url,
+				Image:            *app.Spec.Image,
 				Command:          *app.Spec.Command,
 				Arguments:        app.Spec.Arguments,
 				Environments:     app.Spec.Environments,

@@ -41,8 +41,16 @@ async fn view_application(
 ) -> Result<(), Box<dyn Error>> {
     let application = conn.get_application(application).await?;
     println!("Name: {}", application.name);
+    println!(
+        "Description: {}",
+        application.attributes.description.unwrap_or_default()
+    );
     println!("Shim: {}", application.attributes.shim);
-    println!("URL: {}", application.attributes.url.unwrap_or_default());
+    println!(
+        "Image: {}",
+        application.attributes.image.unwrap_or_default()
+    );
+    println!("Labels: {:?}", application.attributes.labels);
     println!(
         "Command: {}",
         application.attributes.command.unwrap_or_default()

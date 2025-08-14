@@ -87,7 +87,7 @@ impl Plugin for FairShare {
             }
 
             if let Some(app) = apps.get(&ssn.application) {
-                desired = desired.min(app.max_instances as f64);
+                desired = desired.min((app.max_instances * ssn.slots) as f64);
 
                 self.ssn_map.insert(
                     ssn.id,

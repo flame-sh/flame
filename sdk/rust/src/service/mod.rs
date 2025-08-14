@@ -24,7 +24,7 @@ use crate::apis::{CommonData, FlameError, TaskInput, TaskOutput};
 
 pub struct ApplicationContext {
     pub name: String,
-    pub url: Option<String>,
+    pub image: Option<String>,
     pub command: Option<String>,
 }
 
@@ -125,7 +125,7 @@ impl From<rpc::ApplicationContext> for ApplicationContext {
     fn from(ctx: rpc::ApplicationContext) -> Self {
         Self {
             name: ctx.name.clone(),
-            url: ctx.url.clone(),
+            image: ctx.image.clone(),
             command: ctx.command.clone(),
         }
     }

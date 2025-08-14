@@ -66,7 +66,9 @@ pub struct SessionAttributes {
 pub struct ApplicationAttributes {
     pub shim: Shim,
 
-    pub url: Option<String>,
+    pub image: Option<String>,
+    pub description: Option<String>,
+    pub labels: Vec<String>,
     pub command: Option<String>,
     pub arguments: Vec<String>,
     pub environments: HashMap<String, String>,
@@ -368,7 +370,9 @@ impl From<ApplicationAttributes> for ApplicationSpec {
     fn from(app: ApplicationAttributes) -> Self {
         Self {
             shim: app.shim.into(),
-            url: app.url.clone(),
+            image: app.image.clone(),
+            description: app.description.clone(),
+            labels: app.labels.clone(),
             command: app.command.clone(),
             arguments: app.arguments.clone(),
             environments: app
@@ -388,7 +392,9 @@ impl From<ApplicationSpec> for ApplicationAttributes {
     fn from(app: ApplicationSpec) -> Self {
         Self {
             shim: app.shim().into(),
-            url: app.url.clone(),
+            image: app.image.clone(),
+            description: app.description.clone(),
+            labels: app.labels.clone(),
             command: app.command.clone(),
             arguments: app.arguments.clone(),
             environments: app

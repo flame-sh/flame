@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS applications (
     command         TEXT,
     arguments       TEXT,
     environments    TEXT,
+    description     TEXT,
+    labels          TEXT,
 
     shim            INTEGER NOT NULL,
     max_instances   INTEGER NOT NULL,
