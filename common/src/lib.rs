@@ -16,9 +16,9 @@ pub mod ctx;
 pub mod ptr;
 pub mod trace;
 
+use std::collections::HashMap;
 use std::io::Write;
 use std::process;
-use std::collections::HashMap;
 
 use chrono::Local;
 use thiserror::Error;

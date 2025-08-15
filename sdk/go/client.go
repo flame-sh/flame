@@ -72,10 +72,10 @@ type SessionAttributes struct {
 type ApplicationAttributes struct {
 	Name             string
 	Shim             Shim
-	URL              string
+	Image            string
 	Command          string
 	Arguments        []string
-	Environments     []string
+	Environments     map[string]string
 	WorkingDirectory string
 }
 
@@ -175,12 +175,19 @@ func (c *Connection) ListSession(ctx context.Context) ([]*Session, error) {
 
 // RegisterApplication registers a new application
 func (c *Connection) RegisterApplication(ctx context.Context, name string, app ApplicationAttributes) error {
+	envs := make([]*rpc.Environment, 0, len(app.Environments))
+	for k, v := range app.Environments {
+		envs = append(envs, &rpc.Environment{
+			Name:  k,
+			Value: v,
+		})
+	}
 	appSpec := &rpc.ApplicationSpec{
 		Shim:             rpc.Shim(app.Shim),
-		Url:              &app.URL,
+		Image:            &app.Image,
 		Command:          &app.Command,
 		Arguments:        app.Arguments,
-		Environments:     app.Environments,
+		Environments:     envs,
 		WorkingDirectory: &app.WorkingDirectory,
 	}
 
@@ -199,15 +206,20 @@ func (c *Connection) ListApplication(ctx context.Context) ([]*Application, error
 
 	appPtrs := make([]*Application, 0, len(appList.Applications))
 	for _, app := range appList.Applications {
+		envs := make(map[string]string)
+		for _, env := range app.Spec.Environments {
+			envs[env.Name] = env.Value
+		}
+
 		appPtrs = append(appPtrs, &Application{
 			Name: ApplicationID(app.Metadata.Id),
 			Attributes: ApplicationAttributes{
 				Name:             app.Metadata.Name,
 				Shim:             Shim(app.Spec.Shim),
-				URL:              *app.Spec.Url,
+				Image:            *app.Spec.Image,
 				Command:          *app.Spec.Command,
 				Arguments:        app.Spec.Arguments,
-				Environments:     app.Spec.Environments,
+				Environments:     envs,
 				WorkingDirectory: *app.Spec.WorkingDirectory,
 			},
 			State:        ApplicationState(app.Status.State),

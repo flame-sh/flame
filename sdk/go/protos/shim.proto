@@ -9,7 +9,7 @@ option go_package = "github.com/flame-sh/flame/sdk/go/rpc";
 message ApplicationContext {
     string name = 1;
     Shim shim = 2;
-    optional string url = 3;
+    optional string image = 3;
     optional string command = 4;
 }
 

@@ -92,13 +92,15 @@ message Environment {
 
 message ApplicationSpec {
   Shim shim = 1;
-  optional string url = 2;
-  optional string command = 3;
-  repeated string arguments = 4;
-  repeated Environment environments = 5;
-  optional string working_directory = 6;
-  optional int32 max_instances = 7;
-  optional int64 delay_release = 8;
+  optional string description = 2;
+  repeated string labels = 3;
+  optional string image = 4;
+  optional string command = 5;
+  repeated string arguments = 6;
+  repeated Environment environments = 7;
+  optional string working_directory = 8;
+  optional int32 max_instances = 9;
+  optional int64 delay_release = 10;
 }
 
 message Application {

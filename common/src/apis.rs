@@ -61,7 +61,9 @@ pub struct Application {
     pub state: ApplicationState,
     pub creation_time: DateTime<Utc>,
     pub shim: Shim,
-    pub url: Option<String>,
+    pub image: Option<String>,
+    pub description: Option<String>,
+    pub labels: Vec<String>,
     pub command: Option<String>,
     pub arguments: Vec<String>,
     pub environments: HashMap<String, String>,
@@ -73,7 +75,9 @@ pub struct Application {
 #[derive(Clone, Debug)]
 pub struct ApplicationAttributes {
     pub shim: Shim,
-    pub url: Option<String>,
+    pub image: Option<String>,
+    pub description: Option<String>,
+    pub labels: Vec<String>,
     pub command: Option<String>,
     pub arguments: Vec<String>,
     pub environments: HashMap<String, String>,
@@ -86,7 +90,9 @@ impl Default for ApplicationAttributes {
     fn default() -> Self {
         Self {
             shim: Shim::default(),
-            url: None,
+            image: None,
+            description: None,
+            labels: vec![],
             command: None,
             arguments: vec![],
             environments: HashMap::new(),
@@ -203,7 +209,7 @@ pub struct SessionContext {
 #[derive(Clone, Debug)]
 pub struct ApplicationContext {
     pub name: String,
-    pub url: Option<String>,
+    pub image: Option<String>,
     pub command: Option<String>,
     pub arguments: Vec<String>,
     pub environments: HashMap<String, String>,
@@ -301,7 +307,7 @@ impl TryFrom<rpc::Application> for ApplicationContext {
 
         Ok(ApplicationContext {
             name: metadata.name.clone(),
-            url: spec.url.clone(),
+            image: spec.image.clone(),
             command: spec.command.clone(),
             arguments: spec.arguments.clone(),
             environments: spec
@@ -340,7 +346,7 @@ impl From<ApplicationContext> for rpc::ApplicationContext {
     fn from(ctx: ApplicationContext) -> Self {
         Self {
             name: ctx.name.clone(),
-            url: ctx.url.clone(),
+            image: ctx.image.clone(),
             shim: ctx.shim.into(),
             command: ctx.command.clone(),
         }
@@ -480,7 +486,9 @@ impl TryFrom<&rpc::Application> for Application {
                 FlameError::InvalidState("invalid creation time".to_string()),
             )?,
             shim: Shim::try_from(spec.shim).unwrap_or(Shim::default()),
-            url: spec.url.clone(),
+            image: spec.image.clone(),
+            description: spec.description.clone(),
+            labels: spec.labels.clone(),
             command: spec.command.clone(),
             arguments: spec.arguments.to_vec(),
             environments: spec
@@ -509,7 +517,9 @@ impl From<&Application> for rpc::Application {
     fn from(app: &Application) -> Self {
         let spec = Some(ApplicationSpec {
             shim: app.shim.into(),
-            url: app.url.clone(),
+            image: app.image.clone(),
+            description: app.description.clone(),
+            labels: app.labels.clone(),
             command: app.command.clone(),
             arguments: app.arguments.to_vec(),
             environments: app
@@ -544,7 +554,9 @@ impl From<rpc::ApplicationSpec> for ApplicationAttributes {
     fn from(spec: rpc::ApplicationSpec) -> Self {
         Self {
             shim: spec.shim().into(),
-            url: spec.url.clone(),
+            image: spec.image.clone(),
+            description: spec.description.clone(),
+            labels: spec.labels.clone(),
             command: spec.command.clone(),
             arguments: spec.arguments.clone(),
             environments: spec

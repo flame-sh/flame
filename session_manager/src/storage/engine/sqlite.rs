@@ -37,7 +37,9 @@ const SQLITE_SQL: &str = "migrations/sqlite";
 #[derive(Clone, FromRow, Debug)]
 struct ApplicationDao {
     pub name: ApplicationID,
-    pub url: Option<String>,
+    pub image: Option<String>,
+    pub description: Option<String>,
+    pub labels: Option<Json<Vec<String>>>,
     pub command: Option<String>,
     pub arguments: Option<Json<Vec<String>>>,
     pub environments: Option<Json<HashMap<String, String>>>,
@@ -558,7 +560,13 @@ impl TryFrom<&ApplicationDao> for Application {
                 .map_err(|_| FlameError::Internal("unknown shim".to_string()))?,
             creation_time: DateTime::<Utc>::from_timestamp(app.creation_time, 0)
                 .ok_or(FlameError::Storage("invalid creation time".to_string()))?,
-            url: app.url.clone(),
+            image: app.image.clone(),
+            description: app.description.clone(),
+            labels: app
+                .labels
+                .clone()
+                .map(|labels| labels.0)
+                .unwrap_or_default(),
             command: app.command.clone(),
             arguments: app.arguments.clone().map(|args| args.0).unwrap_or_default(),
             environments: app
