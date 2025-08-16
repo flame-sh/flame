@@ -12,10 +12,11 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
-use std::fmt;
+use std::{env, fmt, os};
 
 use ::rpc::flame::ApplicationSpec;
 use chrono::{DateTime, Duration, Utc};
+use rustix::system;
 
 use rpc::flame as rpc;
 
@@ -182,7 +183,7 @@ pub enum ExecutorState {
 #[derive(Clone, Debug)]
 pub struct Executor {
     pub id: ExecutorID,
-    pub slots: i32,
+    pub resreq: ResourceRequirement,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
@@ -215,6 +216,179 @@ pub struct ApplicationContext {
     pub environments: HashMap<String, String>,
 
     pub shim: Shim,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
+pub enum NodeState {
+    #[default]
+    Unknown = 0,
+    Ready = 1,
+    NotReady = 2,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NodeInfo {
+    pub arch: String,
+    pub os: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ResourceRequirement {
+    pub cpu: u64,
+    pub memory: u64,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Node {
+    pub name: String,
+    pub capacity: ResourceRequirement,
+    pub allocatable: ResourceRequirement,
+    pub info: NodeInfo,
+    pub state: NodeState,
+}
+
+impl Node {
+    pub fn new() -> Self {
+        let mut node = Self::default();
+        node.name = system::uname().nodename().to_string_lossy().to_string();
+        node.state = NodeState::Ready;
+
+        node.refresh();
+
+        node
+    }
+
+    pub fn refresh(&mut self) {
+        let sysinfo = system::sysinfo();
+        let memory = sysinfo.totalram;
+        let cpu = num_cpus::get() as u64;
+
+        let capacity = ResourceRequirement { cpu, memory };
+        let allocatable = capacity.clone();
+
+        let info = NodeInfo {
+            arch: env::consts::ARCH.to_string(),
+            os: env::consts::OS.to_string(),
+        };
+
+        self.capacity = capacity;
+        self.allocatable = allocatable;
+        self.info = info;
+    }
+}
+
+
+impl From<ResourceRequirement> for rpc::ResourceRequirement {
+    fn from(req: ResourceRequirement) -> Self {
+        Self {
+            cpu: req.cpu,
+            memory: req.memory,
+        }
+    }
+}
+
+impl From<rpc::ResourceRequirement> for ResourceRequirement {
+    fn from(req: rpc::ResourceRequirement) -> Self {
+        Self {
+            cpu: req.cpu,
+            memory: req.memory,
+        }
+    }
+}
+
+impl From<NodeInfo> for rpc::NodeInfo {
+    fn from(info: NodeInfo) -> Self {
+        Self {
+            arch: info.arch,
+            os: info.os,
+        }
+    }
+}
+
+impl From<rpc::NodeInfo> for NodeInfo {
+    fn from(info: rpc::NodeInfo) -> Self {
+        Self {
+            arch: info.arch,
+            os: info.os,
+        }
+    }
+}
+
+impl From<NodeState> for rpc::NodeState {
+    fn from(state: NodeState) -> Self {
+        match state {
+            NodeState::Unknown => rpc::NodeState::Unknown,
+            NodeState::Ready => rpc::NodeState::Ready,
+            NodeState::NotReady => rpc::NodeState::NotReady,
+        }
+    }
+}
+
+impl From<rpc::NodeState> for NodeState {
+    fn from(state: rpc::NodeState) -> Self {
+        match state {
+            rpc::NodeState::Unknown => NodeState::Unknown,
+            rpc::NodeState::Ready => NodeState::Ready,
+            rpc::NodeState::NotReady => NodeState::NotReady,
+        }
+    }
+}
+
+impl From<NodeState> for i32 {
+    fn from(state: NodeState) -> Self {
+        match state {
+            NodeState::Unknown => 0,
+            NodeState::Ready => 1,
+            NodeState::NotReady => 2,
+        }
+    }
+}
+
+impl From<i32> for NodeState {
+    fn from(state: i32) -> Self {
+        match state {
+            0 => NodeState::Unknown,
+            1 => NodeState::Ready,
+            2 => NodeState::NotReady,
+            _ => NodeState::Unknown,
+        }
+    }
+}
+
+impl From<Node> for rpc::Node {
+    fn from(node: Node) -> Self {
+        let status = Some(rpc::NodeStatus {
+            state: node.state.into(),
+            capacity: Some(node.capacity.into()),
+            allocatable: Some(node.allocatable.into()),
+            info: Some(node.info.into()),
+        });
+
+        Self {
+            metadata: Some(rpc::Metadata {
+                id: node.name.clone(),
+                name: node.name.clone(),
+                owner: None,
+            }),
+            spec: Some(rpc::NodeSpec {           
+            }),
+            status: status,
+        }
+    }
+}
+
+impl From<rpc::Node> for Node {
+    fn from(node: rpc::Node) -> Self {
+        let status = node.status.unwrap_or_default();
+        let metadata = node.metadata.unwrap_or_default();
+        Self {
+            name: metadata.name,
+            capacity: status.capacity.unwrap_or_default().into(),
+            allocatable: status.allocatable.unwrap_or_default().into(),
+            info: status.info.unwrap_or_default().into(),
+            state: status.state.into(),
+        }
+    }
 }
 
 impl Session {

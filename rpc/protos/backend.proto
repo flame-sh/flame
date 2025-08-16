@@ -11,6 +11,11 @@ option go_package = "github.com/flame-sh/flame/sdk/go/rpc";
   e.g. register executor, invoke tasks and so on.
  */
 service Backend {
+  rpc register_node(RegisterNodeRequest) returns (Result) {}
+  rpc watch_allocation(WatchAllocationRequest) returns (WatchAllocationResponse) {}
+  rpc update_node(UpdateNodeRequest) returns (Result) {}
+  rpc release_node(ReleaseNodeRequest) returns (Result) {}
+
   rpc RegisterExecutor (RegisterExecutorRequest) returns (Result) {}
   rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
 
@@ -66,4 +71,30 @@ message LaunchTaskResponse {
 message CompleteTaskRequest {
   string executor_id = 1;
   optional bytes task_output = 2;
+}
+
+
+message RegisterNodeRequest {
+  Node node = 1;
+}
+
+message UpdateNodeRequest {
+  Node node = 1;
+}
+
+message ReleaseNodeRequest {
+  string node_name = 1;
+}
+
+message WatchAllocationRequest {
+  string node_name = 1;
+}
+
+message Allocation {
+  ResourceRequirement resreq = 1;
+  int32 replica = 2;
+}
+
+message WatchAllocationResponse {
+  repeated Allocation allocations = 1;
 }

@@ -17,8 +17,8 @@ use std::sync::{Arc, Mutex};
 use chrono::{DateTime, Duration, Utc};
 
 use common::apis::{
-    Application, Executor, ExecutorID, ExecutorState, Session, SessionID, SessionState, Task,
-    TaskID, TaskState,
+    Application, Executor, ExecutorID, ExecutorState, ResourceRequirement, Session, SessionID,
+    SessionState, Task, TaskID, TaskState,
 };
 use common::ptr::MutexPtr;
 use common::{lock_ptr, FlameError};
@@ -96,7 +96,7 @@ pub struct SessionInfo {
 #[derive(Clone, Debug, Default)]
 pub struct ExecutorInfo {
     pub id: ExecutorID,
-    pub slots: i32,
+    pub resreq: ResourceRequirement,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
@@ -131,7 +131,7 @@ impl From<&Executor> for ExecutorInfo {
     fn from(exec: &Executor) -> Self {
         ExecutorInfo {
             id: exec.id.clone(),
-            slots: exec.slots,
+            resreq: exec.resreq.clone(),
             task_id: exec.task_id,
             ssn_id: exec.ssn_id,
             creation_time: exec.creation_time,
@@ -447,7 +447,7 @@ impl SnapShot {
     ) -> Result<(), FlameError> {
         let new_exec = Arc::new(ExecutorInfo {
             id: exec.id.clone(),
-            slots: exec.slots,
+            resreq: exec.resreq.clone(),
             task_id: exec.task_id,
             ssn_id: exec.ssn_id,
             creation_time: exec.creation_time,

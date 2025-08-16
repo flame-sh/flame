@@ -26,10 +26,13 @@ pub struct InitState {
 
 #[async_trait]
 impl State for InitState {
-    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError> {
+    async fn execute(&mut self) -> Result<Executor, FlameError> {
         trace_fn!("InitState::execute");
 
-        client::register_executor(ctx, &self.executor.clone()).await?;
+        self.executor
+            .client
+            .register_executor(&self.executor.clone())
+            .await?;
 
         self.executor.state = ExecutorState::Idle;
 

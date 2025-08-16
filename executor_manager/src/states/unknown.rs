@@ -16,7 +16,6 @@ use async_trait::async_trait;
 use crate::executor::Executor;
 use crate::states::State;
 
-use common::ctx::FlameContext;
 use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
@@ -26,7 +25,7 @@ pub struct UnknownState {
 
 #[async_trait]
 impl State for UnknownState {
-    async fn execute(&mut self, _ctx: &FlameContext) -> Result<Executor, FlameError> {
+    async fn execute(&mut self) -> Result<Executor, FlameError> {
         trace_fn!("UnknownState::execute");
 
         Ok(self.executor.clone())

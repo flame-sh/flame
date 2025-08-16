@@ -22,3 +22,5 @@ strum = { workspace = true }
 strum_macros = { workspace = true }
 chrono = "0.4"
 serde_yaml = "0.9"
+rustix = { version = "1.0" }
+num_cpus = "1.0"

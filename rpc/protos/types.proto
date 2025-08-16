@@ -110,7 +110,7 @@ message Application {
 }
 
 message ExecutorSpec {
-  int32 slots = 2;
+  ResourceRequirement resreq = 1;
 }
 
 enum ExecutorState {
@@ -136,6 +136,39 @@ message SessionList {
 
 message ApplicationList {
   repeated Application applications = 1;
+}
+
+message ResourceRequirement {
+  uint64 cpu = 1;
+  uint64 memory = 2;
+}
+
+message NodeSpec {
+
+}
+
+enum NodeState {
+  Unknown = 0;
+  Ready = 1;
+  NotReady = 2;
+}
+
+message NodeInfo {
+  string arch = 1;
+  string os = 2;
+}
+
+message NodeStatus {
+  NodeState state = 1;
+  ResourceRequirement capacity = 2;
+  ResourceRequirement allocatable = 3;
+  NodeInfo info = 4;
+}
+
+message Node {
+  Metadata metadata = 1;
+  NodeSpec spec = 2;
+  NodeStatus status = 3;
 }
 
 message Result {
