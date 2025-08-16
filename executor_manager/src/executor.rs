@@ -11,16 +11,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use chrono::{DateTime, Utc};
+use std::sync::{Arc, Mutex};
 
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::shims::ShimPtr;
 use ::rpc::flame::{self as rpc, ExecutorSpec, Metadata};
+use crate::client::BackendClient;
 
 use common::apis::{Application, SessionContext, TaskContext};
+use common::apis::ResourceRequirement;
 use common::ctx::FlameContext;
+use common::lock_ptr;
 use common::FlameError;
+use crate::states;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ExecutorState {
@@ -44,9 +49,11 @@ impl From<ExecutorState> for rpc::ExecutorState {
 
 #[derive(Clone)]
 pub struct Executor {
+    pub client: BackendClient,
+
     pub id: String,
-    pub slots: i32,
     pub applications: Vec<Application>,
+    pub resreq: ResourceRequirement,
 
     pub session: Option<SessionContext>,
     pub task: Option<TaskContext>,
@@ -57,6 +64,8 @@ pub struct Executor {
     pub state: ExecutorState,
 }
 
+pub type ExecutorPtr = Arc<Mutex<Executor>>;
+
 impl From<&Executor> for rpc::Executor {
     fn from(e: &Executor) -> Self {
         let metadata = Some(Metadata {
@@ -65,7 +74,7 @@ impl From<&Executor> for rpc::Executor {
             owner: None,
         });
 
-        let spec = Some(ExecutorSpec { slots: e.slots });
+        let spec = Some(ExecutorSpec { resreq: Some(e.resreq.clone().into()) });
 
         let status = Some(rpc::ExecutorStatus {
             state: rpc::ExecutorState::from(e.state) as i32,
@@ -80,25 +89,43 @@ impl From<&Executor> for rpc::Executor {
 }
 
 impl Executor {
-    pub fn update_state(&mut self, next: &Executor) {
+    pub fn update(&mut self, next: &Executor) {
         self.state = next.state;
         self.shim = next.shim.clone();
+        self.session = next.session.clone();
+        self.task = next.task.clone();
     }
 
-    pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
-        // let applications = ctx.applications.iter().map(Application::from).collect();
-
-        let exec = Executor {
+    pub fn new(client: BackendClient, resreq: ResourceRequirement) -> Self {
+        Self {
+            client,
+            resreq,
             id: Uuid::new_v4().to_string(),
-            slots: slots.unwrap_or(1),
             applications: vec![],
             session: None,
             task: None,
             shim: None,
             start_time: Utc::now(),
             state: ExecutorState::Init,
-        };
-
-        Ok(exec)
+        }
     }
+}
+
+pub fn start(executor: ExecutorPtr) {
+    tokio::task::spawn(async move {
+        let exec = {
+            let exec = lock_ptr!(executor)?;
+            exec.clone()
+        };
+        let mut state = states::from(exec);
+        match state.execute().await {
+            Ok(next_state) => {
+                let mut exec = lock_ptr!(executor)?;
+                exec.update(&next_state);
+            }
+            Err(e) => {
+                log::error!("Failed to execute: {e}");
+            }
+        }
+    });
 }

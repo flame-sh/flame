@@ -24,7 +24,7 @@ mod init;
 mod unbound;
 mod unknown;
 
-pub async fn from(e: Executor) -> Box<dyn State> {
+pub fn from(e: Executor) -> Box<dyn State> {
     match e.state {
         ExecutorState::Init => Box::new(init::InitState { executor: e }),
         ExecutorState::Idle => Box::new(idle::IdleState { executor: e }),
@@ -36,5 +36,5 @@ pub async fn from(e: Executor) -> Box<dyn State> {
 
 #[async_trait]
 pub trait State {
-    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError>;
+    async fn execute(&mut self) -> Result<Executor, FlameError>;
 }

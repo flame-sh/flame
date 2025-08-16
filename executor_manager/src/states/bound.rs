@@ -13,10 +13,8 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::client;
 use crate::executor::{Executor, ExecutorState};
 use crate::states::State;
-use common::ctx::FlameContext;
 use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
@@ -26,10 +24,14 @@ pub struct BoundState {
 
 #[async_trait]
 impl State for BoundState {
-    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError> {
+    async fn execute(&mut self) -> Result<Executor, FlameError> {
         trace_fn!("BoundState::execute");
 
-        let task = client::launch_task(ctx, &self.executor.clone()).await?;
+        let task = self
+            .executor
+            .client
+            .launch_task(&self.executor.clone())
+            .await?;
         self.executor.task = task.clone();
 
         match task {
@@ -45,7 +47,10 @@ impl State for BoundState {
                     }
                 };
 
-                client::complete_task(ctx, &self.executor.clone()).await?;
+                self.executor
+                    .client
+                    .complete_task(&self.executor.clone())
+                    .await?;
 
                 let (ssn_id, task_id) = {
                     let task = &self.executor.task.clone().unwrap();

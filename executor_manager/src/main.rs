@@ -11,14 +11,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use std::error::Error;
-
-use crate::executor::Executor;
+use crate::manager::ExecutorManager;
 use clap::Parser;
 use common::ctx::FlameContext;
+use common::FlameError;
 
 mod client;
 mod executor;
+mod manager;
 mod shims;
 mod states;
 
@@ -35,32 +35,17 @@ struct Cli {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), FlameError> {
     common::init_logger();
 
     let cli = Cli::parse();
     let ctx = FlameContext::from_file(cli.flame_conf)?;
 
-    // Setup Flame backend client.
-    client::install(&ctx).await?;
+    // Create the executor manager by the context.
+    let mut manager = ExecutorManager::new(&ctx).await?;
 
-    // Create the Flame directory.
-    std::fs::create_dir_all("/tmp/flame/shim")?;
+    // Run the executor manager.
+    manager.run().await?;
 
-    // Run executor.
-    // TODO(k82cn): 1. enable gracefully exit, 2. build ExecutorManager for multiple executors.
-    let mut exec = Executor::from_context(&ctx, cli.slots).await?;
-
-    // TODO(k82cn): Replace the following loop with `exec.run().await?;`.
-    loop {
-        let mut state = states::from(exec.clone()).await;
-        match state.execute(&ctx).await {
-            Ok(next_state) => {
-                exec.update_state(&next_state);
-            }
-            Err(e) => {
-                log::error!("Failed to execute: {e}");
-            }
-        }
-    }
+    Ok(())
 }

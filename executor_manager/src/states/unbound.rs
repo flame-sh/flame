@@ -26,10 +26,13 @@ pub struct UnboundState {
 
 #[async_trait]
 impl State for UnboundState {
-    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError> {
+    async fn execute(&mut self) -> Result<Executor, FlameError> {
         trace_fn!("UnboundState::execute");
 
-        client::unbind_executor(ctx, &self.executor.clone()).await?;
+        self.executor
+            .client
+            .unbind_executor(&self.executor.clone())
+            .await?;
         let shim_ptr = &mut self.executor.shim.clone().ok_or(FlameError::InvalidState(
             "no shim in bound state".to_string(),
         ))?;
@@ -39,7 +42,10 @@ impl State for UnboundState {
             shim.on_session_leave().await?;
         }
 
-        client::unbind_executor_completed(ctx, &self.executor.clone()).await?;
+        self.executor
+            .client
+            .unbind_executor_completed(&self.executor.clone())
+            .await?;
 
         self.executor.task = None;
         self.executor.session = None;

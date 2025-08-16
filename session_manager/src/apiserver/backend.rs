@@ -19,8 +19,8 @@ use tonic::{Request, Response, Status};
 use self::rpc::backend_server::Backend;
 use self::rpc::{
     Application, BindExecutorCompletedRequest, BindExecutorRequest, BindExecutorResponse,
-    CompleteTaskRequest, LaunchTaskRequest, LaunchTaskResponse, RegisterExecutorRequest, Session,
-    UnbindExecutorCompletedRequest, UnbindExecutorRequest, UnregisterExecutorRequest,
+    CompleteTaskRequest, LaunchTaskRequest, LaunchTaskResponse, RegisterExecutorRequest, RegisterNodeRequest, ReleaseNodeRequest, Session,
+    UnbindExecutorCompletedRequest, UnbindExecutorRequest, UnregisterExecutorRequest, UpdateNodeRequest, WatchAllocationRequest, WatchAllocationResponse,
 };
 use ::rpc::flame as rpc;
 
@@ -30,6 +30,12 @@ use common::apis::TaskOutput;
 
 #[async_trait]
 impl Backend for Flame {
+
+    async fn register_node(&self, _: Request<RegisterNodeRequest>) -> Result<Response<rpc::Result>, Status> { todo!() }
+    async fn watch_allocation(&self, _: Request<WatchAllocationRequest>) -> Result<Response<WatchAllocationResponse>, Status> { todo!() }
+    async fn update_node(&self, _: Request<UpdateNodeRequest>) -> Result<Response<rpc::Result>, Status> { todo!() }
+    async fn release_node(&self, _: Request<ReleaseNodeRequest>) -> Result<Response<rpc::Result>, Status> { todo!() }
+
     async fn register_executor(
         &self,
         req: Request<RegisterExecutorRequest>,
@@ -42,7 +48,7 @@ impl Backend for Flame {
 
         let e = apis::Executor {
             id: req.executor_id,
-            slots: spec.slots,
+            resreq: spec.resreq.unwrap_or_default(),
             task_id: None,
             ssn_id: None,
             creation_time: Utc::now(),
