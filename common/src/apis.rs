@@ -334,6 +334,13 @@ impl From<&String> for ResourceRequirement {
 }
 
 impl ResourceRequirement {
+    pub fn new(slots: i32, unit: &ResourceRequirement) -> Self {
+        Self {
+            cpu: slots as u64 * unit.cpu,
+            memory: slots as u64 * unit.memory,
+        }
+    }
+
     pub fn to_slots(&self, unit: &ResourceRequirement) -> u64 {
         return (self.cpu / unit.cpu).min(self.memory / unit.memory);
     }

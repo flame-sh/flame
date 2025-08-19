@@ -17,14 +17,14 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use common::apis::{
-    Allocation, Application, ApplicationAttributes, ApplicationID, CommonData, Executor,
-    ExecutorID, ExecutorPtr, Node, NodeState, Session, SessionID, SessionPtr, Task, TaskGID,
-    TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
+    Allocation, Application, ApplicationAttributes, ApplicationID, CommonData, ExecutorID, Node,
+    NodeState, Session, SessionID, SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput,
+    TaskPtr, TaskState,
 };
 
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
-use crate::model::{NodeInfoPtr, SessionInfoPtr, SnapShotPtr};
+use crate::model::{Executor, ExecutorPtr, NodeInfoPtr, SessionInfoPtr, SnapShotPtr};
 use crate::storage::StoragePtr;
 
 mod states;
@@ -105,17 +105,17 @@ impl Controller {
 
     pub async fn create_executor(
         &self,
-        node: String,
-        ssn: SessionID,
+        node_name: String,
+        ssn_id: SessionID,
     ) -> Result<Executor, FlameError> {
-        self.storage.create_executor(node, ssn).await
+        self.storage.create_executor(node_name, ssn_id).await
     }
 
     pub async fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
         trace_fn!("Controller::register_executor");
 
         let exe_ptr = self.storage.get_executor_ptr(e.id.clone())?;
-        let state = states::from(self.storage.clone(), exe_ptr)?;
+        let state = states::from(self.storage.clone(), exe_ptr.clone())?;
         state.register_executor(exe_ptr).await?;
 
         Ok(())

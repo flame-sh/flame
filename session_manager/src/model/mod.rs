@@ -19,7 +19,8 @@ use chrono::{DateTime, Duration, Utc};
 use rpc::flame as rpc;
 
 use common::apis::{
-    Application, ExecutorID, ExecutorState, Node, NodeState, ResourceRequirement, Session, SessionID, SessionState, Task, TaskID, TaskState,
+    Application, ExecutorID, ExecutorState, Node, NodeState, ResourceRequirement, Session,
+    SessionID, SessionState, Task, TaskID, TaskState,
 };
 use common::ptr::MutexPtr;
 use common::{lock_ptr, FlameError};
@@ -27,7 +28,6 @@ use common::{lock_ptr, FlameError};
 pub type SessionInfoPtr = Arc<SessionInfo>;
 pub type ExecutorInfoPtr = Arc<ExecutorInfo>;
 pub type NodeInfoPtr = Arc<NodeInfo>;
-pub type ExecutorPtr = Arc<Executor>;
 
 #[derive(Clone)]
 pub struct SnapShot {
@@ -46,9 +46,9 @@ pub struct SnapShot {
 pub type SnapShotPtr = Arc<SnapShot>;
 
 impl SnapShot {
-    pub fn new(unit: &ResourceRequirement) -> Self {
+    pub fn new(unit: ResourceRequirement) -> Self {
         SnapShot {
-            unit: unit.clone(),
+            unit,
             applications: Arc::new(Mutex::new(HashMap::new())),
             sessions: Arc::new(Mutex::new(HashMap::new())),
             ssn_index: Arc::new(Mutex::new(HashMap::new())),
@@ -562,6 +562,14 @@ pub struct Executor {
     pub state: ExecutorState,
 }
 
+pub type ExecutorPtr = MutexPtr<Executor>;
+
+impl From<rpc::Executor> for Executor {
+    fn from(e: rpc::Executor) -> Self {
+        Executor::from(&e)
+    }
+}
+
 impl From<&rpc::Executor> for Executor {
     fn from(e: &rpc::Executor) -> Self {
         let spec = e.spec.clone().unwrap();
@@ -584,6 +592,12 @@ impl From<&rpc::Executor> for Executor {
 
 impl From<Executor> for rpc::Executor {
     fn from(e: Executor) -> Self {
+        rpc::Executor::from(&e)
+    }
+}
+
+impl From<&Executor> for rpc::Executor {
+    fn from(e: &Executor) -> Self {
         let metadata = Some(rpc::Metadata {
             id: e.id.clone(),
             name: e.id.clone(),

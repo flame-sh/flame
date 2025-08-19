@@ -19,15 +19,16 @@ use uuid::Uuid;
 
 use common::apis::{Allocation, ExecutorState, ResourceRequirement};
 use common::apis::{
-    Application, ApplicationAttributes, ApplicationID, CommonData, ExecutorID,
-    ExecutorPtr, Node, NodePtr, Session, SessionID, SessionPtr, SessionState, Task, TaskGID,
-    TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
+    Application, ApplicationAttributes, ApplicationID, CommonData, ExecutorID, Node, NodePtr,
+    Session, SessionID, SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput,
+    TaskPtr, TaskState,
 };
 use common::ptr::{self, MutexPtr};
 use common::{ctx::FlameContext, lock_ptr, FlameError};
 
-use crate::model::{Executor,
-    ExecutorInfo, NodeInfo, NodeInfoPtr, SessionInfo, SessionInfoPtr, SnapShot, SnapShotPtr,
+use crate::model::{
+    Executor, ExecutorInfo, ExecutorPtr, NodeInfo, NodeInfoPtr, SessionInfo, SessionInfoPtr,
+    SnapShot, SnapShotPtr,
 };
 use crate::storage::engine::EnginePtr;
 
@@ -58,8 +59,7 @@ pub async fn new_ptr(config: &FlameContext) -> Result<StoragePtr, FlameError> {
 
 impl Storage {
     pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {
-        let unit = ResourceRequirement::from(&self.context.slot);
-        let res = SnapShot::new(&unit);
+        let res = SnapShot::new(self.context.slot.clone());
 
         {
             let node_map = lock_ptr!(self.nodes)?;
@@ -83,7 +83,7 @@ impl Storage {
             let exe_map = lock_ptr!(self.executors)?;
             for exe in exe_map.deref().values() {
                 let exe = lock_ptr!(exe)?;
-                let info = ExecutorInfo::from(&(*exe).clone());
+                let info = ExecutorInfo::from(&(*exe));
                 res.add_executor(Arc::new(info))?;
             }
         }
@@ -121,22 +121,31 @@ impl Storage {
     pub async fn sync_node(
         &self,
         node: &Node,
-        executors: &Vec<Executor>,
+        _: &Vec<Executor>,
     ) -> Result<Vec<Executor>, FlameError> {
         let mut node_map = lock_ptr!(self.nodes)?;
         node_map.insert(node.name.clone(), ptr::new_ptr(node.clone()));
 
-        let mut exe_map = lock_ptr!(self.executors)?;
-        let execs = executors
-            .into_values()
-            .map(|exe| {
-                let exe = lock_ptr!(exe)?;
-                exe.clone()
-            })
-            .filter(|&e| e.node == node.name)
-            .collect::<Vec<Executor>>();
+        let mut res = vec![];
 
-        Ok(execs)
+        let mut exe_map = lock_ptr!(self.executors)?;
+        let execs = exe_map.values();
+        for exec in execs {
+            let exec = lock_ptr!(exec)?;
+            if exec.node == node.name {
+                res.push(Executor {
+                    id: exec.id.clone(),
+                    node: exec.node.clone(),
+                    resreq: exec.resreq.clone(),
+                    task_id: exec.task_id,
+                    ssn_id: exec.ssn_id,
+                    creation_time: exec.creation_time,
+                    state: exec.state,
+                });
+            }
+        }
+
+        Ok(res)
     }
 
     pub async fn release_node(&self, node_name: &str) -> Result<(), FlameError> {
@@ -300,7 +309,7 @@ impl Storage {
         let ssn = self.get_session_ptr(ssn_id)?;
         let resreq = {
             let ssn = lock_ptr!(ssn)?;
-            ssn.slots.into()
+            ResourceRequirement::new(ssn.slots, &self.context.slot)
         };
 
         let e = Executor {

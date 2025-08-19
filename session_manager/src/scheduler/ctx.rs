@@ -18,8 +18,8 @@ use crate::model::{ExecutorInfoPtr, SessionInfoPtr, SnapShotPtr};
 use crate::scheduler::actions::{
     ActionPtr, AllocateAction, BackfillAction, DispatchAction, ShuffleAction,
 };
-use crate::scheduler::allocator::{AllocatorPtr, Allocator};
-use crate::scheduler::dispatcher::{DispatcherPtr, Dispatcher};
+use crate::scheduler::allocator::{Allocator, AllocatorPtr};
+use crate::scheduler::dispatcher::{Dispatcher, DispatcherPtr};
 
 use common::FlameError;
 

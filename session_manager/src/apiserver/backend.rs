@@ -13,22 +13,24 @@ limitations under the License.
 
 use async_trait::async_trait;
 use chrono::Utc;
-use common::{trace::TraceFn, trace_fn, FlameError};
 use tonic::{Request, Response, Status};
 
 use self::rpc::backend_server::Backend;
 use self::rpc::{
-    Application, BindExecutorCompletedRequest, BindExecutorRequest, BindExecutorResponse,
-    CompleteTaskRequest, LaunchTaskRequest, LaunchTaskResponse, RegisterExecutorRequest,
-    RegisterNodeRequest, ReleaseNodeRequest, Session, SyncNodeRequest, SyncNodeResponse,
-    UnbindExecutorCompletedRequest, UnbindExecutorRequest, UnregisterExecutorRequest,
+    BindExecutorCompletedRequest, BindExecutorRequest, BindExecutorResponse, CompleteTaskRequest,
+    LaunchTaskRequest, LaunchTaskResponse, RegisterExecutorRequest, RegisterNodeRequest,
+    ReleaseNodeRequest, SyncNodeRequest, SyncNodeResponse, UnbindExecutorCompletedRequest,
+    UnbindExecutorRequest, UnregisterExecutorRequest,
 };
 use ::rpc::flame as rpc;
 
 use crate::apiserver::Flame;
-use common::apis::{Executor, ExecutorState};
-use common::apis::Node;
-use common::apis::TaskOutput;
+use crate::model::{
+    Executor, ExecutorInfo, ExecutorPtr, NodeInfo, NodeInfoPtr, SessionInfo, SessionInfoPtr,
+    SnapShot, SnapShotPtr,
+};
+use common::apis::{Application, ExecutorState, Node, Session, TaskOutput};
+use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[async_trait]
 impl Backend for Flame {
@@ -61,7 +63,7 @@ impl Backend for Flame {
 
         Ok(Response::new(SyncNodeResponse {
             node: Some(node.into()),
-            executors: executors.into_iter().map(rpc::Executor::into).collect(),
+            executors: executors.into_iter().map(rpc::Executor::from).collect(),
         }))
     }
 
@@ -87,6 +89,7 @@ impl Backend for Flame {
 
         let e = Executor {
             id: req.executor_id,
+            node: spec.node,
             resreq: spec.resreq.unwrap_or_default().into(),
             task_id: None,
             ssn_id: None,
@@ -119,10 +122,10 @@ impl Backend for Flame {
             .controller
             .wait_for_session(req.executor_id.to_string())
             .await?;
-        let session = Some(Session::from(&ssn));
+        let session = Some(rpc::Session::from(&ssn));
 
         let app = self.controller.get_application(ssn.application).await?;
-        let application = Some(Application::from(&app));
+        let application = Some(rpc::Application::from(&app));
 
         log::debug!(
             "Bind executor <{}> to Session <{}:{}>",

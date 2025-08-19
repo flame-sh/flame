@@ -26,13 +26,13 @@ use crate::scheduler::Context;
 use common::apis::ExecutorState;
 use common::FlameError;
 
-pub type DispatcherPtr = Arc<Dispatcher>;
-
 pub struct Dispatcher {
     pub snapshot: SnapShotPtr,
     pub controller: ControllerPtr,
     pub plugins: PluginManagerPtr,
 }
+
+pub type DispatcherPtr = Arc<Dispatcher>;
 
 impl Dispatcher {
     pub fn new(snapshot: SnapShotPtr, controller: ControllerPtr) -> Result<Self, FlameError> {

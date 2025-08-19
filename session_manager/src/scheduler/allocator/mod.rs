@@ -31,6 +31,8 @@ pub struct Allocator {
     pub plugins: PluginManagerPtr,
 }
 
+pub type AllocatorPtr = Arc<Allocator>;
+
 impl Allocator {
     pub fn new(snapshot: SnapShotPtr, controller: ControllerPtr) -> Result<Self, FlameError> {
         Ok(Self {

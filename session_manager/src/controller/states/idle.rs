@@ -12,9 +12,10 @@ limitations under the License.
 */
 
 use crate::controller::states::States;
+use crate::model::ExecutorPtr;
 use crate::storage::StoragePtr;
 
-use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
+use common::apis::{ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
 pub struct IdleState {

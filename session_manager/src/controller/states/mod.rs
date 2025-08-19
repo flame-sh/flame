@@ -19,7 +19,8 @@ use crate::controller::states::{
 };
 use crate::storage::StoragePtr;
 
-use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
+use crate::model::ExecutorPtr;
+use common::apis::{ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr};
 use common::{lock_ptr, FlameError};
 
 mod binding;

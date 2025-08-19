@@ -941,6 +941,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tower 0.5.2",
+ "uuid",
  "wasmtime",
  "wasmtime-wasi",
 ]
