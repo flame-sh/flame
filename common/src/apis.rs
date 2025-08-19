@@ -325,7 +325,7 @@ impl From<&String> for ResourceRequirement {
                 (Some("cpu"), Some(value)) => cpu = value.parse::<u64>().unwrap_or(0),
                 (Some("memory"), Some(value)) => memory = Self::parse_memory(value),
                 _ => {
-                    log::error!("Invalid resource requirement: {}", s);
+                    log::error!("Invalid resource requirement: {s}");
                 }
             }
         }
@@ -342,7 +342,7 @@ impl ResourceRequirement {
     }
 
     pub fn to_slots(&self, unit: &ResourceRequirement) -> u64 {
-        return (self.cpu / unit.cpu).min(self.memory / unit.memory);
+        (self.cpu / unit.cpu).min(self.memory / unit.memory)
     }
 
     fn parse_memory(s: &str) -> u64 {
@@ -433,7 +433,7 @@ impl From<Node> for rpc::Node {
                 owner: None,
             }),
             spec: Some(rpc::NodeSpec {}),
-            status: status,
+            status,
         }
     }
 }

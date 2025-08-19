@@ -114,7 +114,7 @@ impl Storage {
 
     pub async fn register_node(&self, node: &Node) -> Result<(), FlameError> {
         let mut node_map = lock_ptr!(self.nodes)?;
-        node_map.insert(node.name.clone(), ptr::new_ptr(node.clone().into()));
+        node_map.insert(node.name.clone(), ptr::new_ptr(node.clone()));
         Ok(())
     }
 

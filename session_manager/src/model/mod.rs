@@ -264,7 +264,7 @@ impl SnapShot {
                 if let Some(node) = nodes_list.get(&name) {
                     nodes.insert(name, node.clone());
                 } else {
-                    log::warn!("Node <{}> not found.", name);
+                    log::warn!("Node <{name}> not found.");
                 }
             }
         }
@@ -573,7 +573,7 @@ impl From<rpc::Executor> for Executor {
 impl From<&rpc::Executor> for Executor {
     fn from(e: &rpc::Executor) -> Self {
         let spec = e.spec.clone().unwrap();
-        let status = e.status.clone().unwrap();
+        let status = e.status.unwrap();
         let metadata = e.metadata.clone().unwrap();
 
         let state = rpc::ExecutorState::try_from(status.state).unwrap().into();
