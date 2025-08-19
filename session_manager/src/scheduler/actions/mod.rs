@@ -20,10 +20,12 @@ use crate::FlameError;
 
 pub use allocate::AllocateAction;
 pub use backfill::BackfillAction;
+pub use dispatch::DispatchAction;
 pub use shuffle::ShuffleAction;
 
 mod allocate;
 mod backfill;
+mod dispatch;
 mod shuffle;
 
 pub type ActionPtr = Arc<dyn Action>;

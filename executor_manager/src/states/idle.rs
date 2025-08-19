@@ -13,23 +13,25 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::executor::{Executor, ExecutorState};
+use crate::client::BackendClient;
+use crate::executor::Executor;
+use crate::shims;
 use crate::states::State;
-use crate::{client, shims};
-use common::ctx::FlameContext;
+use common::apis::ExecutorState;
 use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
 pub struct IdleState {
+    pub client: BackendClient,
     pub executor: Executor,
 }
 
 #[async_trait]
 impl State for IdleState {
-    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError> {
+    async fn execute(&mut self) -> Result<Executor, FlameError> {
         trace_fn!("IdleState::execute");
 
-        let ssn = client::bind_executor(ctx, &self.executor.clone()).await?;
+        let ssn = self.client.bind_executor(&self.executor.clone()).await?;
 
         log::debug!(
             "Try to bind Executor <{}> to <{}>.",
@@ -45,7 +47,9 @@ impl State for IdleState {
             log::debug!("Shim on_session_enter completed.");
         };
 
-        client::bind_executor_completed(ctx, &self.executor.clone()).await?;
+        self.client
+            .bind_executor_completed(&self.executor.clone())
+            .await?;
 
         // Own the shim.
         self.executor.shim = Some(shim_ptr.clone());

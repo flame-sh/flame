@@ -24,6 +24,12 @@ pub struct IdleState {
 
 #[async_trait::async_trait]
 impl States for IdleState {
+    async fn register_executor(&self, _exe: ExecutorPtr) -> Result<(), FlameError> {
+        trace_fn!("IdleState::register_executor");
+
+        Err(FlameError::InvalidState("Executor is idle".to_string()))
+    }
+
     async fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         trace_fn!("IdleState::bind_session");
 
@@ -40,19 +46,27 @@ impl States for IdleState {
     }
 
     async fn bind_session_completed(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("IdleState::bind_session_completed");
+
+        Err(FlameError::InvalidState("Executor is idle".to_string()))
     }
 
     async fn unbind_executor(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("IdleState::unbind_executor");
+
+        Err(FlameError::InvalidState("Executor is idle".to_string()))
     }
 
     async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("IdleState::unbind_executor_completed");
+
+        Err(FlameError::InvalidState("Executor is idle".to_string()))
     }
 
     async fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
-        todo!()
+        trace_fn!("IdleState::launch_task");
+
+        Err(FlameError::InvalidState("Executor is idle".to_string()))
     }
 
     async fn complete_task(
@@ -61,6 +75,8 @@ impl States for IdleState {
         _task: TaskPtr,
         _: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("IdleState::complete_task");
+
+        Err(FlameError::InvalidState("Executor is idle".to_string()))
     }
 }

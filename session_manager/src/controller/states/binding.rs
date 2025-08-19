@@ -23,6 +23,12 @@ pub struct BindingState {
 
 #[async_trait::async_trait]
 impl States for BindingState {
+    async fn register_executor(&self, _exe: ExecutorPtr) -> Result<(), FlameError> {
+        trace_fn!("BindingState::register_executor");
+
+        Err(FlameError::InvalidState("Executor is binding".to_string()))
+    }
+
     async fn bind_session(&self, ssn_ptr: SessionPtr) -> Result<(), FlameError> {
         trace_fn!("BindingState::bind_session");
 
@@ -48,15 +54,21 @@ impl States for BindingState {
     }
 
     async fn unbind_executor(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BindingState::unbind_executor");
+
+        Err(FlameError::InvalidState("Executor is binding".to_string()))
     }
 
     async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BindingState::unbind_executor_completed");
+
+        Err(FlameError::InvalidState("Executor is binding".to_string()))
     }
 
     async fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
-        todo!()
+        trace_fn!("BindingState::launch_task");
+
+        Err(FlameError::InvalidState("Executor is binding".to_string()))
     }
 
     async fn complete_task(
@@ -65,6 +77,8 @@ impl States for BindingState {
         _task: TaskPtr,
         _: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BindingState::complete_task");
+
+        Err(FlameError::InvalidState("Executor is binding".to_string()))
     }
 }

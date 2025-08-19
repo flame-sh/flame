@@ -19,17 +19,62 @@ use tonic::{Request, Response, Status};
 use self::rpc::backend_server::Backend;
 use self::rpc::{
     Application, BindExecutorCompletedRequest, BindExecutorRequest, BindExecutorResponse,
-    CompleteTaskRequest, LaunchTaskRequest, LaunchTaskResponse, RegisterExecutorRequest, Session,
+    CompleteTaskRequest, LaunchTaskRequest, LaunchTaskResponse, RegisterExecutorRequest,
+    RegisterNodeRequest, ReleaseNodeRequest, Session, SyncNodeRequest, SyncNodeResponse,
     UnbindExecutorCompletedRequest, UnbindExecutorRequest, UnregisterExecutorRequest,
 };
 use ::rpc::flame as rpc;
 
 use crate::apiserver::Flame;
-use common::apis;
+use common::apis::{Executor, ExecutorState};
+use common::apis::Node;
 use common::apis::TaskOutput;
 
 #[async_trait]
 impl Backend for Flame {
+    async fn register_node(
+        &self,
+        req: Request<RegisterNodeRequest>,
+    ) -> Result<Response<rpc::Result>, Status> {
+        trace_fn!("Backend::register_node");
+        let req = req.into_inner();
+        let node = Node::from(
+            req.node
+                .ok_or(FlameError::InvalidConfig("node is required".to_string()))?,
+        );
+        self.controller.register_node(&node).await?;
+        Ok(Response::new(rpc::Result::default()))
+    }
+    async fn sync_node(
+        &self,
+        req: Request<SyncNodeRequest>,
+    ) -> Result<Response<SyncNodeResponse>, Status> {
+        trace_fn!("Backend::sync_node");
+        let req = req.into_inner();
+        let node = Node::from(
+            req.node
+                .ok_or(FlameError::InvalidConfig("node is required".to_string()))?,
+        );
+        let executors: Vec<Executor> = req.executors.into_iter().map(rpc::Executor::into).collect();
+
+        let executors = self.controller.sync_node(&node, &executors).await?;
+
+        Ok(Response::new(SyncNodeResponse {
+            node: Some(node.into()),
+            executors: executors.into_iter().map(rpc::Executor::into).collect(),
+        }))
+    }
+
+    async fn release_node(
+        &self,
+        req: Request<ReleaseNodeRequest>,
+    ) -> Result<Response<rpc::Result>, Status> {
+        trace_fn!("Backend::release_node");
+        let req = req.into_inner();
+        self.controller.release_node(&req.node_name).await?;
+        Ok(Response::new(rpc::Result::default()))
+    }
+
     async fn register_executor(
         &self,
         req: Request<RegisterExecutorRequest>,
@@ -40,17 +85,18 @@ impl Backend for Flame {
             .executor_spec
             .ok_or(FlameError::InvalidConfig("no executor spec".to_string()))?;
 
-        let e = apis::Executor {
+        let e = Executor {
             id: req.executor_id,
-            slots: spec.slots,
+            resreq: spec.resreq.unwrap_or_default().into(),
             task_id: None,
             ssn_id: None,
             creation_time: Utc::now(),
-            state: apis::ExecutorState::Idle,
+            state: ExecutorState::Idle,
         };
 
         self.controller
             .register_executor(&e)
+            .await
             .map_err(Status::from)?;
 
         Ok(Response::new(rpc::Result::default()))

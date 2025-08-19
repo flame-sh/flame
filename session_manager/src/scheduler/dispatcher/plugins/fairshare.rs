@@ -19,7 +19,7 @@ use crate::model::{
     ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot, ALL_APPLICATION, ALL_EXECUTOR,
     OPEN_SESSION,
 };
-use crate::scheduler::plugins::{Plugin, PluginPtr};
+use crate::scheduler::dispatcher::plugins::{Plugin, PluginPtr};
 use common::apis::{SessionID, TaskState};
 use common::FlameError;
 
@@ -111,7 +111,7 @@ impl Plugin for FairShare {
 
         let executors = ss.find_executors(ALL_EXECUTOR)?;
         for exe in executors.values() {
-            remaining_slots += exe.slots as f64;
+            remaining_slots += exe.resreq.to_slots(&ss.unit) as f64;
             if let Some(ssn_id) = exe.ssn_id {
                 if let Some(ssn) = self.ssn_map.get_mut(&ssn_id) {
                     ssn.allocated += ssn.slots as f64;

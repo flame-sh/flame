@@ -23,8 +23,9 @@ use common::ctx::FlameContext;
 use common::FlameError;
 
 mod actions;
+mod allocator;
 mod ctx;
-mod plugins;
+mod dispatcher;
 
 pub fn new(controller: ControllerPtr) -> Arc<dyn FlameThread> {
     Arc::new(ScheduleRunner { controller })

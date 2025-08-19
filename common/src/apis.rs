@@ -12,10 +12,11 @@ limitations under the License.
 */
 
 use std::collections::HashMap;
-use std::fmt;
+use std::{env, fmt};
 
 use ::rpc::flame::ApplicationSpec;
 use chrono::{DateTime, Duration, Utc};
+use rustix::system;
 
 use rpc::flame as rpc;
 
@@ -31,7 +32,7 @@ pub type ExecutorID = String;
 pub type ApplicationID = String;
 pub type TaskPtr = MutexPtr<Task>;
 pub type SessionPtr = MutexPtr<Session>;
-pub type ExecutorPtr = MutexPtr<Executor>;
+pub type NodePtr = MutexPtr<Node>;
 
 type Message = bytes::Bytes;
 pub type TaskInput = Message;
@@ -173,21 +174,14 @@ impl Task {
 #[derive(Clone, Copy, Default, Debug, Eq, PartialEq, Hash, strum_macros::Display)]
 pub enum ExecutorState {
     #[default]
-    Idle = 0,
-    Binding = 1,
-    Bound = 2,
-    Unbinding = 3,
-}
-
-#[derive(Clone, Debug)]
-pub struct Executor {
-    pub id: ExecutorID,
-    pub slots: i32,
-    pub task_id: Option<TaskID>,
-    pub ssn_id: Option<SessionID>,
-
-    pub creation_time: DateTime<Utc>,
-    pub state: ExecutorState,
+    Unknown = 0,
+    Void = 1,
+    Idle = 2,
+    Binding = 3,
+    Bound = 4,
+    Unbinding = 5,
+    Releasing = 6,
+    Released = 7,
 }
 
 #[derive(Clone, Debug)]
@@ -215,6 +209,240 @@ pub struct ApplicationContext {
     pub environments: HashMap<String, String>,
 
     pub shim: Shim,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Hash, strum_macros::Display)]
+pub enum NodeState {
+    #[default]
+    Unknown = 0,
+    Ready = 1,
+    NotReady = 2,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NodeInfo {
+    pub arch: String,
+    pub os: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ResourceRequirement {
+    pub cpu: u64,
+    pub memory: u64,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Node {
+    pub name: String,
+    pub capacity: ResourceRequirement,
+    pub allocatable: ResourceRequirement,
+    pub info: NodeInfo,
+    pub state: NodeState,
+}
+
+impl Node {
+    pub fn new() -> Self {
+        let mut node = Self::default();
+        node.name = system::uname().nodename().to_string_lossy().to_string();
+        node.state = NodeState::Ready;
+
+        node.refresh();
+
+        node
+    }
+
+    pub fn refresh(&mut self) {
+        let sysinfo = system::sysinfo();
+        let memory = sysinfo.totalram;
+        let cpu = num_cpus::get() as u64;
+
+        let capacity = ResourceRequirement { cpu, memory };
+        let allocatable = capacity.clone();
+
+        let info = NodeInfo {
+            arch: env::consts::ARCH.to_string(),
+            os: env::consts::OS.to_string(),
+        };
+
+        self.capacity = capacity;
+        self.allocatable = allocatable;
+        self.info = info;
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Allocation {
+    pub replica: u32,
+    pub resreq: ResourceRequirement,
+}
+
+impl From<Allocation> for rpc::Allocation {
+    fn from(alloc: Allocation) -> Self {
+        Self {
+            replica: alloc.replica,
+            resreq: Some(alloc.resreq.into()),
+        }
+    }
+}
+
+impl From<rpc::Allocation> for Allocation {
+    fn from(alloc: rpc::Allocation) -> Self {
+        Self {
+            replica: alloc.replica,
+            resreq: alloc.resreq.unwrap_or_default().into(),
+        }
+    }
+}
+
+impl From<ResourceRequirement> for rpc::ResourceRequirement {
+    fn from(req: ResourceRequirement) -> Self {
+        Self {
+            cpu: req.cpu,
+            memory: req.memory,
+        }
+    }
+}
+
+impl From<rpc::ResourceRequirement> for ResourceRequirement {
+    fn from(req: rpc::ResourceRequirement) -> Self {
+        Self {
+            cpu: req.cpu,
+            memory: req.memory,
+        }
+    }
+}
+
+impl From<&String> for ResourceRequirement {
+    fn from(s: &String) -> Self {
+        let parts = s.split(',');
+        let mut cpu = 0;
+        let mut memory = 0;
+        for p in parts {
+            let mut parts = p.split('=').map(|s| s.trim());
+            let key = parts.next();
+            let value = parts.next();
+            match (key, value) {
+                (Some("cpu"), Some(value)) => cpu = value.parse::<u64>().unwrap_or(0),
+                (Some("memory"), Some(value)) => memory = Self::parse_memory(value),
+                _ => {
+                    log::error!("Invalid resource requirement: {}", s);
+                }
+            }
+        }
+        Self { cpu, memory }
+    }
+}
+
+impl ResourceRequirement {
+    pub fn to_slots(&self, unit: &ResourceRequirement) -> u64 {
+        return (self.cpu / unit.cpu).min(self.memory / unit.memory);
+    }
+
+    fn parse_memory(s: &str) -> u64 {
+        let s = s.to_lowercase();
+        let v = s[..s.len() - 1].parse::<u64>().unwrap_or(0);
+        let unit = s[s.len() - 1..].to_string();
+        match unit.as_str() {
+            "k" => v * 1024,
+            "m" => v * 1024 * 1024,
+            "g" => v * 1024 * 1024 * 1024,
+            _ => v,
+        }
+    }
+}
+
+impl From<NodeInfo> for rpc::NodeInfo {
+    fn from(info: NodeInfo) -> Self {
+        Self {
+            arch: info.arch,
+            os: info.os,
+        }
+    }
+}
+
+impl From<rpc::NodeInfo> for NodeInfo {
+    fn from(info: rpc::NodeInfo) -> Self {
+        Self {
+            arch: info.arch,
+            os: info.os,
+        }
+    }
+}
+
+impl From<NodeState> for rpc::NodeState {
+    fn from(state: NodeState) -> Self {
+        match state {
+            NodeState::Unknown => rpc::NodeState::Unknown,
+            NodeState::Ready => rpc::NodeState::Ready,
+            NodeState::NotReady => rpc::NodeState::NotReady,
+        }
+    }
+}
+
+impl From<rpc::NodeState> for NodeState {
+    fn from(state: rpc::NodeState) -> Self {
+        match state {
+            rpc::NodeState::Unknown => NodeState::Unknown,
+            rpc::NodeState::Ready => NodeState::Ready,
+            rpc::NodeState::NotReady => NodeState::NotReady,
+        }
+    }
+}
+
+impl From<NodeState> for i32 {
+    fn from(state: NodeState) -> Self {
+        match state {
+            NodeState::Unknown => 0,
+            NodeState::Ready => 1,
+            NodeState::NotReady => 2,
+        }
+    }
+}
+
+impl From<i32> for NodeState {
+    fn from(state: i32) -> Self {
+        match state {
+            0 => NodeState::Unknown,
+            1 => NodeState::Ready,
+            2 => NodeState::NotReady,
+            _ => NodeState::Unknown,
+        }
+    }
+}
+
+impl From<Node> for rpc::Node {
+    fn from(node: Node) -> Self {
+        let status = Some(rpc::NodeStatus {
+            state: node.state.into(),
+            capacity: Some(node.capacity.into()),
+            allocatable: Some(node.allocatable.into()),
+            info: Some(node.info.into()),
+        });
+
+        Self {
+            metadata: Some(rpc::Metadata {
+                id: node.name.clone(),
+                name: node.name.clone(),
+                owner: None,
+            }),
+            spec: Some(rpc::NodeSpec {}),
+            status: status,
+        }
+    }
+}
+
+impl From<rpc::Node> for Node {
+    fn from(node: rpc::Node) -> Self {
+        let status = node.status.unwrap_or_default();
+        let metadata = node.metadata.unwrap_or_default();
+        Self {
+            name: metadata.name,
+            capacity: status.capacity.unwrap_or_default().into(),
+            allocatable: status.allocatable.unwrap_or_default().into(),
+            info: status.info.unwrap_or_default().into(),
+            state: status.state.into(),
+        }
+    }
 }
 
 impl Session {
@@ -721,5 +949,35 @@ impl From<Shim> for i32 {
 impl fmt::Display for TaskGID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}/{}", self.ssn_id, self.task_id)
+    }
+}
+
+impl From<rpc::ExecutorState> for ExecutorState {
+    fn from(s: rpc::ExecutorState) -> Self {
+        match s {
+            rpc::ExecutorState::ExecutorVoid => ExecutorState::Void,
+            rpc::ExecutorState::ExecutorIdle => ExecutorState::Idle,
+            rpc::ExecutorState::ExecutorBinding => ExecutorState::Binding,
+            rpc::ExecutorState::ExecutorBound => ExecutorState::Bound,
+            rpc::ExecutorState::ExecutorUnbinding => ExecutorState::Unbinding,
+            rpc::ExecutorState::ExecutorReleasing => ExecutorState::Releasing,
+            rpc::ExecutorState::ExecutorReleased => ExecutorState::Released,
+            _ => ExecutorState::Unknown,
+        }
+    }
+}
+
+impl From<ExecutorState> for rpc::ExecutorState {
+    fn from(s: ExecutorState) -> Self {
+        match s {
+            ExecutorState::Void => rpc::ExecutorState::ExecutorVoid,
+            ExecutorState::Idle => rpc::ExecutorState::ExecutorIdle,
+            ExecutorState::Binding => rpc::ExecutorState::ExecutorBinding,
+            ExecutorState::Bound => rpc::ExecutorState::ExecutorBound,
+            ExecutorState::Unbinding => rpc::ExecutorState::ExecutorUnbinding,
+            ExecutorState::Releasing => rpc::ExecutorState::ExecutorReleasing,
+            ExecutorState::Released => rpc::ExecutorState::ExecutorReleased,
+            _ => rpc::ExecutorState::ExecutorUnknown,
+        }
     }
 }

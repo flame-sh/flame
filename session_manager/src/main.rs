@@ -52,7 +52,7 @@ async fn main() -> Result<(), FlameError> {
 
     let mut handlers = vec![];
 
-    let storage = storage::new_ptr(&ctx.storage).await?;
+    let storage = storage::new_ptr(&ctx).await?;
 
     // Load data from engine, e.g. sqlite.
     storage.load_data().await?;

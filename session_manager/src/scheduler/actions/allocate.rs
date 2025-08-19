@@ -14,12 +14,13 @@ limitations under the License.
 use std::sync::Arc;
 use stdng::collections::BinaryHeap;
 
-use crate::model::{IDLE_EXECUTOR, OPEN_SESSION};
+use crate::model::{ALL_NODE, IDLE_EXECUTOR, OPEN_SESSION};
 use crate::scheduler::actions::{Action, ActionPtr};
-use crate::scheduler::plugins::ssn_order_fn;
+use crate::scheduler::allocator::node_order_fn;
+use crate::scheduler::allocator::ssn_order_fn;
 use crate::scheduler::Context;
-
 use crate::FlameError;
+
 use common::{trace::TraceFn, trace_fn};
 
 pub struct AllocateAction {}
@@ -39,62 +40,56 @@ impl Action for AllocateAction {
         ss.debug()?;
 
         let mut open_ssns = BinaryHeap::new(ssn_order_fn(ctx));
-        let mut idle_execs = Vec::new();
+        let mut nodes = BinaryHeap::new(node_order_fn(ctx));
 
         let ssn_list = ss.find_sessions(OPEN_SESSION)?;
         for ssn in ssn_list.values() {
-            // TODO(k82cn): check if the application of the session exists in the database and
-            // if not, ignore it and log a message.
             open_ssns.push(ssn.clone());
         }
 
-        let execs = ss.find_executors(IDLE_EXECUTOR)?;
-        for exec in execs.values() {
-            idle_execs.push(exec.clone());
+        let node_list = ss.find_nodes(ALL_NODE)?;
+        for node in node_list.values() {
+            nodes.push(node.clone());
         }
 
         loop {
-            if open_ssns.is_empty() {
+            if open_ssns.is_empty() || nodes.is_empty() {
                 break;
             }
 
             let ssn = open_ssns.pop().unwrap();
-            log::debug!("Start resources allocation for session <{}>", &ssn.id);
-            if !ctx.is_underused(&ssn)? {
-                continue;
-            }
+            let node = nodes.pop().unwrap();
 
             log::debug!(
-                "Session <{}> is underused, start to allocate resources.",
-                &ssn.id
+                "Start to allocate resources for session <{}> on node <{}>",
+                ssn.id,
+                node.name
             );
 
-            let mut pos = None;
-            for (i, exec) in idle_execs.iter_mut().enumerate() {
-                log::debug!(
-                    "Try to allocate executor <{}> for session <{}>",
-                    exec.id.clone(),
-                    ssn.id.clone()
-                );
+            let is_underused = ctx.allocator.is_underused(&ssn)?;
+            let is_allocatable = ctx.allocator.is_allocatable(&node, &ssn)?;
 
-                if !ctx.filter_one(exec, &ssn) {
-                    continue;
+            match (is_underused, is_allocatable) {
+                (true, true) => {
+                    ctx.allocator
+                        .create_executor(node.clone(), ssn.clone())
+                        .await?;
+                    nodes.push(node.clone());
+                    open_ssns.push(ssn.clone());
                 }
-
-                ctx.bind_session(exec.clone(), ssn.clone()).await?;
-                pos = Some(i);
-
-                log::debug!(
-                    "Executor <{}> was allocated to session <{}>, remove it from idle list.",
-                    exec.id.clone(),
-                    ssn.id.clone()
-                );
-                open_ssns.push(ssn);
-                break;
-            }
-
-            if let Some(p) = pos {
-                idle_execs.remove(p);
+                (false, true) => {
+                    nodes.push(node.clone());
+                }
+                (true, false) => {
+                    open_ssns.push(ssn.clone());
+                }
+                (false, false) => {
+                    log::debug!(
+                        "Session <{}> is not underused and node <{}> is not allocatable, skip both.",
+                        ssn.id,
+                        node.name
+                    );
+                }
             }
         }
 

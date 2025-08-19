@@ -32,12 +32,22 @@ pub struct BoundState {
 
 #[async_trait::async_trait]
 impl States for BoundState {
+    async fn register_executor(&self, _exe: ExecutorPtr) -> Result<(), FlameError> {
+        trace_fn!("BoundState::register_executor");
+
+        Err(FlameError::InvalidState("Executor is bound".to_string()))
+    }
+
     async fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BoundState::bind_session");
+
+        Err(FlameError::InvalidState("Executor is bound".to_string()))
     }
 
     async fn bind_session_completed(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BoundState::bind_session_completed");
+
+        Err(FlameError::InvalidState("Executor is bound".to_string()))
     }
 
     async fn unbind_executor(&self) -> Result<(), FlameError> {
@@ -50,7 +60,9 @@ impl States for BoundState {
     }
 
     async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
-        todo!()
+        trace_fn!("BoundState::unbind_executor_completed");
+
+        Err(FlameError::InvalidState("Executor is bound".to_string()))
     }
 
     async fn launch_task(&self, ssn_ptr: SessionPtr) -> Result<Option<Task>, FlameError> {

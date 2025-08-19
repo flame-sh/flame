@@ -7,8 +7,8 @@ package flame;
 option go_package = "github.com/flame-sh/flame/sdk/go/rpc";
 
 /*
-  The frontend service of Flame, which is used to communicate with client sdk,
-  e.g. create connection/session/task and so on.
+ * The frontend service of Flame, which is used to communicate with client sdk,
+ * e.g. create connection/session/task and so on.
  */
 service Frontend {
   rpc RegisterApplication(RegisterApplicationRequest) returns (Result) {}

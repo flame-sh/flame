@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 use crate::controller::states::{
     binding::BindingState, bound::BoundState, idle::IdleState, unbinding::UnbindingState,
+    void::VoidState,
 };
 use crate::storage::StoragePtr;
 
@@ -25,12 +26,17 @@ mod binding;
 mod bound;
 mod idle;
 mod unbinding;
+mod void;
 
 pub fn from(storage: StoragePtr, exe_ptr: ExecutorPtr) -> Result<Arc<dyn States>, FlameError> {
     let exe = lock_ptr!(exe_ptr)?;
     log::debug!("Build state <{}> for Executor.", exe.state);
 
     match exe.state {
+        ExecutorState::Void => Ok(Arc::new(VoidState {
+            storage,
+            executor: exe_ptr.clone(),
+        })),
         ExecutorState::Idle => Ok(Arc::new(IdleState {
             storage,
             executor: exe_ptr.clone(),
@@ -47,11 +53,21 @@ pub fn from(storage: StoragePtr, exe_ptr: ExecutorPtr) -> Result<Arc<dyn States>
             storage,
             executor: exe_ptr.clone(),
         })),
+        ExecutorState::Unknown => Err(FlameError::InvalidState("Executor is unknown".to_string())),
+
+        ExecutorState::Releasing => Err(FlameError::InvalidState(
+            "Executor is releasing".to_string(),
+        )),
+        ExecutorState::Released => {
+            Err(FlameError::InvalidState("Executor is released".to_string()))
+        }
     }
 }
 
 #[async_trait::async_trait]
 pub trait States: Send + Sync + 'static {
+    async fn register_executor(&self, exe: ExecutorPtr) -> Result<(), FlameError>;
+
     async fn bind_session(&self, ssn: SessionPtr) -> Result<(), FlameError>;
     async fn bind_session_completed(&self) -> Result<(), FlameError>;
 

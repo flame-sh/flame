@@ -13,28 +13,45 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::executor::{Executor, ExecutorState};
+use crate::client::BackendClient;
+use crate::executor::Executor;
 
-use common::ctx::FlameContext;
+use common::apis::ExecutorState;
 use common::FlameError;
 
 mod bound;
 mod idle;
-mod init;
-mod unbound;
+mod unbinding;
 mod unknown;
+mod void;
 
-pub async fn from(e: Executor) -> Box<dyn State> {
+pub fn from(client: BackendClient, e: Executor) -> Box<dyn State> {
     match e.state {
-        ExecutorState::Init => Box::new(init::InitState { executor: e }),
-        ExecutorState::Idle => Box::new(idle::IdleState { executor: e }),
-        ExecutorState::Bound => Box::new(bound::BoundState { executor: e }),
-        ExecutorState::Unbound => Box::new(unbound::UnboundState { executor: e }),
-        ExecutorState::Unknown => Box::new(unknown::UnknownState { executor: e }),
+        ExecutorState::Void => Box::new(void::VoidState {
+            client,
+            executor: e,
+        }),
+        ExecutorState::Idle => Box::new(idle::IdleState {
+            client,
+            executor: e,
+        }),
+        ExecutorState::Binding => Box::new(idle::IdleState {
+            client,
+            executor: e,
+        }),
+        ExecutorState::Bound => Box::new(bound::BoundState {
+            client,
+            executor: e,
+        }),
+        ExecutorState::Unbinding => Box::new(unbinding::UnbindingState {
+            client,
+            executor: e,
+        }),
+        _ => Box::new(unknown::UnknownState { executor: e }),
     }
 }
 
 #[async_trait]
-pub trait State {
-    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError>;
+pub trait State: Send + Sync {
+    async fn execute(&mut self) -> Result<Executor, FlameError>;
 }

@@ -11,50 +11,62 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use chrono::{DateTime, Utc};
+use std::sync::{Arc, Mutex};
 
-use uuid::Uuid;
-
+use crate::client::BackendClient;
 use crate::shims::ShimPtr;
-use ::rpc::flame::{self as rpc, ExecutorSpec, Metadata};
+use ::rpc::flame::{self as rpc, ExecutorSpec, ExecutorStatus, Metadata};
 
-use common::apis::{Application, SessionContext, TaskContext};
-use common::ctx::FlameContext;
+use crate::states;
+use common::apis::{ExecutorState, ResourceRequirement, SessionContext, TaskContext};
+use common::lock_ptr;
 use common::FlameError;
-
-#[derive(Clone, Copy, Debug)]
-pub enum ExecutorState {
-    Init = 0,
-    Idle = 1,
-    Bound = 2,
-    Unbound = 3,
-    Unknown = 4,
-}
-
-impl From<ExecutorState> for rpc::ExecutorState {
-    fn from(state: ExecutorState) -> Self {
-        match state {
-            ExecutorState::Init | ExecutorState::Idle => rpc::ExecutorState::ExecutorIdle,
-            ExecutorState::Bound => rpc::ExecutorState::ExecutorBound,
-            ExecutorState::Unbound => rpc::ExecutorState::ExecutorRunning,
-            ExecutorState::Unknown => rpc::ExecutorState::ExecutorUnknown,
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct Executor {
     pub id: String,
-    pub slots: i32,
-    pub applications: Vec<Application>,
-
+    pub resreq: ResourceRequirement,
+    pub node: String,
     pub session: Option<SessionContext>,
     pub task: Option<TaskContext>,
 
     pub shim: Option<ShimPtr>,
 
-    pub start_time: DateTime<Utc>,
     pub state: ExecutorState,
+}
+
+pub type ExecutorPtr = Arc<Mutex<Executor>>;
+
+impl From<rpc::Executor> for Executor {
+    fn from(e: rpc::Executor) -> Self {
+        Executor::from(&e)
+    }
+}
+
+impl From<&rpc::Executor> for Executor {
+    fn from(e: &rpc::Executor) -> Self {
+        let spec = e.spec.clone().unwrap();
+        let status = e.status.clone().unwrap();
+        let metadata = e.metadata.clone().unwrap();
+
+        let state = rpc::ExecutorState::try_from(status.state).unwrap().into();
+
+        Executor {
+            id: metadata.id.clone(),
+            resreq: spec.resreq.unwrap().into(),
+            node: spec.node.clone(),
+            session: None,
+            task: None,
+            shim: None,
+            state,
+        }
+    }
+}
+
+impl From<Executor> for rpc::Executor {
+    fn from(e: Executor) -> Self {
+        rpc::Executor::from(&e)
+    }
 }
 
 impl From<&Executor> for rpc::Executor {
@@ -65,10 +77,13 @@ impl From<&Executor> for rpc::Executor {
             owner: None,
         });
 
-        let spec = Some(ExecutorSpec { slots: e.slots });
+        let spec = Some(ExecutorSpec {
+            resreq: Some(e.resreq.clone().into()),
+            node: e.node.clone(),
+        });
 
-        let status = Some(rpc::ExecutorStatus {
-            state: rpc::ExecutorState::from(e.state) as i32,
+        let status = Some(ExecutorStatus {
+            state: rpc::ExecutorState::from(e.state).into(),
         });
 
         rpc::Executor {
@@ -80,25 +95,43 @@ impl From<&Executor> for rpc::Executor {
 }
 
 impl Executor {
-    pub fn update_state(&mut self, next: &Executor) {
+    pub fn update(&mut self, next: &Executor) {
         self.state = next.state;
         self.shim = next.shim.clone();
+        self.session = next.session.clone();
+        self.task = next.task.clone();
     }
+}
 
-    pub async fn from_context(ctx: &FlameContext, slots: Option<i32>) -> Result<Self, FlameError> {
-        // let applications = ctx.applications.iter().map(Application::from).collect();
-
-        let exec = Executor {
-            id: Uuid::new_v4().to_string(),
-            slots: slots.unwrap_or(1),
-            applications: vec![],
-            session: None,
-            task: None,
-            shim: None,
-            start_time: Utc::now(),
-            state: ExecutorState::Init,
+pub fn start(client: BackendClient, executor: ExecutorPtr) {
+    // let client = client.clone();
+    tokio::task::spawn(async move {
+        let exec = {
+            let exec = lock_ptr!(executor);
+            match exec {
+                Ok(exec) => exec.clone(),
+                Err(e) => {
+                    log::error!("Failed to lock executor: {e}");
+                    return;
+                }
+            }
         };
-
-        Ok(exec)
-    }
+        let mut state = states::from(client.clone(), exec.clone());
+        match state.execute().await {
+            Ok(next_state) => {
+                let mut exec = lock_ptr!(executor);
+                match exec {
+                    Ok(mut exec) => {
+                        exec.update(&next_state);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to lock executor: {e}");
+                    }
+                }
+            }
+            Err(e) => {
+                log::error!("Failed to execute: {e}");
+            }
+        }
+    });
 }

@@ -17,63 +17,56 @@ use crate::storage::StoragePtr;
 use common::apis::{ExecutorPtr, ExecutorState, SessionPtr, Task, TaskOutput, TaskPtr, TaskState};
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
-pub struct UnbindingState {
+pub struct VoidState {
     pub storage: StoragePtr,
     pub executor: ExecutorPtr,
 }
 
 #[async_trait::async_trait]
-impl States for UnbindingState {
-    async fn register_executor(&self, _exe: ExecutorPtr) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::register_executor");
+impl States for VoidState {
+    async fn register_executor(&self, exe: ExecutorPtr) -> Result<(), FlameError> {
+        let id = {
+            let e = lock_ptr!(exe)?;
+            e.id.clone()
+        };
 
-        Err(FlameError::InvalidState(
-            "Executor is unbinding".to_string(),
-        ))
+        let mut e = lock_ptr!(exe)?;
+        if e.id != id {
+            return Err(FlameError::InvalidState("Executor ID mismatch".to_string()));
+        }
+        e.state = ExecutorState::Idle;
+
+        Ok(())
     }
 
     async fn bind_session(&self, _ssn_ptr: SessionPtr) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::bind_session");
+        trace_fn!("VoidState::bind_session");
 
-        Err(FlameError::InvalidState(
-            "Executor is unbinding".to_string(),
-        ))
+        Err(FlameError::InvalidState("Executor is void".to_string()))
     }
 
     async fn bind_session_completed(&self) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::bind_session_completed");
+        trace_fn!("VoidState::bind_session_completed");
 
-        Err(FlameError::InvalidState(
-            "Executor is unbinding".to_string(),
-        ))
+        Err(FlameError::InvalidState("Executor is void".to_string()))
     }
 
     async fn unbind_executor(&self) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::unbind_session");
+        trace_fn!("VoidState::unbind_executor");
 
-        let mut e = lock_ptr!(self.executor)?;
-        e.state = ExecutorState::Unbinding;
-
-        Ok(())
+        Err(FlameError::InvalidState("Executor is void".to_string()))
     }
 
     async fn unbind_executor_completed(&self) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::unbind_session_completed");
+        trace_fn!("VoidState::unbind_executor_completed");
 
-        let mut e = lock_ptr!(self.executor)?;
-        e.state = ExecutorState::Idle;
-        e.ssn_id = None;
-        e.task_id = None;
-
-        Ok(())
+        Err(FlameError::InvalidState("Executor is void".to_string()))
     }
 
     async fn launch_task(&self, _ssn: SessionPtr) -> Result<Option<Task>, FlameError> {
-        trace_fn!("UnbindingState::launch_task");
+        trace_fn!("VoidState::launch_task");
 
-        Err(FlameError::InvalidState(
-            "Executor is unbinding".to_string(),
-        ))
+        Err(FlameError::InvalidState("Executor is void".to_string()))
     }
 
     async fn complete_task(
@@ -82,17 +75,8 @@ impl States for UnbindingState {
         task_ptr: TaskPtr,
         task_output: Option<TaskOutput>,
     ) -> Result<(), FlameError> {
-        trace_fn!("UnbindingState::complete_task");
+        trace_fn!("VoidState::complete_task");
 
-        self.storage
-            .update_task(ssn_ptr, task_ptr, TaskState::Succeed, task_output.clone())
-            .await?;
-
-        {
-            let mut e = lock_ptr!(self.executor)?;
-            e.task_id = None;
-        };
-
-        Ok(())
+        Err(FlameError::InvalidState("Executor is void".to_string()))
     }
 }
