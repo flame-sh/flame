@@ -25,7 +25,6 @@ lazy_static = "1.4"
 wasmtime = "16"
 wasmtime-wasi = "16"
 anyhow = "1"
-rustix = "1.0"
 
 [dependencies.uuid]
 version = "1.3.1"

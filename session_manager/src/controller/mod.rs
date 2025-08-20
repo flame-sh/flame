@@ -17,9 +17,9 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use common::apis::{
-    Allocation, Application, ApplicationAttributes, ApplicationID, CommonData, ExecutorID, Node,
-    NodeState, Session, SessionID, SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput,
-    TaskPtr, TaskState,
+    Application, ApplicationAttributes, ApplicationID, CommonData, ExecutorID, Node, NodeState,
+    Session, SessionID, SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr,
+    TaskState,
 };
 
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};

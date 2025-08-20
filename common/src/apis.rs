@@ -33,6 +33,7 @@ pub type ApplicationID = String;
 pub type TaskPtr = MutexPtr<Task>;
 pub type SessionPtr = MutexPtr<Session>;
 pub type NodePtr = MutexPtr<Node>;
+pub type ApplicationPtr = MutexPtr<Application>;
 
 type Message = bytes::Bytes;
 pub type TaskInput = Message;
@@ -242,9 +243,12 @@ pub struct Node {
 
 impl Node {
     pub fn new() -> Self {
-        let mut node = Self::default();
-        node.name = system::uname().nodename().to_string_lossy().to_string();
-        node.state = NodeState::Ready;
+        let name = system::uname().nodename().to_string_lossy().to_string();
+        let mut node = Node {
+            name,
+            state: NodeState::Ready,
+            ..Default::default()
+        };
 
         node.refresh();
 
@@ -270,30 +274,6 @@ impl Node {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Allocation {
-    pub replica: u32,
-    pub resreq: ResourceRequirement,
-}
-
-impl From<Allocation> for rpc::Allocation {
-    fn from(alloc: Allocation) -> Self {
-        Self {
-            replica: alloc.replica,
-            resreq: Some(alloc.resreq.into()),
-        }
-    }
-}
-
-impl From<rpc::Allocation> for Allocation {
-    fn from(alloc: rpc::Allocation) -> Self {
-        Self {
-            replica: alloc.replica,
-            resreq: alloc.resreq.unwrap_or_default().into(),
-        }
-    }
-}
-
 impl From<ResourceRequirement> for rpc::ResourceRequirement {
     fn from(req: ResourceRequirement) -> Self {
         Self {
@@ -312,6 +292,12 @@ impl From<rpc::ResourceRequirement> for ResourceRequirement {
     }
 }
 
+impl From<&str> for ResourceRequirement {
+    fn from(s: &str) -> Self {
+        Self::from(&s.to_string())
+    }
+}
+
 impl From<&String> for ResourceRequirement {
     fn from(s: &String) -> Self {
         let parts = s.split(',');
@@ -324,6 +310,7 @@ impl From<&String> for ResourceRequirement {
             match (key, value) {
                 (Some("cpu"), Some(value)) => cpu = value.parse::<u64>().unwrap_or(0),
                 (Some("memory"), Some(value)) => memory = Self::parse_memory(value),
+                (Some("mem"), Some(value)) => memory = Self::parse_memory(value),
                 _ => {
                     log::error!("Invalid resource requirement: {s}");
                 }
@@ -349,11 +336,12 @@ impl ResourceRequirement {
         let s = s.to_lowercase();
         let v = s[..s.len() - 1].parse::<u64>().unwrap_or(0);
         let unit = s[s.len() - 1..].to_string();
+        // TODO(k82cn): return error if the unit is not valid.
         match unit.as_str() {
             "k" => v * 1024,
             "m" => v * 1024 * 1024,
             "g" => v * 1024 * 1024 * 1024,
-            _ => v,
+            _ => s.parse::<u64>().unwrap_or(0),
         }
     }
 }
@@ -985,6 +973,27 @@ impl From<ExecutorState> for rpc::ExecutorState {
             ExecutorState::Releasing => rpc::ExecutorState::ExecutorReleasing,
             ExecutorState::Released => rpc::ExecutorState::ExecutorReleased,
             _ => rpc::ExecutorState::ExecutorUnknown,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resreq_from_string() {
+        let cases = vec![
+            ("cpu=1,mem=256", (1, 256)),
+            ("cpu=1,mem=1k", (1, 1024)),
+            ("cpu=1,memory=1m", (1, 1024 * 1024)),
+            ("cpu=1,memory=1g", (1, 1024 * 1024 * 1024)),
+        ];
+
+        for (input, expected) in cases {
+            let resreq = ResourceRequirement::from(input);
+            assert_eq!(resreq.cpu, expected.0);
+            assert_eq!(resreq.memory, expected.1);
         }
     }
 }

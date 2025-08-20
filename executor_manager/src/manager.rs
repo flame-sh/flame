@@ -13,6 +13,7 @@ Unless required by applicable law or agreed to in writing, software
 use std::collections::HashMap;
 use std::fs;
 use std::sync::{Arc, Mutex};
+use std::{thread, time};
 
 use crate::client::BackendClient;
 use crate::executor::{self, Executor, ExecutorPtr};
@@ -44,6 +45,7 @@ impl ExecutorManager {
     pub async fn run(&mut self) -> Result<(), FlameError> {
         let mut node = Node::new();
         self.client.register_node(&node).await?;
+        let one_second = time::Duration::from_secs(1);
 
         loop {
             node.refresh();
@@ -51,9 +53,9 @@ impl ExecutorManager {
             // TODO(k82cn): also sync the executors in that node.
             let mut executors = self.client.sync_node(&node, vec![]).await?;
 
-            for executor in executors {
+            for executor in &executors {
                 if self.executors.contains_key(&executor.id) {
-                    log::debug!("Executor <{}> is already running.", executor.id);
+                    // log::debug!("Executor <{}> is already running.", executor.id);
                     continue;
                 }
 
@@ -63,6 +65,14 @@ impl ExecutorManager {
                     .insert(executor.id.clone(), executor_ptr.clone());
                 executor::start(self.client.clone(), executor_ptr.clone());
             }
+
+            log::debug!(
+                "There are {} executors in node {}",
+                executors.len(),
+                node.name
+            );
+
+            thread::sleep(one_second);
         }
 
         Ok(())

@@ -114,6 +114,12 @@ impl Plugin for FairShare {
 
         let apps = ss.find_applications(ALL_APPLICATION)?;
 
+        log::debug!(
+            "There are {} open sessions, {} applications.",
+            open_ssns.len(),
+            apps.len()
+        );
+
         for ssn in open_ssns.values() {
             let mut desired = 0.0;
             for state in [TaskState::Pending, TaskState::Running] {

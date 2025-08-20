@@ -37,29 +37,6 @@ pub struct BackendClient {
     client: FlameClient,
 }
 
-pub struct Allocation {
-    pub replica: u32,
-    pub resreq: ResourceRequirement,
-}
-
-impl From<Allocation> for rpc::Allocation {
-    fn from(alloc: Allocation) -> Self {
-        Self {
-            replica: alloc.replica,
-            resreq: Some(alloc.resreq.into()),
-        }
-    }
-}
-
-impl From<rpc::Allocation> for Allocation {
-    fn from(alloc: rpc::Allocation) -> Self {
-        Self {
-            replica: alloc.replica,
-            resreq: alloc.resreq.unwrap_or_default().into(),
-        }
-    }
-}
-
 impl BackendClient {
     pub async fn new(ctx: &FlameContext) -> Result<Self, FlameError> {
         let client = FlameBackendClient::connect(ctx.endpoint.clone())

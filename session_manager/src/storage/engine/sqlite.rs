@@ -114,7 +114,7 @@ impl Engine for SqliteEngine {
         &self,
         name: String,
         attr: ApplicationAttributes,
-    ) -> Result<(), FlameError> {
+    ) -> Result<Application, FlameError> {
         trace_fn!("Sqlite::register_application");
 
         let mut tx = self
@@ -140,7 +140,7 @@ impl Engine for SqliteEngine {
             .await
             .map_err(|e| FlameError::Storage(format!("failed to commit TX: {e}")))?;
 
-        Ok(())
+        Ok(app.try_into()?)
     }
 
     async fn get_application(&self, id: ApplicationID) -> Result<Application, FlameError> {

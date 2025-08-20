@@ -28,11 +28,12 @@ use common::{lock_ptr, FlameError};
 pub type SessionInfoPtr = Arc<SessionInfo>;
 pub type ExecutorInfoPtr = Arc<ExecutorInfo>;
 pub type NodeInfoPtr = Arc<NodeInfo>;
+pub type AppInfoPtr = Arc<AppInfo>;
 
 #[derive(Clone)]
 pub struct SnapShot {
     pub unit: ResourceRequirement,
-    pub applications: MutexPtr<HashMap<String, AppInfo>>,
+    pub applications: MutexPtr<HashMap<String, AppInfoPtr>>,
 
     pub sessions: MutexPtr<HashMap<SessionID, SessionInfoPtr>>,
     pub ssn_index: MutexPtr<HashMap<SessionState, HashMap<SessionID, SessionInfoPtr>>>,
@@ -289,7 +290,7 @@ impl SnapShot {
     pub fn find_applications(
         &self,
         filter: Option<AppFilter>,
-    ) -> Result<HashMap<String, AppInfo>, FlameError> {
+    ) -> Result<HashMap<String, AppInfoPtr>, FlameError> {
         match filter {
             Some(filter) => self.find_applications_by_filter(filter),
             None => self.find_all_applications(),
@@ -299,7 +300,7 @@ impl SnapShot {
     fn find_applications_by_filter(
         &self,
         filter: AppFilter,
-    ) -> Result<HashMap<String, AppInfo>, FlameError> {
+    ) -> Result<HashMap<String, AppInfoPtr>, FlameError> {
         let mut appinfos = HashMap::new();
 
         {
@@ -315,7 +316,7 @@ impl SnapShot {
         Ok(appinfos)
     }
 
-    fn find_all_applications(&self) -> Result<HashMap<String, AppInfo>, FlameError> {
+    fn find_all_applications(&self) -> Result<HashMap<String, AppInfoPtr>, FlameError> {
         let mut appinfos = HashMap::new();
 
         {
@@ -405,6 +406,15 @@ impl SnapShot {
             if let Some(ssn_list) = ssn_index.get_mut(&ssn.state) {
                 ssn_list.insert(ssn.id, ssn.clone());
             }
+        }
+
+        Ok(())
+    }
+
+    pub fn add_application(&self, app: AppInfoPtr) -> Result<(), FlameError> {
+        {
+            let mut apps = lock_ptr!(self.applications)?;
+            apps.insert(app.name.clone(), app.clone());
         }
 
         Ok(())

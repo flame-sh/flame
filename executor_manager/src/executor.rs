@@ -19,8 +19,8 @@ use ::rpc::flame::{self as rpc, ExecutorSpec, ExecutorStatus, Metadata};
 
 use crate::states;
 use common::apis::{ExecutorState, ResourceRequirement, SessionContext, TaskContext};
-use common::lock_ptr;
 use common::FlameError;
+use common::{lock_ptr, trace::TraceFn, trace_fn};
 
 #[derive(Clone)]
 pub struct Executor {
@@ -96,6 +96,12 @@ impl From<&Executor> for rpc::Executor {
 
 impl Executor {
     pub fn update(&mut self, next: &Executor) {
+        log::info!(
+            "Update executor <{}> from <{}> to <{}>",
+            self.id,
+            self.state,
+            next.state
+        );
         self.state = next.state;
         self.shim = next.shim.clone();
         self.session = next.session.clone();
@@ -104,33 +110,35 @@ impl Executor {
 }
 
 pub fn start(client: BackendClient, executor: ExecutorPtr) {
-    // let client = client.clone();
     tokio::task::spawn(async move {
-        let exec = {
-            let exec = lock_ptr!(executor);
-            match exec {
-                Ok(exec) => exec.clone(),
-                Err(e) => {
-                    log::error!("Failed to lock executor: {e}");
-                    return;
-                }
-            }
-        };
-        let mut state = states::from(client.clone(), exec.clone());
-        match state.execute().await {
-            Ok(next_state) => {
-                let mut exec = lock_ptr!(executor);
+        loop {
+            let exec = {
+                let exec = lock_ptr!(executor);
                 match exec {
-                    Ok(mut exec) => {
-                        exec.update(&next_state);
-                    }
+                    Ok(exec) => exec.clone(),
                     Err(e) => {
                         log::error!("Failed to lock executor: {e}");
+                        return;
                     }
                 }
-            }
-            Err(e) => {
-                log::error!("Failed to execute: {e}");
+            };
+
+            let mut state = states::from(client.clone(), exec.clone());
+            match state.execute().await {
+                Ok(next_state) => {
+                    let mut exec = lock_ptr!(executor);
+                    match exec {
+                        Ok(mut exec) => {
+                            exec.update(&next_state);
+                        }
+                        Err(e) => {
+                            log::error!("Failed to lock executor: {e}");
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::error!("Failed to execute: {e}");
+                }
             }
         }
     });

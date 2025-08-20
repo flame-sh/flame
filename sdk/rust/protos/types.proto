@@ -193,7 +193,3 @@ message Result {
 message EmptyRequest {
 }
 
-message Allocation {
-  ResourceRequirement resreq = 1;
-  uint32 replica = 2;
-}

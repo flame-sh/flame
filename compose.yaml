@@ -17,7 +17,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile.fem
     environment:
-      - RUST_LOG=flame,flmexec
+      - RUST_LOG=debug
     deploy:
       mode: replicated
       replicas: 1

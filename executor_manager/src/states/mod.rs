@@ -26,16 +26,14 @@ mod unknown;
 mod void;
 
 pub fn from(client: BackendClient, e: Executor) -> Box<dyn State> {
+    log::info!("Build state <{}> for Executor <{}>.", e.state, e.id);
+
     match e.state {
         ExecutorState::Void => Box::new(void::VoidState {
             client,
             executor: e,
         }),
         ExecutorState::Idle => Box::new(idle::IdleState {
-            client,
-            executor: e,
-        }),
-        ExecutorState::Binding => Box::new(idle::IdleState {
             client,
             executor: e,
         }),

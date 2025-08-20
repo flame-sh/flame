@@ -937,7 +937,6 @@ dependencies = [
  "log",
  "prost",
  "rpc",
- "rustix 1.0.8",
  "tokio",
  "tonic",
  "tower 0.5.2",

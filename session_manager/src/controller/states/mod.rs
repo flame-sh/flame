@@ -31,7 +31,7 @@ mod void;
 
 pub fn from(storage: StoragePtr, exe_ptr: ExecutorPtr) -> Result<Arc<dyn States>, FlameError> {
     let exe = lock_ptr!(exe_ptr)?;
-    log::debug!("Build state <{}> for Executor.", exe.state);
+    log::debug!("Build state <{}> for Executor <{}>.", exe.state, exe.id);
 
     match exe.state {
         ExecutorState::Void => Ok(Arc::new(VoidState {
@@ -55,7 +55,6 @@ pub fn from(storage: StoragePtr, exe_ptr: ExecutorPtr) -> Result<Arc<dyn States>
             executor: exe_ptr.clone(),
         })),
         ExecutorState::Unknown => Err(FlameError::InvalidState("Executor is unknown".to_string())),
-
         ExecutorState::Releasing => Err(FlameError::InvalidState(
             "Executor is releasing".to_string(),
         )),

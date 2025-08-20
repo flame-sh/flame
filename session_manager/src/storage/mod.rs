@@ -17,18 +17,17 @@ use std::ops::Deref;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use common::apis::{Allocation, ExecutorState, ResourceRequirement};
 use common::apis::{
-    Application, ApplicationAttributes, ApplicationID, CommonData, ExecutorID, Node, NodePtr,
-    Session, SessionID, SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput,
-    TaskPtr, TaskState,
+    Application, ApplicationAttributes, ApplicationID, ApplicationPtr, CommonData, ExecutorID,
+    ExecutorState, Node, NodePtr, ResourceRequirement, Session, SessionID, SessionPtr,
+    SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 use common::ptr::{self, MutexPtr};
 use common::{ctx::FlameContext, lock_ptr, FlameError};
 
 use crate::model::{
-    Executor, ExecutorInfo, ExecutorPtr, NodeInfo, NodeInfoPtr, SessionInfo, SessionInfoPtr,
-    SnapShot, SnapShotPtr,
+    AppInfo, Executor, ExecutorInfo, ExecutorPtr, NodeInfo, NodeInfoPtr, SessionInfo,
+    SessionInfoPtr, SnapShot, SnapShotPtr,
 };
 use crate::storage::engine::EnginePtr;
 
@@ -43,7 +42,7 @@ pub struct Storage {
     sessions: MutexPtr<HashMap<SessionID, SessionPtr>>,
     executors: MutexPtr<HashMap<ExecutorID, ExecutorPtr>>,
     nodes: MutexPtr<HashMap<String, NodePtr>>,
-    allocations: MutexPtr<HashMap<String, Vec<Allocation>>>,
+    applications: MutexPtr<HashMap<String, ApplicationPtr>>,
 }
 
 pub async fn new_ptr(config: &FlameContext) -> Result<StoragePtr, FlameError> {
@@ -53,7 +52,7 @@ pub async fn new_ptr(config: &FlameContext) -> Result<StoragePtr, FlameError> {
         sessions: ptr::new_ptr(HashMap::new()),
         executors: ptr::new_ptr(HashMap::new()),
         nodes: ptr::new_ptr(HashMap::new()),
-        allocations: ptr::new_ptr(HashMap::new()),
+        applications: ptr::new_ptr(HashMap::new()),
     }))
 }
 
@@ -63,6 +62,7 @@ impl Storage {
 
         {
             let node_map = lock_ptr!(self.nodes)?;
+            log::debug!("There are {} nodes in snapshot.", node_map.len());
             for node in node_map.deref().values() {
                 let node = lock_ptr!(node)?;
                 let info = NodeInfo::from(&(*node));
@@ -72,6 +72,7 @@ impl Storage {
 
         {
             let ssn_map = lock_ptr!(self.sessions)?;
+            log::debug!("There are {} sessions in snapshot.", ssn_map.len());
             for ssn in ssn_map.deref().values() {
                 let ssn = lock_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
@@ -81,10 +82,21 @@ impl Storage {
 
         {
             let exe_map = lock_ptr!(self.executors)?;
+            log::debug!("There are {} executors in snapshot.", exe_map.len());
             for exe in exe_map.deref().values() {
                 let exe = lock_ptr!(exe)?;
                 let info = ExecutorInfo::from(&(*exe));
                 res.add_executor(Arc::new(info))?;
+            }
+        }
+
+        {
+            let app_map = lock_ptr!(self.applications)?;
+            log::debug!("There are {} applications in snapshot.", app_map.len());
+            for app in app_map.deref().values() {
+                let app = lock_ptr!(app)?;
+                let info = AppInfo::from(&(*app));
+                res.add_application(Arc::new(info))?;
             }
         }
 
@@ -123,6 +135,8 @@ impl Storage {
         node: &Node,
         _: &Vec<Executor>,
     ) -> Result<Vec<Executor>, FlameError> {
+        // trace_fn!("Storage::sync_node");
+
         let mut node_map = lock_ptr!(self.nodes)?;
         node_map.insert(node.name.clone(), ptr::new_ptr(node.clone()));
 
@@ -144,6 +158,8 @@ impl Storage {
                 });
             }
         }
+
+        log::debug!("There are {} executors in node {}", res.len(), node.name);
 
         Ok(res)
     }
@@ -268,7 +284,12 @@ impl Storage {
         name: String,
         attr: ApplicationAttributes,
     ) -> Result<(), FlameError> {
-        self.engine.register_application(name, attr).await
+        let app = self.engine.register_application(name, attr).await?;
+
+        let mut app_map = lock_ptr!(self.applications)?;
+        app_map.insert(app.name.clone(), ptr::new_ptr(app.clone()));
+
+        Ok(())
     }
 
     pub async fn list_application(&self) -> Result<Vec<Application>, FlameError> {
