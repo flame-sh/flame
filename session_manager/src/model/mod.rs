@@ -16,37 +16,46 @@ use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, Duration, Utc};
 
+use rpc::flame as rpc;
+
 use common::apis::{
-    Application, Executor, ExecutorID, ExecutorState, Session, SessionID, SessionState, Task,
-    TaskID, TaskState,
+    Application, ExecutorID, ExecutorState, Node, NodeState, ResourceRequirement, Session,
+    SessionID, SessionState, Task, TaskID, TaskState,
 };
 use common::ptr::MutexPtr;
 use common::{lock_ptr, FlameError};
 
 pub type SessionInfoPtr = Arc<SessionInfo>;
 pub type ExecutorInfoPtr = Arc<ExecutorInfo>;
+pub type NodeInfoPtr = Arc<NodeInfo>;
+pub type AppInfoPtr = Arc<AppInfo>;
 
 #[derive(Clone)]
 pub struct SnapShot {
-    pub applications: MutexPtr<HashMap<String, AppInfo>>,
+    pub unit: ResourceRequirement,
+    pub applications: MutexPtr<HashMap<String, AppInfoPtr>>,
 
     pub sessions: MutexPtr<HashMap<SessionID, SessionInfoPtr>>,
     pub ssn_index: MutexPtr<HashMap<SessionState, HashMap<SessionID, SessionInfoPtr>>>,
 
     pub executors: MutexPtr<HashMap<ExecutorID, ExecutorInfoPtr>>,
     pub exec_index: MutexPtr<HashMap<ExecutorState, HashMap<ExecutorID, ExecutorInfoPtr>>>,
+
+    pub nodes: MutexPtr<HashMap<String, NodeInfoPtr>>,
 }
 
 pub type SnapShotPtr = Arc<SnapShot>;
 
 impl SnapShot {
-    pub fn new() -> Self {
+    pub fn new(unit: ResourceRequirement) -> Self {
         SnapShot {
+            unit,
             applications: Arc::new(Mutex::new(HashMap::new())),
             sessions: Arc::new(Mutex::new(HashMap::new())),
             ssn_index: Arc::new(Mutex::new(HashMap::new())),
             executors: Arc::new(Mutex::new(HashMap::new())),
             exec_index: Arc::new(Mutex::new(HashMap::new())),
+            nodes: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -96,12 +105,20 @@ pub struct SessionInfo {
 #[derive(Clone, Debug, Default)]
 pub struct ExecutorInfo {
     pub id: ExecutorID,
-    pub slots: i32,
+    pub node: String,
+    pub resreq: ResourceRequirement,
     pub task_id: Option<TaskID>,
     pub ssn_id: Option<SessionID>,
 
     pub creation_time: DateTime<Utc>,
     pub state: ExecutorState,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct NodeInfo {
+    pub name: String,
+    pub allocatable: ResourceRequirement,
+    pub state: NodeState,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -114,6 +131,16 @@ pub struct AppInfo {
 impl From<Application> for AppInfo {
     fn from(app: Application) -> Self {
         AppInfo::from(&app)
+    }
+}
+
+impl From<&Node> for NodeInfo {
+    fn from(node: &Node) -> Self {
+        NodeInfo {
+            name: node.name.clone(),
+            allocatable: node.allocatable.clone(),
+            state: node.state,
+        }
     }
 }
 
@@ -131,7 +158,8 @@ impl From<&Executor> for ExecutorInfo {
     fn from(exec: &Executor) -> Self {
         ExecutorInfo {
             id: exec.id.clone(),
-            slots: exec.slots,
+            node: exec.node.clone(),
+            resreq: exec.resreq.clone(),
             task_id: exec.task_id,
             ssn_id: exec.ssn_id,
             creation_time: exec.creation_time,
@@ -188,6 +216,13 @@ pub struct ExecutorFilter {
     pub ids: Vec<ExecutorID>,
 }
 
+pub struct NodeFilter {
+    pub state: Option<NodeState>,
+    pub names: Vec<String>,
+}
+
+pub const ALL_NODE: Option<NodeFilter> = None;
+
 pub const IDLE_EXECUTOR: Option<ExecutorFilter> = Some(ExecutorFilter {
     state: Some(ExecutorState::Idle),
     ids: vec![],
@@ -207,10 +242,55 @@ pub struct AppFilter {
 pub const ALL_APPLICATION: Option<AppFilter> = None;
 
 impl SnapShot {
+    pub fn find_nodes(
+        &self,
+        filter: Option<NodeFilter>,
+    ) -> Result<HashMap<String, NodeInfoPtr>, FlameError> {
+        match filter {
+            Some(filter) => self.find_nodes_by_filter(filter),
+            None => self.find_all_nodes(),
+        }
+    }
+
+    fn find_nodes_by_filter(
+        &self,
+        filter: NodeFilter,
+    ) -> Result<HashMap<String, NodeInfoPtr>, FlameError> {
+        let mut nodes = HashMap::new();
+
+        {
+            let nodes_list = lock_ptr!(self.nodes)?;
+
+            for name in filter.names {
+                if let Some(node) = nodes_list.get(&name) {
+                    nodes.insert(name, node.clone());
+                } else {
+                    log::warn!("Node <{name}> not found.");
+                }
+            }
+        }
+
+        Ok(nodes)
+    }
+
+    fn find_all_nodes(&self) -> Result<HashMap<String, NodeInfoPtr>, FlameError> {
+        let mut nodes = HashMap::new();
+
+        {
+            let nodes_list = lock_ptr!(self.nodes)?;
+
+            for node in nodes_list.values() {
+                nodes.insert(node.name.clone(), node.clone());
+            }
+        }
+
+        Ok(nodes)
+    }
+
     pub fn find_applications(
         &self,
         filter: Option<AppFilter>,
-    ) -> Result<HashMap<String, AppInfo>, FlameError> {
+    ) -> Result<HashMap<String, AppInfoPtr>, FlameError> {
         match filter {
             Some(filter) => self.find_applications_by_filter(filter),
             None => self.find_all_applications(),
@@ -220,7 +300,7 @@ impl SnapShot {
     fn find_applications_by_filter(
         &self,
         filter: AppFilter,
-    ) -> Result<HashMap<String, AppInfo>, FlameError> {
+    ) -> Result<HashMap<String, AppInfoPtr>, FlameError> {
         let mut appinfos = HashMap::new();
 
         {
@@ -236,7 +316,7 @@ impl SnapShot {
         Ok(appinfos)
     }
 
-    fn find_all_applications(&self) -> Result<HashMap<String, AppInfo>, FlameError> {
+    fn find_all_applications(&self) -> Result<HashMap<String, AppInfoPtr>, FlameError> {
         let mut appinfos = HashMap::new();
 
         {
@@ -304,6 +384,15 @@ impl SnapShot {
         Ok(ssns)
     }
 
+    pub fn add_node(&self, node: NodeInfoPtr) -> Result<(), FlameError> {
+        {
+            let mut nodes = lock_ptr!(self.nodes)?;
+            nodes.insert(node.name.clone(), node.clone());
+        }
+
+        Ok(())
+    }
+
     pub fn add_session(&self, ssn: SessionInfoPtr) -> Result<(), FlameError> {
         {
             let mut sessions = lock_ptr!(self.sessions)?;
@@ -317,6 +406,15 @@ impl SnapShot {
             if let Some(ssn_list) = ssn_index.get_mut(&ssn.state) {
                 ssn_list.insert(ssn.id, ssn.clone());
             }
+        }
+
+        Ok(())
+    }
+
+    pub fn add_application(&self, app: AppInfoPtr) -> Result<(), FlameError> {
+        {
+            let mut apps = lock_ptr!(self.applications)?;
+            apps.insert(app.name.clone(), app.clone());
         }
 
         Ok(())
@@ -447,7 +545,8 @@ impl SnapShot {
     ) -> Result<(), FlameError> {
         let new_exec = Arc::new(ExecutorInfo {
             id: exec.id.clone(),
-            slots: exec.slots,
+            node: exec.node.clone(),
+            resreq: exec.resreq.clone(),
             task_id: exec.task_id,
             ssn_id: exec.ssn_id,
             creation_time: exec.creation_time,
@@ -458,5 +557,76 @@ impl SnapShot {
         self.add_executor(new_exec)?;
 
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Executor {
+    pub id: ExecutorID,
+    pub node: String,
+    pub resreq: ResourceRequirement,
+    pub task_id: Option<TaskID>,
+    pub ssn_id: Option<SessionID>,
+
+    pub creation_time: DateTime<Utc>,
+    pub state: ExecutorState,
+}
+
+pub type ExecutorPtr = MutexPtr<Executor>;
+
+impl From<rpc::Executor> for Executor {
+    fn from(e: rpc::Executor) -> Self {
+        Executor::from(&e)
+    }
+}
+
+impl From<&rpc::Executor> for Executor {
+    fn from(e: &rpc::Executor) -> Self {
+        let spec = e.spec.clone().unwrap();
+        let status = e.status.unwrap();
+        let metadata = e.metadata.clone().unwrap();
+
+        let state = rpc::ExecutorState::try_from(status.state).unwrap().into();
+
+        Executor {
+            id: metadata.id.clone(),
+            node: spec.node.clone(),
+            resreq: spec.resreq.unwrap().into(),
+            task_id: None,
+            ssn_id: None,
+            creation_time: Utc::now(),
+            state,
+        }
+    }
+}
+
+impl From<Executor> for rpc::Executor {
+    fn from(e: Executor) -> Self {
+        rpc::Executor::from(&e)
+    }
+}
+
+impl From<&Executor> for rpc::Executor {
+    fn from(e: &Executor) -> Self {
+        let metadata = Some(rpc::Metadata {
+            id: e.id.clone(),
+            name: e.id.clone(),
+            owner: None,
+        });
+
+        let spec = Some(rpc::ExecutorSpec {
+            resreq: Some(e.resreq.clone().into()),
+            node: e.node.clone(),
+        });
+
+        let status = Some(rpc::ExecutorStatus {
+            state: rpc::ExecutorState::from(e.state).into(),
+        });
+
+        rpc::Executor {
+            metadata,
+            spec,
+            status,
+        }
     }
 }

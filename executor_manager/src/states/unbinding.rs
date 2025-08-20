@@ -13,23 +13,24 @@ limitations under the License.
 
 use async_trait::async_trait;
 
-use crate::client;
-use crate::executor::{Executor, ExecutorState};
+use crate::client::BackendClient;
+use crate::executor::Executor;
 use crate::states::State;
-use common::ctx::FlameContext;
+use common::apis::ExecutorState;
 use common::{trace::TraceFn, trace_fn, FlameError};
 
 #[derive(Clone)]
-pub struct UnboundState {
+pub struct UnbindingState {
+    pub client: BackendClient,
     pub executor: Executor,
 }
 
 #[async_trait]
-impl State for UnboundState {
-    async fn execute(&mut self, ctx: &FlameContext) -> Result<Executor, FlameError> {
-        trace_fn!("UnboundState::execute");
+impl State for UnbindingState {
+    async fn execute(&mut self) -> Result<Executor, FlameError> {
+        trace_fn!("UnbindingState::execute");
 
-        client::unbind_executor(ctx, &self.executor.clone()).await?;
+        self.client.unbind_executor(&self.executor.clone()).await?;
         let shim_ptr = &mut self.executor.shim.clone().ok_or(FlameError::InvalidState(
             "no shim in bound state".to_string(),
         ))?;
@@ -39,7 +40,9 @@ impl State for UnboundState {
             shim.on_session_leave().await?;
         }
 
-        client::unbind_executor_completed(ctx, &self.executor.clone()).await?;
+        self.client
+            .unbind_executor_completed(&self.executor.clone())
+            .await?;
 
         self.executor.task = None;
         self.executor.session = None;

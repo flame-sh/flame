@@ -20,160 +20,190 @@ use tonic::transport::Channel;
 use self::rpc::backend_client::BackendClient as FlameBackendClient;
 use self::rpc::{
     BindExecutorCompletedRequest, BindExecutorRequest, CompleteTaskRequest, LaunchTaskRequest,
-    RegisterExecutorRequest, UnbindExecutorCompletedRequest, UnbindExecutorRequest,
+    RegisterExecutorRequest, RegisterNodeRequest, ReleaseNodeRequest, SyncNodeRequest,
+    UnbindExecutorCompletedRequest, UnbindExecutorRequest,
 };
 use ::rpc::flame as rpc;
 
 use crate::executor::Executor;
-use common::apis::{self, SessionContext, TaskContext};
+use common::apis::{self, Node, ResourceRequirement, SessionContext, TaskContext};
 use common::ctx::FlameContext;
 use common::{lock_ptr, FlameError};
 
-type FlameClient = FlameBackendClient<Channel>;
+pub type FlameClient = FlameBackendClient<Channel>;
 
 #[derive(Clone, Debug)]
 pub struct BackendClient {
-    client_pool: Arc<Mutex<HashMap<String, FlameClient>>>,
+    client: FlameClient,
 }
 
-lazy_static! {
-    static ref INSTANCE: Arc<BackendClient> = Arc::new(BackendClient {
-        client_pool: Arc::new(Mutex::new(HashMap::new()))
-    });
-}
+impl BackendClient {
+    pub async fn new(ctx: &FlameContext) -> Result<Self, FlameError> {
+        let client = FlameBackendClient::connect(ctx.endpoint.clone())
+            .await
+            .map_err(|_e| FlameError::Network("tonic connection".to_string()))?;
 
-pub async fn install(ctx: &FlameContext) -> Result<(), FlameError> {
-    let client = FlameBackendClient::connect(ctx.endpoint.clone())
-        .await
-        .map_err(|_e| FlameError::Network("tonic connection".to_string()))?;
-
-    let mut cs = lock_ptr!(INSTANCE.client_pool)?;
-    cs.insert(ctx.name.clone(), client);
-
-    Ok(())
-}
-
-fn get_client(ctx: &FlameContext) -> Result<FlameClient, FlameError> {
-    let cs = lock_ptr!(INSTANCE.client_pool)?;
-    let client = cs.get(&ctx.name).ok_or(FlameError::Uninitialized(format!(
-        "client {}",
-        ctx.name.clone()
-    )))?;
-
-    Ok(client.clone())
-}
-
-pub async fn register_executor(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
-    let mut ins = get_client(ctx)?;
-
-    let req = RegisterExecutorRequest {
-        executor_id: exe.id.clone(),
-        executor_spec: Some(rpc::ExecutorSpec { slots: exe.slots }),
-    };
-
-    ins.register_executor(req).await.map_err(FlameError::from)?;
-
-    Ok(())
-}
-
-pub async fn bind_executor(
-    ctx: &FlameContext,
-    exe: &Executor,
-) -> Result<SessionContext, FlameError> {
-    let mut ins = get_client(ctx)?;
-
-    let req = BindExecutorRequest {
-        executor_id: exe.id.clone(),
-    };
-
-    let ssn = ins.bind_executor(req).await.map_err(FlameError::from)?;
-
-    SessionContext::try_from(ssn.into_inner())
-}
-
-pub async fn bind_executor_completed(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
-    let mut ins = get_client(ctx)?;
-
-    let req = BindExecutorCompletedRequest {
-        executor_id: exe.id.clone(),
-    };
-
-    ins.bind_executor_completed(req)
-        .await
-        .map_err(FlameError::from)?;
-
-    Ok(())
-}
-
-//
-// rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
-//
-
-pub async fn unbind_executor(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
-    let mut ins = get_client(ctx)?;
-
-    let req = UnbindExecutorRequest {
-        executor_id: exe.id.clone(),
-    };
-
-    ins.unbind_executor(req).await.map_err(FlameError::from)?;
-    Ok(())
-}
-
-pub async fn unbind_executor_completed(
-    ctx: &FlameContext,
-    exe: &Executor,
-) -> Result<(), FlameError> {
-    let mut ins = get_client(ctx)?;
-
-    let req = UnbindExecutorCompletedRequest {
-        executor_id: exe.id.clone(),
-    };
-
-    ins.unbind_executor_completed(req)
-        .await
-        .map_err(FlameError::from)?;
-
-    Ok(())
-}
-
-pub async fn launch_task(
-    ctx: &FlameContext,
-    exe: &Executor,
-) -> Result<Option<TaskContext>, FlameError> {
-    let mut ins = get_client(ctx)?;
-
-    let req = LaunchTaskRequest {
-        executor_id: exe.id.clone(),
-    };
-
-    let resp = ins.launch_task(req).await.map_err(FlameError::from)?;
-
-    if let Some(t) = resp.into_inner().task {
-        return Ok(Some(TaskContext::try_from(t)?));
+        Ok(Self { client })
     }
 
-    Ok(None)
+    pub async fn register_node(&mut self, node: &Node) -> Result<(), FlameError> {
+        let req = RegisterNodeRequest {
+            node: Some(node.clone().into()),
+        };
+
+        self.client
+            .register_node(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        Ok(())
+    }
+
+    pub async fn sync_node(
+        &mut self,
+        node: &Node,
+        executors: Vec<Executor>,
+    ) -> Result<Vec<Executor>, FlameError> {
+        let req = SyncNodeRequest {
+            node: Some(node.clone().into()),
+            executors: executors.into_iter().map(rpc::Executor::from).collect(),
+        };
+
+        let resp = self.client.sync_node(req).await.map_err(FlameError::from)?;
+
+        let executors = resp
+            .into_inner()
+            .executors
+            .into_iter()
+            .map(rpc::Executor::into)
+            .collect();
+
+        Ok(executors)
+    }
+
+    pub async fn release_node(&mut self, node: &Node) -> Result<(), FlameError> {
+        let req = ReleaseNodeRequest {
+            node_name: node.name.clone(),
+        };
+
+        self.client
+            .release_node(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        Ok(())
+    }
+
+    pub async fn register_executor(&mut self, exe: &Executor) -> Result<(), FlameError> {
+        let req = RegisterExecutorRequest {
+            executor_id: exe.id.clone(),
+            executor_spec: Some(rpc::ExecutorSpec {
+                resreq: Some(exe.resreq.clone().into()),
+                node: exe.node.clone(),
+            }),
+        };
+
+        self.client
+            .register_executor(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        Ok(())
+    }
+
+    pub async fn bind_executor(&mut self, exe: &Executor) -> Result<SessionContext, FlameError> {
+        let req = BindExecutorRequest {
+            executor_id: exe.id.clone(),
+        };
+
+        let ssn = self
+            .client
+            .bind_executor(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        SessionContext::try_from(ssn.into_inner())
+    }
+
+    pub async fn bind_executor_completed(&mut self, exe: &Executor) -> Result<(), FlameError> {
+        let req = BindExecutorCompletedRequest {
+            executor_id: exe.id.clone(),
+        };
+
+        self.client
+            .bind_executor_completed(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        Ok(())
+    }
+
+    //
+    // rpc UnregisterExecutor (UnregisterExecutorRequest) returns (Result) {}
+    //
+
+    pub async fn unbind_executor(&mut self, exe: &Executor) -> Result<(), FlameError> {
+        let req = UnbindExecutorRequest {
+            executor_id: exe.id.clone(),
+        };
+
+        self.client
+            .unbind_executor(req)
+            .await
+            .map_err(FlameError::from)?;
+        Ok(())
+    }
+
+    pub async fn unbind_executor_completed(&mut self, exe: &Executor) -> Result<(), FlameError> {
+        let req = UnbindExecutorCompletedRequest {
+            executor_id: exe.id.clone(),
+        };
+
+        self.client
+            .unbind_executor_completed(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        Ok(())
+    }
+
+    pub async fn launch_task(&mut self, exe: &Executor) -> Result<Option<TaskContext>, FlameError> {
+        let req = LaunchTaskRequest {
+            executor_id: exe.id.clone(),
+        };
+
+        let resp = self
+            .client
+            .launch_task(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        if let Some(t) = resp.into_inner().task {
+            return Ok(Some(TaskContext::try_from(t)?));
+        }
+
+        Ok(None)
+    }
+
+    pub async fn complete_task(&mut self, exe: &Executor) -> Result<(), FlameError> {
+        let task = exe
+            .task
+            .clone()
+            .ok_or(FlameError::InvalidState("no task in executor".to_string()))?;
+
+        let req = CompleteTaskRequest {
+            executor_id: exe.id.clone(),
+            task_output: task.output.map(apis::TaskOutput::into),
+        };
+
+        self.client
+            .complete_task(req)
+            .await
+            .map_err(FlameError::from)?;
+
+        Ok(())
+    }
 }
-
-pub async fn complete_task(ctx: &FlameContext, exe: &Executor) -> Result<(), FlameError> {
-    let mut ins = get_client(ctx)?;
-
-    let task = exe
-        .task
-        .clone()
-        .ok_or(FlameError::InvalidState("no task in executor".to_string()))?;
-
-    let req = CompleteTaskRequest {
-        executor_id: exe.id.clone(),
-        task_output: task.output.map(apis::TaskOutput::into),
-    };
-
-    ins.complete_task(req).await.map_err(FlameError::from)?;
-
-    Ok(())
-}
-
 // rpc UnbindExecutor (UnbindExecutorRequest) returns (Result) {}
 //
 // rpc LaunchTask (LaunchTaskRequest) returns (Task) {}

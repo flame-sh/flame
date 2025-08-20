@@ -17,14 +17,14 @@ use std::sync::Arc;
 use std::task::{Context, Poll};
 
 use common::apis::{
-    Application, ApplicationAttributes, ApplicationID, CommonData, Executor, ExecutorID,
-    ExecutorPtr, Session, SessionID, SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput,
-    TaskPtr, TaskState,
+    Application, ApplicationAttributes, ApplicationID, CommonData, ExecutorID, Node, NodeState,
+    Session, SessionID, SessionPtr, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr,
+    TaskState,
 };
 
 use common::{lock_ptr, trace::TraceFn, trace_fn, FlameError};
 
-use crate::model::SnapShotPtr;
+use crate::model::{Executor, ExecutorPtr, NodeInfoPtr, SessionInfoPtr, SnapShotPtr};
 use crate::storage::StoragePtr;
 
 mod states;
@@ -40,6 +40,22 @@ pub fn new_ptr(storage: StoragePtr) -> ControllerPtr {
 }
 
 impl Controller {
+    pub async fn register_node(&self, node: &Node) -> Result<(), FlameError> {
+        self.storage.register_node(node).await
+    }
+
+    pub async fn sync_node(
+        &self,
+        node: &Node,
+        executors: &Vec<Executor>,
+    ) -> Result<Vec<Executor>, FlameError> {
+        self.storage.sync_node(node, executors).await
+    }
+
+    pub async fn release_node(&self, node_name: &str) -> Result<(), FlameError> {
+        self.storage.release_node(node_name).await
+    }
+
     pub async fn create_session(
         &self,
         app: String,
@@ -87,8 +103,22 @@ impl Controller {
         self.storage.update_task(ssn, task, state, output).await
     }
 
-    pub fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
-        self.storage.register_executor(e)
+    pub async fn create_executor(
+        &self,
+        node_name: String,
+        ssn_id: SessionID,
+    ) -> Result<Executor, FlameError> {
+        self.storage.create_executor(node_name, ssn_id).await
+    }
+
+    pub async fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
+        trace_fn!("Controller::register_executor");
+
+        let exe_ptr = self.storage.get_executor_ptr(e.id.clone())?;
+        let state = states::from(self.storage.clone(), exe_ptr.clone())?;
+        state.register_executor(exe_ptr).await?;
+
+        Ok(())
     }
 
     pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {

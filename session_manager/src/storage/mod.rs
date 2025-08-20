@@ -11,19 +11,24 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use chrono::Utc;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use common::apis::{
-    Application, ApplicationAttributes, ApplicationID, CommonData, Executor, ExecutorID,
-    ExecutorPtr, Session, SessionID, SessionPtr, SessionState, Task, TaskGID, TaskID, TaskInput,
-    TaskOutput, TaskPtr, TaskState,
+    Application, ApplicationAttributes, ApplicationID, ApplicationPtr, CommonData, ExecutorID,
+    ExecutorState, Node, NodePtr, ResourceRequirement, Session, SessionID, SessionPtr,
+    SessionState, Task, TaskGID, TaskID, TaskInput, TaskOutput, TaskPtr, TaskState,
 };
 use common::ptr::{self, MutexPtr};
-use common::{lock_ptr, FlameError};
+use common::{ctx::FlameContext, lock_ptr, FlameError};
 
-use crate::model::{ExecutorInfo, SessionInfo, SnapShot, SnapShotPtr};
+use crate::model::{
+    AppInfo, Executor, ExecutorInfo, ExecutorPtr, NodeInfo, NodeInfoPtr, SessionInfo,
+    SessionInfoPtr, SnapShot, SnapShotPtr,
+};
 use crate::storage::engine::EnginePtr;
 
 mod engine;
@@ -32,25 +37,42 @@ pub type StoragePtr = Arc<Storage>;
 
 #[derive(Clone)]
 pub struct Storage {
+    context: FlameContext,
     engine: EnginePtr,
     sessions: MutexPtr<HashMap<SessionID, SessionPtr>>,
     executors: MutexPtr<HashMap<ExecutorID, ExecutorPtr>>,
+    nodes: MutexPtr<HashMap<String, NodePtr>>,
+    applications: MutexPtr<HashMap<String, ApplicationPtr>>,
 }
 
-pub async fn new_ptr(url: &str) -> Result<StoragePtr, FlameError> {
+pub async fn new_ptr(config: &FlameContext) -> Result<StoragePtr, FlameError> {
     Ok(Arc::new(Storage {
-        engine: engine::connect(url).await?,
+        context: config.clone(),
+        engine: engine::connect(&config.storage).await?,
         sessions: ptr::new_ptr(HashMap::new()),
         executors: ptr::new_ptr(HashMap::new()),
+        nodes: ptr::new_ptr(HashMap::new()),
+        applications: ptr::new_ptr(HashMap::new()),
     }))
 }
 
 impl Storage {
     pub fn snapshot(&self) -> Result<SnapShotPtr, FlameError> {
-        let res = SnapShot::new();
+        let res = SnapShot::new(self.context.slot.clone());
+
+        {
+            let node_map = lock_ptr!(self.nodes)?;
+            log::debug!("There are {} nodes in snapshot.", node_map.len());
+            for node in node_map.deref().values() {
+                let node = lock_ptr!(node)?;
+                let info = NodeInfo::from(&(*node));
+                res.add_node(Arc::new(info))?;
+            }
+        }
 
         {
             let ssn_map = lock_ptr!(self.sessions)?;
+            log::debug!("There are {} sessions in snapshot.", ssn_map.len());
             for ssn in ssn_map.deref().values() {
                 let ssn = lock_ptr!(ssn)?;
                 let info = SessionInfo::from(&(*ssn));
@@ -60,10 +82,21 @@ impl Storage {
 
         {
             let exe_map = lock_ptr!(self.executors)?;
+            log::debug!("There are {} executors in snapshot.", exe_map.len());
             for exe in exe_map.deref().values() {
                 let exe = lock_ptr!(exe)?;
-                let info = ExecutorInfo::from(&(*exe).clone());
+                let info = ExecutorInfo::from(&(*exe));
                 res.add_executor(Arc::new(info))?;
+            }
+        }
+
+        {
+            let app_map = lock_ptr!(self.applications)?;
+            log::debug!("There are {} applications in snapshot.", app_map.len());
+            for app in app_map.deref().values() {
+                let app = lock_ptr!(app)?;
+                let info = AppInfo::from(&(*app));
+                res.add_application(Arc::new(info))?;
             }
         }
 
@@ -88,6 +121,52 @@ impl Storage {
             ssn_map.insert(ssn.id, SessionPtr::new(ssn.into()));
         }
 
+        Ok(())
+    }
+
+    pub async fn register_node(&self, node: &Node) -> Result<(), FlameError> {
+        let mut node_map = lock_ptr!(self.nodes)?;
+        node_map.insert(node.name.clone(), ptr::new_ptr(node.clone()));
+        Ok(())
+    }
+
+    pub async fn sync_node(
+        &self,
+        node: &Node,
+        _: &Vec<Executor>,
+    ) -> Result<Vec<Executor>, FlameError> {
+        // trace_fn!("Storage::sync_node");
+
+        let mut node_map = lock_ptr!(self.nodes)?;
+        node_map.insert(node.name.clone(), ptr::new_ptr(node.clone()));
+
+        let mut res = vec![];
+
+        let mut exe_map = lock_ptr!(self.executors)?;
+        let execs = exe_map.values();
+        for exec in execs {
+            let exec = lock_ptr!(exec)?;
+            if exec.node == node.name {
+                res.push(Executor {
+                    id: exec.id.clone(),
+                    node: exec.node.clone(),
+                    resreq: exec.resreq.clone(),
+                    task_id: exec.task_id,
+                    ssn_id: exec.ssn_id,
+                    creation_time: exec.creation_time,
+                    state: exec.state,
+                });
+            }
+        }
+
+        log::debug!("There are {} executors in node {}", res.len(), node.name);
+
+        Ok(res)
+    }
+
+    pub async fn release_node(&self, node_name: &str) -> Result<(), FlameError> {
+        let mut node_map = lock_ptr!(self.nodes)?;
+        node_map.remove(node_name);
         Ok(())
     }
 
@@ -205,7 +284,12 @@ impl Storage {
         name: String,
         attr: ApplicationAttributes,
     ) -> Result<(), FlameError> {
-        self.engine.register_application(name, attr).await
+        let app = self.engine.register_application(name, attr).await?;
+
+        let mut app_map = lock_ptr!(self.applications)?;
+        app_map.insert(app.name.clone(), ptr::new_ptr(app.clone()));
+
+        Ok(())
     }
 
     pub async fn list_application(&self) -> Result<Vec<Application>, FlameError> {
@@ -238,12 +322,35 @@ impl Storage {
         Ok(())
     }
 
-    pub fn register_executor(&self, e: &Executor) -> Result<(), FlameError> {
+    pub async fn create_executor(
+        &self,
+        node_name: String,
+        ssn_id: SessionID,
+    ) -> Result<Executor, FlameError> {
+        let ssn = self.get_session_ptr(ssn_id)?;
+        let resreq = {
+            let ssn = lock_ptr!(ssn)?;
+            ResourceRequirement::new(ssn.slots, &self.context.slot)
+        };
+
+        let e = Executor {
+            id: Uuid::new_v4().to_string(),
+            node: node_name.clone(),
+            resreq,
+            task_id: None,
+            ssn_id: None,
+            creation_time: Utc::now(),
+            state: ExecutorState::Void,
+        };
+
+        // TODO: create executor in engine
+        // let e = self.engine.create_executor(node, ssn).await?;
+
         let mut exe_map = lock_ptr!(self.executors)?;
         let exe = ExecutorPtr::new(e.clone().into());
-        exe_map.insert(e.id.clone(), exe);
+        exe_map.insert(e.id.clone(), exe.clone());
 
-        Ok(())
+        Ok(e.clone())
     }
 
     pub fn get_executor_ptr(&self, id: ExecutorID) -> Result<ExecutorPtr, FlameError> {

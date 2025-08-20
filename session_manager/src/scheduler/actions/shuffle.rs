@@ -18,7 +18,7 @@ use stdng::collections::BinaryHeap;
 use crate::model::{BOUND_EXECUTOR, OPEN_SESSION};
 use crate::scheduler::actions::{Action, ActionPtr};
 use crate::scheduler::ctx::Context;
-use crate::scheduler::plugins::ssn_order_fn;
+use crate::scheduler::dispatcher::ssn_order_fn;
 
 use common::FlameError;
 use common::{trace::TraceFn, trace_fn};
@@ -40,7 +40,7 @@ impl Action for ShuffleAction {
         let mut underused = BinaryHeap::new(ssn_order_fn(ctx));
         let open_ssns = ss.find_sessions(OPEN_SESSION)?;
         for ssn in open_ssns.values() {
-            if ctx.is_underused(ssn)? {
+            if ctx.dispatcher.is_underused(ssn)? {
                 underused.push(ssn.clone());
             }
         }
@@ -57,13 +57,13 @@ impl Action for ShuffleAction {
             }
 
             let ssn = underused.pop().unwrap();
-            if !ctx.is_underused(&ssn)? {
+            if !ctx.dispatcher.is_underused(&ssn)? {
                 continue;
             }
 
             let mut pos = None;
             for (i, exec) in bound_execs.iter().enumerate() {
-                if !ctx.filter_one(exec, &ssn) {
+                if !ctx.dispatcher.filter_one(exec, &ssn) {
                     continue;
                 }
 
@@ -73,12 +73,16 @@ impl Action for ShuffleAction {
                 };
 
                 if let Some(target_ssn) = target_ssn {
-                    if !ctx.is_preemptible(&target_ssn)? {
+                    if !ctx.dispatcher.is_preemptible(&target_ssn)? {
                         continue;
                     }
 
-                    ctx.unbind_session(exec.clone(), target_ssn.clone()).await?;
-                    ctx.pipeline_session(exec.clone(), ssn.clone()).await?;
+                    ctx.dispatcher
+                        .unbind_session(exec.clone(), target_ssn.clone())
+                        .await?;
+                    ctx.dispatcher
+                        .pipeline_session(exec.clone(), ssn.clone())
+                        .await?;
                 }
 
                 pos = Some(i);

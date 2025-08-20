@@ -18,22 +18,22 @@ use crate::model::{IDLE_EXECUTOR, OPEN_SESSION};
 use crate::scheduler::actions::{Action, ActionPtr};
 use crate::scheduler::dispatcher::ssn_order_fn;
 use crate::scheduler::Context;
-use crate::FlameError;
 
+use crate::FlameError;
 use common::{trace::TraceFn, trace_fn};
 
-pub struct BackfillAction {}
+pub struct DispatchAction {}
 
-impl BackfillAction {
+impl DispatchAction {
     pub fn new_ptr() -> ActionPtr {
-        Arc::new(BackfillAction {})
+        Arc::new(DispatchAction {})
     }
 }
 
 #[async_trait::async_trait]
-impl Action for BackfillAction {
+impl Action for DispatchAction {
     async fn execute(&self, ctx: &mut Context) -> Result<(), FlameError> {
-        trace_fn!("BackfillAction::execute");
+        trace_fn!("DispatchAction::execute");
         let ss = ctx.snapshot.clone();
 
         ss.debug()?;
@@ -43,6 +43,8 @@ impl Action for BackfillAction {
 
         let ssn_list = ss.find_sessions(OPEN_SESSION)?;
         for ssn in ssn_list.values() {
+            // TODO(k82cn): check if the application of the session exists in the database and
+            // if not, ignore it and log a message.
             open_ssns.push(ssn.clone());
         }
 
@@ -58,6 +60,14 @@ impl Action for BackfillAction {
 
             let ssn = open_ssns.pop().unwrap();
             log::debug!("Start resources allocation for session <{}>", &ssn.id);
+            if !ctx.dispatcher.is_underused(&ssn)? {
+                continue;
+            }
+
+            log::debug!(
+                "Session <{}> is underused, start to allocate resources.",
+                &ssn.id
+            );
 
             let mut pos = None;
             for (i, exec) in idle_execs.iter_mut().enumerate() {
@@ -74,7 +84,6 @@ impl Action for BackfillAction {
                 ctx.dispatcher
                     .bind_session(exec.clone(), ssn.clone())
                     .await?;
-
                 pos = Some(i);
 
                 log::debug!(

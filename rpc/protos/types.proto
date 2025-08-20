@@ -110,14 +110,28 @@ message Application {
 }
 
 message ExecutorSpec {
-  int32 slots = 2;
+  string node = 1;
+  ResourceRequirement resreq = 2;
 }
 
+/* 
+ * void --> idle --> releasing --> released
+ *          ↑  |
+ *          |  binding
+ *  unbinding  |
+ *          |  ↓
+ *          bound 
+ */
+
 enum ExecutorState {
-  ExecutorIdle = 0;
-  ExecutorBound = 1;
-  ExecutorRunning = 2;
-  ExecutorUnknown = 3;
+  ExecutorUnknown = 0;
+  ExecutorVoid = 1;
+  ExecutorIdle = 2;
+  ExecutorBinding = 3;
+  ExecutorBound = 4;
+  ExecutorUnbinding = 5;
+  ExecutorReleasing = 6;
+  ExecutorReleased = 7;
 }
 
 message ExecutorStatus {
@@ -138,6 +152,39 @@ message ApplicationList {
   repeated Application applications = 1;
 }
 
+message ResourceRequirement {
+  uint64 cpu = 1;
+  uint64 memory = 2;
+}
+
+message NodeSpec {
+
+}
+
+enum NodeState {
+  Unknown = 0;
+  Ready = 1;
+  NotReady = 2;
+}
+
+message NodeInfo {
+  string arch = 1;
+  string os = 2;
+}
+
+message NodeStatus {
+  NodeState state = 1;
+  ResourceRequirement capacity = 2;
+  ResourceRequirement allocatable = 3;
+  NodeInfo info = 4;
+}
+
+message Node {
+  Metadata metadata = 1;
+  NodeSpec spec = 2;
+  NodeStatus status = 3;
+}
+
 message Result {
   int32 return_code = 1;
   optional string message = 2;
@@ -145,3 +192,4 @@ message Result {
 
 message EmptyRequest {
 }
+

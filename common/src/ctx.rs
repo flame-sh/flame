@@ -17,6 +17,7 @@ use std::path::Path;
 
 use serde_derive::{Deserialize, Serialize};
 
+use crate::apis::ResourceRequirement;
 use crate::FlameError;
 
 const DEFAULT_FLAME_CONF: &str = "flame-conf.yaml";
@@ -27,10 +28,19 @@ const DEFAULT_POLICY: &str = "proportion";
 const DEFAULT_STORAGE: &str = "sqlite://flame.db";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FlameContext {
+struct FlameContextYaml {
     pub name: String,
     pub endpoint: String,
     pub slot: String,
+    pub policy: String,
+    pub storage: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct FlameContext {
+    pub name: String,
+    pub endpoint: String,
+    pub slot: ResourceRequirement,
     pub policy: String,
     pub storage: String,
 }
@@ -46,7 +56,7 @@ impl Default for FlameContext {
         FlameContext {
             name: DEFAULT_CONTEXT_NAME.to_string(),
             endpoint: DEFAULT_FLAME_ENDPOINT.to_string(),
-            slot: DEFAULT_SLOT.to_string(),
+            slot: ResourceRequirement::from(&DEFAULT_SLOT.to_string()),
             policy: DEFAULT_POLICY.to_string(),
             storage: DEFAULT_STORAGE.to_string(),
         }
@@ -68,8 +78,16 @@ impl FlameContext {
 
         let contents =
             fs::read_to_string(fp.clone()).map_err(|e| FlameError::Internal(e.to_string()))?;
-        let ctx: FlameContext =
+        let ctx: FlameContextYaml =
             serde_yaml::from_str(&contents).map_err(|e| FlameError::Internal(e.to_string()))?;
+
+        let ctx = FlameContext {
+            name: ctx.name,
+            endpoint: ctx.endpoint,
+            slot: ResourceRequirement::from(&ctx.slot),
+            policy: ctx.policy,
+            storage: ctx.storage,
+        };
 
         log::debug!("Load FrameContext from <{fp}>: {ctx}");
 

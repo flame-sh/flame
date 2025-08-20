@@ -11,12 +11,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use std::sync::Arc;
+
 use crate::controller::ControllerPtr;
 use crate::model::{ExecutorInfoPtr, SessionInfoPtr, SnapShotPtr};
-use crate::scheduler::actions::{ActionPtr, AllocateAction, BackfillAction, ShuffleAction};
-use crate::scheduler::plugins::{PluginManager, PluginManagerPtr};
-
-use common::apis::ExecutorState;
+use crate::scheduler::actions::{
+    ActionPtr, AllocateAction, BackfillAction, DispatchAction, ShuffleAction,
+};
+use crate::scheduler::allocator::{Allocator, AllocatorPtr};
+use crate::scheduler::dispatcher::{Dispatcher, DispatcherPtr};
 
 use common::FlameError;
 
@@ -24,85 +27,35 @@ const DEFAULT_SCHEDULE_INTERVAL: u64 = 500;
 
 pub struct Context {
     pub snapshot: SnapShotPtr,
-    pub controller: ControllerPtr,
+    // pub controller: ControllerPtr,
     pub actions: Vec<ActionPtr>,
-    pub plugins: PluginManagerPtr,
+    // pub plugins: PluginManagerPtr,
+    pub dispatcher: DispatcherPtr,
+    pub allocator: AllocatorPtr,
     pub schedule_interval: u64,
 }
 
 impl Context {
     pub fn new(controller: ControllerPtr) -> Result<Self, FlameError> {
         let snapshot = controller.snapshot()?;
-        let plugins = PluginManager::setup(&snapshot.clone())?;
+        // let plugins = PluginManager::setup(&snapshot.clone())?;
+        let dispatcher = Arc::new(Dispatcher::new(snapshot.clone(), controller.clone())?);
+        let allocator = Arc::new(Allocator::new(snapshot.clone(), controller.clone())?);
 
         Ok(Context {
             snapshot,
-            plugins,
-            controller,
+            // plugins,
+            // controller,
+            dispatcher,
+            allocator,
             // TODO(k82cn): Add ActionManager for them.
             actions: vec![
                 AllocateAction::new_ptr(),
+                DispatchAction::new_ptr(),
                 ShuffleAction::new_ptr(),
                 BackfillAction::new_ptr(),
             ],
             schedule_interval: DEFAULT_SCHEDULE_INTERVAL,
         })
-    }
-
-    pub fn filter(&self, execs: &[ExecutorInfoPtr], ssn: &SessionInfoPtr) -> Vec<ExecutorInfoPtr> {
-        self.plugins.filter(execs, ssn)
-    }
-
-    pub fn filter_one(&self, exec: &ExecutorInfoPtr, ssn: &SessionInfoPtr) -> bool {
-        !self.filter(&[exec.clone()], ssn).is_empty()
-    }
-
-    pub fn is_underused(&self, ssn: &SessionInfoPtr) -> Result<bool, FlameError> {
-        self.plugins.is_underused(ssn)
-    }
-
-    pub fn is_preemptible(&self, ssn: &SessionInfoPtr) -> Result<bool, FlameError> {
-        self.plugins.is_preemptible(ssn)
-    }
-
-    pub async fn bind_session(
-        &self,
-        exec: ExecutorInfoPtr,
-        ssn: SessionInfoPtr,
-    ) -> Result<(), FlameError> {
-        self.controller
-            .bind_session(exec.id.clone(), ssn.id)
-            .await?;
-        self.plugins.on_session_bind(ssn)?;
-        self.snapshot
-            .update_executor_state(exec.clone(), ExecutorState::Binding)?;
-
-        Ok(())
-    }
-
-    pub async fn pipeline_session(
-        &self,
-        exec: ExecutorInfoPtr,
-        ssn: SessionInfoPtr,
-    ) -> Result<(), FlameError> {
-        self.plugins.on_session_bind(ssn)?;
-
-        self.snapshot
-            .update_executor_state(exec.clone(), ExecutorState::Binding)?;
-
-        Ok(())
-    }
-
-    pub async fn unbind_session(
-        &self,
-        exec: ExecutorInfoPtr,
-        ssn: SessionInfoPtr,
-    ) -> Result<(), FlameError> {
-        self.controller.unbind_executor(exec.id.clone()).await?;
-        self.plugins.on_session_unbind(ssn)?;
-        self.snapshot
-            .update_executor_state(exec.clone(), ExecutorState::Unbinding)?;
-
-        Ok(())
     }
 }

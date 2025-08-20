@@ -18,19 +18,13 @@ use std::sync::Arc;
 use stdng::collections;
 
 use crate::model::{ExecutorInfoPtr, SessionInfo, SessionInfoPtr, SnapShot};
-use crate::scheduler::plugins::fairshare::FairShare;
+use crate::scheduler::dispatcher::plugins::fairshare::FairShare;
 use crate::scheduler::Context;
 
 use common::ptr::{self, MutexPtr};
 use common::{lock_ptr, FlameError};
 
 mod fairshare;
-
-// lazy_static! {
-//     static ref INSTANCE: MutexPtr<PluginManager> = Arc::new(Mutex::new(PluginManager {
-//         plugins: HashMap::from([("fairshare".to_string(), FairShare::new_ptr())])
-//     }));
-// }
 
 pub type PluginPtr = Box<dyn Plugin>;
 pub type PluginManagerPtr = Arc<PluginManager>;
@@ -126,21 +120,5 @@ impl PluginManager {
         }
 
         Ordering::Equal
-    }
-}
-
-pub fn ssn_order_fn(ctx: &Context) -> impl collections::Cmp<SessionInfoPtr> {
-    SsnOrderFn {
-        plugin_mgr: ctx.plugins.clone(),
-    }
-}
-
-struct SsnOrderFn {
-    plugin_mgr: PluginManagerPtr,
-}
-
-impl collections::Cmp<SessionInfoPtr> for SsnOrderFn {
-    fn cmp(&self, t1: &SessionInfoPtr, t2: &SessionInfoPtr) -> Ordering {
-        self.plugin_mgr.ssn_order_fn(t1, t2)
     }
 }
