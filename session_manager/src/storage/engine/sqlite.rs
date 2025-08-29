@@ -17,14 +17,16 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use bytes::Bytes;
 use chrono::{DateTime, Duration, Utc};
+use clap::Arg;
+use serde::{Deserialize, Serialize};
 use sqlx::{migrate::MigrateDatabase, types::Json, FromRow, Sqlite, SqlitePool};
 
 use crate::FlameError;
 use common::{
     apis::{
-        Application, ApplicationAttributes, ApplicationID, ApplicationState, CommonData, Session,
-        SessionID, SessionState, SessionStatus, Shim, Task, TaskGID, TaskID, TaskInput, TaskOutput,
-        TaskState, DEFAULT_DELAY_RELEASE, DEFAULT_MAX_INSTANCES,
+        Application, ApplicationAttributes, ApplicationID, ApplicationSchema, ApplicationState,
+        CommonData, Session, SessionID, SessionState, SessionStatus, Shim, Task, TaskGID, TaskID,
+        TaskInput, TaskOutput, TaskState, DEFAULT_DELAY_RELEASE, DEFAULT_MAX_INSTANCES,
     },
     trace::TraceFn,
     trace_fn,
@@ -33,6 +35,13 @@ use common::{
 use crate::storage::engine::{Engine, EnginePtr};
 
 const SQLITE_SQL: &str = "migrations/sqlite";
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct AppSchemaDao {
+    pub input: String,
+    pub output: String,
+    pub common_data: String,
+}
 
 #[derive(Clone, FromRow, Debug)]
 struct ApplicationDao {
@@ -46,6 +55,7 @@ struct ApplicationDao {
 
     pub max_instances: i32,
     pub delay_release: i64,
+    pub schema: Option<Json<AppSchemaDao>>,
 
     pub shim: i32,
     pub creation_time: i64,
@@ -123,15 +133,18 @@ impl Engine for SqliteEngine {
             .await
             .map_err(|e| FlameError::Storage(format!("failed to begin TX: {e}")))?;
 
-        let sql = "INSERT INTO applications (name, shim, command, arguments, environments, max_instances, delay_release, creation_time, state) VALUES (?, ?, ?, ?, ?, ?, ?, strftime ('%s', 'now'), 0) RETURNING *";
+        let sql = "INSERT INTO applications (name, description, labels, shim, command, arguments, environments, max_instances, delay_release, schema, creation_time, state) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime ('%s', 'now'), 0) RETURNING *";
         let app: ApplicationDao = sqlx::query_as(sql)
             .bind(name)
+            .bind(attr.description)
+            .bind(Json(attr.labels))
             .bind::<i32>(attr.shim.into())
             .bind(attr.command)
             .bind(Json(attr.arguments))
             .bind(Json(attr.environments))
             .bind(attr.max_instances)
             .bind(attr.delay_release.num_seconds())
+            .bind(Json(attr.schema.clone().map(AppSchemaDao::from)))
             .fetch_one(&mut *tx)
             .await
             .map_err(|e| FlameError::Storage(format!("failed to execute SQL: {e}")))?;
@@ -578,6 +591,7 @@ impl TryFrom<&ApplicationDao> for Application {
             working_directory: String::from("/tmp"),
             max_instances: app.max_instances,
             delay_release: Duration::seconds(app.delay_release),
+            schema: app.schema.clone().map(|arg| arg.0.into()),
         })
     }
 }
@@ -587,6 +601,26 @@ impl TryFrom<ApplicationDao> for Application {
 
     fn try_from(ssn: ApplicationDao) -> Result<Self, Self::Error> {
         Application::try_from(&ssn)
+    }
+}
+
+impl From<ApplicationSchema> for AppSchemaDao {
+    fn from(schema: ApplicationSchema) -> Self {
+        Self {
+            input: schema.input,
+            output: schema.output,
+            common_data: schema.common_data,
+        }
+    }
+}
+
+impl From<AppSchemaDao> for ApplicationSchema {
+    fn from(schema: AppSchemaDao) -> Self {
+        Self {
+            input: schema.input,
+            output: schema.output,
+            common_data: schema.common_data,
+        }
     }
 }
 

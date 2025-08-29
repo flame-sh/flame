@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS applications (
     environments    TEXT,
     description     TEXT,
     labels          TEXT,
+    schema          TEXT,
 
     shim            INTEGER NOT NULL,
     max_instances   INTEGER NOT NULL,
