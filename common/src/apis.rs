@@ -14,10 +14,11 @@ limitations under the License.
 use std::collections::HashMap;
 use std::{env, fmt};
 
-use ::rpc::flame::ApplicationSpec;
 use chrono::{DateTime, Duration, Utc};
 use rustix::system;
+use serde_json::json;
 
+use ::rpc::flame::ApplicationSpec;
 use rpc::flame as rpc;
 
 use crate::ptr::MutexPtr;
@@ -57,6 +58,28 @@ pub enum Shim {
     Grpc = 4,
 }
 
+#[derive(Clone, Debug)]
+pub struct ApplicationSchema {
+    pub input: String,
+    pub output: String,
+    pub common_data: String,
+}
+
+impl Default for ApplicationSchema {
+    fn default() -> Self {
+        let default_schema = json!({
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "string"
+        });
+
+        Self {
+            input: default_schema.to_string(),
+            output: default_schema.to_string(),
+            common_data: default_schema.to_string(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Application {
     pub name: String,
@@ -72,6 +95,7 @@ pub struct Application {
     pub working_directory: String,
     pub max_instances: i32,
     pub delay_release: Duration,
+    pub schema: Option<ApplicationSchema>,
 }
 
 #[derive(Clone, Debug)]
@@ -86,6 +110,7 @@ pub struct ApplicationAttributes {
     pub working_directory: String,
     pub max_instances: i32,
     pub delay_release: Duration,
+    pub schema: Option<ApplicationSchema>,
 }
 
 impl Default for ApplicationAttributes {
@@ -101,6 +126,7 @@ impl Default for ApplicationAttributes {
             working_directory: "/tmp".to_string(),
             max_instances: DEFAULT_MAX_INSTANCES,
             delay_release: DEFAULT_DELAY_RELEASE,
+            schema: Some(ApplicationSchema::default()),
         }
     }
 }
@@ -680,6 +706,26 @@ impl From<&Session> for rpc::Session {
     }
 }
 
+impl From<ApplicationSchema> for rpc::ApplicationSchema {
+    fn from(schema: ApplicationSchema) -> Self {
+        Self {
+            input: schema.input,
+            output: schema.output,
+            common_data: schema.common_data,
+        }
+    }
+}
+
+impl From<rpc::ApplicationSchema> for ApplicationSchema {
+    fn from(schema: rpc::ApplicationSchema) -> Self {
+        Self {
+            input: schema.input,
+            output: schema.output,
+            common_data: schema.common_data,
+        }
+    }
+}
+
 impl TryFrom<rpc::Application> for Application {
     type Error = FlameError;
     fn try_from(app: rpc::Application) -> Result<Self, Self::Error> {
@@ -726,6 +772,7 @@ impl TryFrom<&rpc::Application> for Application {
                 .delay_release
                 .map(Duration::seconds)
                 .unwrap_or(DEFAULT_DELAY_RELEASE),
+            schema: spec.schema.map(ApplicationSchema::from),
         })
     }
 }
@@ -754,6 +801,7 @@ impl From<&Application> for rpc::Application {
             working_directory: Some(app.working_directory.clone()),
             max_instances: Some(app.max_instances),
             delay_release: Some(app.delay_release.num_seconds()),
+            schema: app.schema.clone().map(rpc::ApplicationSchema::from),
         });
         let metadata = Some(rpc::Metadata {
             id: app.name.clone(),
@@ -794,6 +842,7 @@ impl From<rpc::ApplicationSpec> for ApplicationAttributes {
                 .delay_release
                 .map(Duration::seconds)
                 .unwrap_or(DEFAULT_DELAY_RELEASE),
+            schema: spec.schema.map(ApplicationSchema::from),
         }
     }
 }

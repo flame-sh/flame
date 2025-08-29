@@ -63,6 +63,13 @@ pub struct SessionAttributes {
 }
 
 #[derive(Clone)]
+pub struct ApplicationSchema {
+    pub input: String,
+    pub output: String,
+    pub common_data: String,
+}
+
+#[derive(Clone)]
 pub struct ApplicationAttributes {
     pub shim: Shim,
 
@@ -75,6 +82,7 @@ pub struct ApplicationAttributes {
     pub working_directory: Option<String>,
     pub max_instances: Option<i32>,
     pub delay_release: Option<Duration>,
+    pub schema: Option<ApplicationSchema>,
 }
 
 #[derive(Clone)]
@@ -384,6 +392,7 @@ impl From<ApplicationAttributes> for ApplicationSpec {
             working_directory: app.working_directory.clone(),
             max_instances: app.max_instances,
             delay_release: app.delay_release.map(|s| s.num_seconds()),
+            schema: app.schema.clone().map(rpc::ApplicationSchema::from),
         }
     }
 }
@@ -406,6 +415,27 @@ impl From<ApplicationSpec> for ApplicationAttributes {
             working_directory: app.working_directory.clone(),
             max_instances: app.max_instances,
             delay_release: app.delay_release.map(Duration::seconds),
+            schema: app.schema.clone().map(ApplicationSchema::from),
+        }
+    }
+}
+
+impl From<ApplicationSchema> for rpc::ApplicationSchema {
+    fn from(schema: ApplicationSchema) -> Self {
+        Self {
+            input: schema.input,
+            output: schema.output,
+            common_data: schema.common_data,
+        }
+    }
+}
+
+impl From<rpc::ApplicationSchema> for ApplicationSchema {
+    fn from(schema: rpc::ApplicationSchema) -> Self {
+        Self {
+            input: schema.input,
+            output: schema.output,
+            common_data: schema.common_data,
         }
     }
 }

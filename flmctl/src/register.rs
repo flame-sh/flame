@@ -18,15 +18,24 @@ use flame_rs as flame;
 use flame_rs::apis::Shim;
 use flame_rs::{
     apis::{FlameContext, FlameError},
-    client::ApplicationAttributes,
+    client::{ApplicationAttributes, ApplicationSchema},
 };
 
 use serde_derive::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct MetadataYaml {
     pub name: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SchemaYaml {
+    pub input: Option<String>,
+    pub output: Option<String>,
+    pub common_data: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SpecYaml {
     pub shim: Option<String>,
@@ -39,6 +48,7 @@ struct SpecYaml {
     pub working_directory: Option<String>,
     pub max_instances: Option<i32>,
     pub delay_release: Option<i64>,
+    pub schema: Option<SchemaYaml>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -93,6 +103,25 @@ impl TryFrom<&ApplicationYaml> for ApplicationAttributes {
             working_directory: yaml.spec.working_directory.clone(),
             max_instances: yaml.spec.max_instances,
             delay_release: yaml.spec.delay_release.map(Duration::seconds),
+            schema: yaml.spec.schema.clone().map(ApplicationSchema::from),
         })
+    }
+}
+
+impl From<SchemaYaml> for ApplicationSchema {
+    fn from(schema: SchemaYaml) -> Self {
+        let default_schema = json!({
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "string"
+        });
+
+        Self {
+            input: schema.input.clone().unwrap_or(default_schema.to_string()),
+            output: schema.output.clone().unwrap_or(default_schema.to_string()),
+            common_data: schema
+                .common_data
+                .clone()
+                .unwrap_or(default_schema.to_string()),
+        }
     }
 }

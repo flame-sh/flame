@@ -90,6 +90,12 @@ message Environment {
   string value = 2;
 }
 
+message ApplicationSchema {
+  string input = 1;
+  string output = 2;
+  string common_data = 3;
+}
+
 message ApplicationSpec {
   Shim shim = 1;
   optional string description = 2;
@@ -101,6 +107,7 @@ message ApplicationSpec {
   optional string working_directory = 8;
   optional int32 max_instances = 9;
   optional int64 delay_release = 10;
+  optional ApplicationSchema schema = 11;
 }
 
 message Application {

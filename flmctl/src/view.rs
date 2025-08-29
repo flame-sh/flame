@@ -61,5 +61,9 @@ async fn view_application(
         "Working Directory: {:?}",
         application.attributes.working_directory
     );
+    println!("Schema:");
+    println!("\tInput: {}", application.attributes.schema.clone().unwrap().input);
+    println!("\tOutput: {}", application.attributes.schema.clone().unwrap().output);
+    println!("\tCommon Data: {}", application.attributes.schema.clone().unwrap().common_data);
     Ok(())
 }

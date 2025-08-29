@@ -21,10 +21,11 @@ use std::io::Write;
 use std::process;
 
 use chrono::Local;
+use serde_json::json;
 use thiserror::Error;
 use tonic::Status;
 
-use crate::apis::{ApplicationAttributes, Shim};
+use crate::apis::{ApplicationAttributes, ApplicationSchema, Shim};
 
 #[derive(Error, Debug)]
 pub enum FlameError {
@@ -152,12 +153,46 @@ pub fn init_logger() {
 }
 
 pub fn default_applications() -> HashMap<String, ApplicationAttributes> {
+
+    let script_schema = json!({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+            "language": {
+                "type": "string",
+                "description": "The language of the script, e.g. python"
+            },
+            "code": {
+                "type": "string",
+                "description": "The code of the script to run, e.g. print('Hello, world!')"
+            },
+            "input": {
+                "type": "array",
+                "items": {
+                    "type": "integer",
+                    "description": "The input to the script in bytes, e.g. [0x1, 0x2]"
+                }
+            }
+        },
+        "required": [
+            "language",
+            "code"
+        ]
+    });
+
+
+
     HashMap::from([
         (
             "flmexec".to_string(),
             ApplicationAttributes {
                 shim: Shim::Grpc,
+                description: Some("The Flame Executor application, which is used to run scripts.".to_string()),
                 command: Some("/usr/local/flame/bin/flmexec-service".to_string()),
+                schema: Some(ApplicationSchema {
+                    input: script_schema.to_string(),
+                    .. ApplicationSchema::default()
+                }),
                 ..ApplicationAttributes::default()
             },
         ),
