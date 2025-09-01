@@ -64,9 +64,9 @@ pub struct SessionAttributes {
 
 #[derive(Clone)]
 pub struct ApplicationSchema {
-    pub input: String,
-    pub output: String,
-    pub common_data: String,
+    pub input: Option<String>,
+    pub output: Option<String>,
+    pub common_data: Option<String>,
 }
 
 #[derive(Clone)]

@@ -91,9 +91,9 @@ message Environment {
 }
 
 message ApplicationSchema {
-  string input = 1;
-  string output = 2;
-  string common_data = 3;
+  optional string input = 1;
+  optional string output = 2;
+  optional string common_data = 3;
 }
 
 message ApplicationSpec {

@@ -13,6 +13,8 @@ limitations under the License.
 
 use std::error::Error;
 
+use serde_json::Value;
+
 use flame_rs::apis::{FlameContext, FlameError};
 use flame_rs::client;
 
@@ -40,30 +42,75 @@ async fn view_application(
     application: &str,
 ) -> Result<(), Box<dyn Error>> {
     let application = conn.get_application(application).await?;
-    println!("Name: {}", application.name);
+    println!("{:<15}{}", "Name:", application.name);
     println!(
-        "Description: {}",
+        "{:<15}{}",
+        "Description:",
         application.attributes.description.unwrap_or_default()
     );
-    println!("Shim: {}", application.attributes.shim);
+    println!("{:<15}{}", "Shim:", application.attributes.shim);
     println!(
-        "Image: {}",
+        "{:<15}{}",
+        "Image:",
         application.attributes.image.unwrap_or_default()
     );
-    println!("Labels: {:?}", application.attributes.labels);
+    println!("{:<15}", "Labels:");
+    for label in application.attributes.labels {
+        println!("\t{label}");
+    }
     println!(
-        "Command: {}",
+        "{:<15}{}",
+        "Command:",
         application.attributes.command.unwrap_or_default()
     );
-    println!("Arguments: {:?}", application.attributes.arguments);
-    println!("Environments: {:?}", application.attributes.environments);
+    println!("{:<15}", "Arguments:");
+    for argument in application.attributes.arguments {
+        println!("\t{argument}");
+    }
+    println!("{:<15}", "Environments:");
+    for (key, value) in application.attributes.environments {
+        println!("\t{key}: {value}");
+    }
     println!(
-        "Working Directory: {:?}",
-        application.attributes.working_directory
+        "{:<15}{}",
+        "WorkingDir:",
+        application.attributes.working_directory.unwrap_or_default()
     );
-    println!("Schema:");
-    println!("\tInput: {}", application.attributes.schema.clone().unwrap().input);
-    println!("\tOutput: {}", application.attributes.schema.clone().unwrap().output);
-    println!("\tCommon Data: {}", application.attributes.schema.clone().unwrap().common_data);
+    println!(
+        "{:<15}{}",
+        "Max Instances:",
+        application.attributes.max_instances.unwrap_or_default()
+    );
+    println!(
+        "{:<15}{}",
+        "Delay Release:",
+        application.attributes.delay_release.unwrap_or_default()
+    );
+
+    println!("{:<15}", "Schema:");
+
+    if let Some(schema) = application.attributes.schema {
+        let input_type = get_type(schema.input)?;
+        let output_type = get_type(schema.output)?;
+        let common_data_type = get_type(schema.common_data)?;
+
+        println!("  Input: {input_type}");
+        println!("  Output: {output_type}");
+        println!("  Common Data: {common_data_type}");
+    }
     Ok(())
+}
+
+fn get_type(schema: Option<String>) -> Result<String, FlameError> {
+    match schema {
+        Some(schema) => {
+            let value = serde_json::from_str::<Value>(&schema)
+                .map_err(|e| FlameError::InvalidConfig(e.to_string()))?;
+            let schema_type = value.get("type").ok_or(FlameError::InvalidConfig(
+                "schema type is missed".to_string(),
+            ))?;
+            Ok(schema_type.to_string())
+        }
+        None => Ok("-".to_string()),
+    }
 }

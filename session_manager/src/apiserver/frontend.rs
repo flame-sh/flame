@@ -12,22 +12,23 @@ limitations under the License.
 */
 use std::pin::Pin;
 
-use ::rpc::flame::{
-    ApplicationList, GetApplicationRequest, ListApplicationRequest, RegisterApplicationRequest,
-    UnregisterApplicationRequest, UpdateApplicationRequest,
-};
 use async_trait::async_trait;
 use common::apis::ApplicationAttributes;
 use futures::Stream;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{Request, Response, Status};
+use serde_json::Value;
 
 use self::rpc::frontend_server::Frontend;
 use self::rpc::{
     CloseSessionRequest, CreateSessionRequest, CreateTaskRequest, DeleteSessionRequest,
     DeleteTaskRequest, GetSessionRequest, GetTaskRequest, ListSessionRequest, OpenSessionRequest,
     Session, SessionList, Task, WatchTaskRequest,
+};
+use ::rpc::flame::{
+    ApplicationList, GetApplicationRequest, ListApplicationRequest, RegisterApplicationRequest,
+    UnregisterApplicationRequest, UpdateApplicationRequest,
 };
 use rpc::flame as rpc;
 
@@ -50,6 +51,34 @@ impl Frontend for Flame {
         let spec = req.application.ok_or(FlameError::InvalidConfig(
             "applilcation spec is missed".to_string(),
         ))?;
+
+        if let Some(ref schema) = spec.schema {
+            if let Some(ref input) = schema.input {
+                let input: Value = serde_json::from_str(input).map_err(|e| FlameError::InvalidConfig(
+                    format!("invalid input schema: {e}"),
+                ))?;
+                jsonschema::meta::validate(&input).map_err(|e| FlameError::InvalidConfig(
+                    format!("invalid input schema: {e}"),
+                ))?;
+            }
+            if let Some(ref output) = schema.output {
+                let output: Value = serde_json::from_str(output).map_err(|e| FlameError::InvalidConfig(
+                    format!("invalid output schema: {e}"),
+                ))?;
+                jsonschema::meta::validate(&output).map_err(|e| FlameError::InvalidConfig(
+                    format!("invalid output schema: {e}"),
+                ))?;
+            }
+            if let Some(ref common_data) = schema.common_data {
+                let common_data: Value = serde_json::from_str(common_data).map_err(|e| FlameError::InvalidConfig(
+                    format!("invalid common data schema: {e}"),
+                ))?;
+                jsonschema::meta::validate(&common_data).map_err(|e| FlameError::InvalidConfig(
+                    format!("invalid common data schema: {e}"),
+                ))?;
+            }
+        }
+
         let res = self
             .controller
             .register_application(req.name, ApplicationAttributes::from(spec))

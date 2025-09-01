@@ -16,7 +16,6 @@ use std::{env, fmt};
 
 use chrono::{DateTime, Duration, Utc};
 use rustix::system;
-use serde_json::json;
 
 use ::rpc::flame::ApplicationSpec;
 use rpc::flame as rpc;
@@ -58,26 +57,11 @@ pub enum Shim {
     Grpc = 4,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ApplicationSchema {
-    pub input: String,
-    pub output: String,
-    pub common_data: String,
-}
-
-impl Default for ApplicationSchema {
-    fn default() -> Self {
-        let default_schema = json!({
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "type": "string"
-        });
-
-        Self {
-            input: default_schema.to_string(),
-            output: default_schema.to_string(),
-            common_data: default_schema.to_string(),
-        }
-    }
+    pub input: Option<String>,
+    pub output: Option<String>,
+    pub common_data: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
