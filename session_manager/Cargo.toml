@@ -30,6 +30,7 @@ thiserror = "1"
 chrono = "0.4"
 stdng = "0.1"
 bytes = "1"
+jsonschema = "0.33.0"
 
 [dependencies.uuid]
 version = "1.3.1"

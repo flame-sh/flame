@@ -38,9 +38,9 @@ const SQLITE_SQL: &str = "migrations/sqlite";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct AppSchemaDao {
-    pub input: String,
-    pub output: String,
-    pub common_data: String,
+    pub input: Option<String>,
+    pub output: Option<String>,
+    pub common_data: Option<String>,
 }
 
 #[derive(Clone, FromRow, Debug)]

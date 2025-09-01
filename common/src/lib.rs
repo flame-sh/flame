@@ -154,7 +154,7 @@ pub fn init_logger() {
 
 pub fn default_applications() -> HashMap<String, ApplicationAttributes> {
 
-    let script_schema = json!({
+    let script_input_schema = json!({
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
@@ -180,6 +180,11 @@ pub fn default_applications() -> HashMap<String, ApplicationAttributes> {
         ]
     });
 
+    let script_output_schema = json!({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "string",
+        "description": "The output of the script in UTF-8."
+    });
 
 
     HashMap::from([
@@ -190,7 +195,8 @@ pub fn default_applications() -> HashMap<String, ApplicationAttributes> {
                 description: Some("The Flame Executor application, which is used to run scripts.".to_string()),
                 command: Some("/usr/local/flame/bin/flmexec-service".to_string()),
                 schema: Some(ApplicationSchema {
-                    input: script_schema.to_string(),
+                    input: Some(script_input_schema.to_string()),
+                    output: Some(script_output_schema.to_string()),
                     .. ApplicationSchema::default()
                 }),
                 ..ApplicationAttributes::default()

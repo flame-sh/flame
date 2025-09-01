@@ -22,7 +22,6 @@ use flame_rs::{
 };
 
 use serde_derive::{Deserialize, Serialize};
-use serde_json::json;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct MetadataYaml {
@@ -110,18 +109,10 @@ impl TryFrom<&ApplicationYaml> for ApplicationAttributes {
 
 impl From<SchemaYaml> for ApplicationSchema {
     fn from(schema: SchemaYaml) -> Self {
-        let default_schema = json!({
-            "$schema": "http://json-schema.org/draft-07/schema#",
-            "type": "string"
-        });
-
         Self {
-            input: schema.input.clone().unwrap_or(default_schema.to_string()),
-            output: schema.output.clone().unwrap_or(default_schema.to_string()),
-            common_data: schema
-                .common_data
-                .clone()
-                .unwrap_or(default_schema.to_string()),
+            input: schema.input.clone(),
+            output: schema.output.clone(),
+            common_data: schema.common_data.clone(),
         }
     }
 }
