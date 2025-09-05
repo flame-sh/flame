@@ -3,8 +3,8 @@
 import grpc
 import warnings
 
-import flame.frontend_pb2 as frontend__pb2
-import flame.types_pb2 as types__pb2
+import flamepy.frontend_pb2 as frontend__pb2
+import flamepy.types_pb2 as types__pb2
 
 GRPC_GENERATED_VERSION = '1.74.0'
 GRPC_VERSION = grpc.__version__

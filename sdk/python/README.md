@@ -5,14 +5,14 @@ Python SDK for the Flame distributed computing framework.
 ## Installation
 
 ```bash
-pip install flame
+pip install flamepy
 ```
 
 ## Quick Start
 
 ```python
 import asyncio
-from flame import SessionAttributes, connect
+from flamepy import SessionAttributes, connect
 
 async def main():
     # Connect to Flame service
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 The main entry point for connecting to Flame services.
 
 ```python
-from flame import connect
+from flamepy import connect
 
 # Connect to a Flame service
 conn = await connect("http://localhost:8080")
@@ -111,7 +111,7 @@ apps = await conn.list_applications()
 The SDK provides custom exception types for different error scenarios:
 
 ```python
-from flame import FlameError, FlameErrorCode
+from flamepy import FlameError, FlameErrorCode
 
 try:
     session = await conn.create_session(attrs)
@@ -138,9 +138,9 @@ pip install -e .[dev]
 pytest
 
 # Format code
-black flame/
-isort flame/
+black flamepy/
+isort flamepy/
 
 # Type checking
-mypy flame/
+mypy flamepy/
 ``` 
