@@ -3,8 +3,8 @@
 import grpc
 import warnings
 
-import flame.shim_pb2 as shim__pb2
-import flame.types_pb2 as types__pb2
+import flamepy.shim_pb2 as shim__pb2
+import flamepy.types_pb2 as types__pb2
 
 GRPC_GENERATED_VERSION = '1.74.0'
 GRPC_VERSION = grpc.__version__

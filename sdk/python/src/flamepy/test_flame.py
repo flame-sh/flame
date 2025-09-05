@@ -8,7 +8,7 @@ import asyncio
 from unittest.mock import Mock, AsyncMock
 from datetime import datetime
 
-from flame import (
+from flamepy import (
     Connection, SessionAttributes, ApplicationAttributes,
     Session, Task, Application, Shim, SessionState, TaskState,
     ApplicationState, FlameError, FlameErrorCode, TaskInformer

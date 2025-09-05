@@ -3,14 +3,14 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "flame"
-version = "0.1.0"
-description = "Python SDK for Flame distributed computing framework"
+name = "flamepy"
+version = "0.3.0"
+description = "Python SDK for Flame distributed engine"
 readme = "README.md"
 requires-python = ">=3.8"
 license-files = ["LICENSE"]
 authors = [
-  {name = "Flame Authors", email = "klaus1982.cn@gmail.com"}
+  {name = "XFLOPS Authors", email = "support@xflops.io"}
 ]
 keywords = ["distributed computing", "flame", "sdk"]
 classifiers = [
@@ -44,9 +44,9 @@ where = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/flame-sh/flame"
-Repository = "https://github.com/flame-sh/flame"
-Issues = "https://github.com/flame-sh/flame/issues"
+Homepage = "https://xflops.io"
+Repository = "https://github.com/xflops/flame"
+Issues = "https://github.com/xflops/flame/issues"
 
 [tool.black]
 line-length = 88
