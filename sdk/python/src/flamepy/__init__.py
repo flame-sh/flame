@@ -12,6 +12,7 @@ from .types import (
     # Enums
     SessionState,
     TaskState,
+    ApplicationState,
     Shim,
 
     FlameErrorCode,
@@ -32,7 +33,7 @@ from .service import (
     ApplicationContext, SessionContext, TaskContext, TaskOutput,
     run
 )
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 __all__ = [
     # Type aliases

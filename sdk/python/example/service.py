@@ -10,16 +10,16 @@ Example usage of the Flame Python SDK service functionality.
 """
 
 import asyncio
-import flame
+import flamepy
 
-class ExampleService(flame.FlameService):
+class ExampleService(flamepy.FlameService):
     """Custom implementation of GrpcShimService."""
     
     def __init__(self):
         self._session_context = None
         self._task_count = 0
     
-    async def on_session_enter(self, context: flame.SessionContext) -> bool:
+    async def on_session_enter(self, context: flamepy.SessionContext) -> bool:
         """Handle session enter."""
         print(f"🟢 Entering session: {context.session_id}")
         print(f"   Application: {context.application.name}")
@@ -31,7 +31,7 @@ class ExampleService(flame.FlameService):
         
         return True
     
-    async def on_task_invoke(self, context: flame.TaskContext) -> flame.TaskOutput:
+    async def on_task_invoke(self, context: flamepy.TaskContext) -> flamepy.TaskOutput:
         """Handle task invoke."""
         self._task_count += 1
         print(f"🟡 Invoking task {self._task_count}: {context.task_id}")
@@ -50,7 +50,7 @@ class ExampleService(flame.FlameService):
         
         print(f"   Output: {output_data}")
         
-        return flame.TaskOutput(data=output_data)
+        return flamepy.TaskOutput(data=output_data)
     
     async def on_session_leave(self) -> bool:
         """Handle session leave."""
@@ -69,7 +69,7 @@ async def main():
 
     try:
         # Run the service
-        await flame.run(ExampleService())
+        await flamepy.run(ExampleService())
     except KeyboardInterrupt:
         print("\n🛑 Server stopped by user")
     except Exception as e:
